@@ -1,0 +1,62 @@
+body {
+    font-family: 'Poppins', sans-serif;
+}
+
+.feature-card {
+    position: relative;
+    overflow: hidden;
+    border-radius: 1rem;
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    transition: all 0.3s ease-in-out;
+    height: 450px;
+}
+
+.feature-card:hover {
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+    transform: translateY(-0.5rem);
+}
+
+.feature-card img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.3s ease-in-out;
+}
+
+.feature-card:hover img {
+    transform: scale(1.05);
+}
+
+.feature-card-content {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: 2rem;
+    background: linear-gradient(to top, rgba(0, 0, 0, 0.9), transparent);
+    color: white;
+}
+
+.feature-card-content h3 {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: white;
+}
+
+.feature-card-content p {
+    margin-top: 0.75rem;
+    color: #d1d5db;
+    opacity: 0;
+    max-height: 0;
+    transition: opacity 0.3s ease-in-out, max-height 0.3s ease-in-out;
+}
+
+.feature-card:hover .feature-card-content p {
+    opacity: 1;
+    max-height: 100px; /* Adjust as needed */
+}
+
+.payment-option[aria-checked="true"] {
+    border-color: #F97316; /* orange-500 */
+    box-shadow: 0 0 0 2px #F97316;
+}
