@@ -3,10 +3,13 @@ from pydantic_settings import BaseSettings
 from pydantic import field_serializer
 
 class Settings(BaseSettings):
-    API_PREFIX: str = "/api"
+    API_PREFIX: str = "/api/v1"
     DEBUG: bool = False
     ALLOWED_ORIGINS: str = ""
     DATABASE_URL: str = ""
+    RAJA_ONGKIR_API: str = ""
+    KOMERCE_BASE_URL: str = ""
+    MY_ORIGIN_DESTINATION_ID: str = ""
 
 
     @field_serializer("ALLOWED_ORIGINS")
