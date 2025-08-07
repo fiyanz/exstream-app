@@ -14,7 +14,11 @@ const CobaCom = () => {
                 />
                 <nav className='text-white relative p-4 sm:p-8'>
                     <div className='flex flex-col items-center gap-6 text-center md:flex-row md:justify-center md:gap-10 towo'>
-                        <div className='flex flex-col gap-4 sm:gap-6 items-center md:items-end md:text-right'>
+                        <div 
+                            data-aos="fade-right"
+                            data-aos-delay="100"
+                            data-aos-duration="1900"
+                            className='flex flex-col gap-4 sm:gap-6 items-center md:items-end md:text-right'>
                             <span className='text-lg sm:text-2xl'>
                                 Koleksi Baru
                             </span>
@@ -29,7 +33,13 @@ const CobaCom = () => {
                                 </button>
                             </a>
                         </div>
-                        <img src={logo} alt="Model" className='w-full max-w-[250px] sm:max-w-[410px] mt-4 md:mt-0' />
+                        <img 
+                            data-aos="fade-left"
+                            data-aos-delay="100"
+                            data-aos-duration="1900"
+                            src={logo} 
+                            alt="Model" 
+                            className='w-full max-w-[250px] sm:max-w-[410px] mt-4 md:mt-0' />
                     </div>
                 </nav>
             </div>

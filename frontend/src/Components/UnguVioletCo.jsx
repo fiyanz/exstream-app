@@ -1,14 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
-import imag from "../assets/Extrime/Cewek/Cewe1.jpeg";
-import imag1 from "../assets/Extrime/Cewek/Cewe3.jpeg";
-import imag2 from "../assets/Extrime/Cewek/Cewe.jpeg";
-import imag3 from "../assets/Extrime/Cewek/Cewe2.jpeg";
-import men from "../assets/Extrime/Cowok/One3.jpeg";
-import men1 from "../assets/Extrime/Cowok/One1.jpeg";
-import men2 from "../assets/Extrime/Cowok/One.jpeg";
-import men3 from "../assets/Extrime/Cowok/One2.jpeg";
-import men4 from "../assets/Extrime/Cowok/One4.jpeg";
+import imag from "../assets/Extrime/Cewek/Violet/Cewe.jpeg";
+import imag1 from "../assets/Extrime/Cewek/Violet/Cewe1.jpeg";
+import imag2 from "../assets/Extrime/Cewek/Violet/Cewe2.jpeg";
+import imag3 from "../assets/Extrime/Cewek/Violet/Cewe3.jpeg";
+import imag4 from "../assets/Extrime/Cewek/Violet/Cewe4.jpeg";
 
 
 const PinkMudaCo = () => {
@@ -33,11 +29,11 @@ const PinkMudaCo = () => {
             name: 'Pink Muda',
             image: imag3,
         },
-        // {
-        //     id: 5,
-        //     name: 'Beige / Khaki',
-        //     image: men,
-        // },
+        {
+            id: 5,
+            name: 'Beige / Khaki',
+            image: imag4,
+        },
         // {
         //     id: 7,
         //     name: 'Navy Blue',
@@ -73,7 +69,7 @@ const PinkMudaCo = () => {
     useEffect(() => {
         const interval = setInterval(() => {
             setCurrentSlide((prevSlide) => (prevSlide + 1) % totalPages);
-        }, 3000); // Geser slide setiap 3 detik
+        }, 10000); // Geser slide setiap 3 detik
 
         return () => clearInterval(interval);
     }, [totalPages]); // Pastikan efek berjalan ulang saat totalPages berubah

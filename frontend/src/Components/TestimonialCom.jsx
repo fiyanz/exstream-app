@@ -28,18 +28,21 @@ const Testimonial = () => {
       name: 'henyhandayanii',
       rating: 5,
       text: 'Bagus banget bahannya tebel , tokonya amanah yang di kirim sesuai dengan yg di pesan jangan ragu beli di toko ini, semoga amanah terus ya 😁',
+      Delay: "200"
     },
     {
       avatar: cowok,
       name: 'hikmamirzaukhail',
       rating: 5,
       text: 'Sangat bagus sesuai pesanan bahan taslan sama seperti axio tapi tanpa puring tapi tetap nyaman kalo dilipat bisa kecil tidak memakan tempat',
+      Delay: "300"
     },
     {
       avatar: cewek,
       name: 'hartinah2410',
       rating: 5,
       text: 'Bahanny tebal, bagus, harga oke...barang sesuai dateng ny sama yg di order...pokonya is the best lah...',
+      Delay: "400"
     },
   ];
 
@@ -49,14 +52,21 @@ const Testimonial = () => {
       <div className="container mx-auto max-w-6xl text-center tes-0">
 
         {/* Section Title */}
-        <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-10 tracking-tight h2-te">
-          Sudah Dipercaya 1000+ Tim <br /> & Perusahaan Ternama
+        <h2 
+          data-aos="fade-down"
+          data-aos-delay="100"
+          data-aos-duration="1900"
+          className="text-3xl sm:text-4xl md:text-5xl font-bold mb-10 tracking-tight h2-te">
+          Sudah Dipercaya 1000+ Pemesanan
         </h2>
 
         {/* Testimonials Grid */}
         <div className="grid gap-8 md:grid-cols-3 li-2">
           {testimonials.map((testimonial, index) => (
             <div
+              data-aos="fade-down"
+              data-aos-delay={testimonials.Delay}
+              data-aos-duration="1900"
               key={index}
               className="bg-white text-gray-800 p-6 rounded-lg shadow-lg flex flex-col items-start text-left gr-te"
             >

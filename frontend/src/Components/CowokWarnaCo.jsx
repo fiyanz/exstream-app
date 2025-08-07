@@ -1,13 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
-import imag from "../assets/Extrime/Cewek/Cewe1.jpeg";
-import imag1 from "../assets/Extrime/Cewek/Cewe3.jpeg";
-import imag2 from "../assets/Extrime/Cewek/Cewe.jpeg";
-import imag3 from "../assets/Extrime/Cewek/Cewe2.jpeg";
-import men from "../assets/Extrime/Cowok/One3.jpeg";
+import men from "../assets/Extrime/Cowok/One.jpeg";
 import men1 from "../assets/Extrime/Cowok/One1.jpeg";
-import men2 from "../assets/Extrime/Cowok/One.jpeg";
-import men3 from "../assets/Extrime/Cowok/One2.jpeg";
+import men2 from "../assets/Extrime/Cowok/One2.jpeg";
+import men3 from "../assets/Extrime/Cowok/One3.jpeg";
 import men4 from "../assets/Extrime/Cowok/One4.jpeg";
 
 
@@ -15,29 +11,29 @@ const CowokWarnaCo = () => {
     const products = [
         {
             id: 1,
-            name: 'Hijau Sage',
-            image: imag,
+            name: 'Black',
+            image: men,
         },
         {
             id: 2,
-            name: 'Ungu Violet',
-            image: imag1,
+            name: 'Navy Blue',
+            image: men1,
         },
         {
             id: 3,
-            name: 'Dusty Pink',
-            image: imag2,
+            name: 'Army Green',
+            image: men2,
         },
         {
             id: 4,
-            name: 'Pink Muda',
-            image: imag3,
+            name: 'Beige',
+            image: men3,
         },
-        // {
-        //     id: 5,
-        //     name: 'Beige / Khaki',
-        //     image: men,
-        // },
+        {
+            id: 5,
+            name: 'Red',
+            image: men4,
+        },
         // {
         //     id: 7,
         //     name: 'Navy Blue',
@@ -73,7 +69,7 @@ const CowokWarnaCo = () => {
     useEffect(() => {
         const interval = setInterval(() => {
             setCurrentSlide((prevSlide) => (prevSlide + 1) % totalPages);
-        }, 3000); // Geser slide setiap 3 detik
+        }, 10000); // Geser slide setiap 3 detik
 
         return () => clearInterval(interval);
     }, [totalPages]); // Pastikan efek berjalan ulang saat totalPages berubah
@@ -97,7 +93,11 @@ const CowokWarnaCo = () => {
     const carouselTransform = `translateX(-${currentSlide * 100}%)`;
 
     return (
-        <div className=" p-2 sm:p-4 w-full">
+        <div 
+            data-aos="fade-down"
+            data-aos-delay="500"
+            data-aos-duration="1900"
+            className=" p-2 sm:p-4 w-full">
             <div className="w-[200px] div-war">
 
                 {/* Swiper container */}

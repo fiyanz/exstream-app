@@ -24,7 +24,7 @@ const NavbarCom = () => {
                 />
 
                 {/* Content Section */}
-                <div className='flex flex-col md:flex-row justify-center items-center md:ml-4 one-nav'>
+                <div className='flex flex-col md:flex-row justify-center items-center md:ml-4 one-nav  animate__animated animate__fadeInLeft animate__delay-1s'>
                     {/* Text and Button */}
                     <div className='flex flex-col gap-4 text-center  one-nav1'>
                         <span className='text-xl md:text-2xl font-semibold'>

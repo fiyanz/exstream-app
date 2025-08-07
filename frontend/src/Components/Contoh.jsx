@@ -2,10 +2,10 @@ import React, { useState, useEffect, useRef } from 'react';
 import { CheckCircle, ShoppingBag, Plus, Minus } from 'lucide-react';
 // The following image paths are for demonstration purposes.
 // In a real-world application, you would ensure these assets are available.
-import Women from '../assets/Extrime/Cewek/Cewe1.jpeg';
-import Women1 from '../assets/Extrime/Cewek/Cewe3.jpeg';
-import Women2 from '../assets/Extrime/Cewek/Cewe.jpeg';
-import Women3 from '../assets/Extrime/Cewek/Cewe2.jpeg';
+import Women from '../assets/Extrime/Cewek/HijauSage/Cewe.jpeg';
+import Women1 from '../assets/Extrime/Cewek/Violet/Cewe.jpeg';
+import Women2 from '../assets/Extrime/Cewek/DustyPink/Cewe.jpeg';
+import Women3 from '../assets/Extrime/Cewek/PInkMuda/Cewe.jpeg';
 import men from '../assets/Extrime/Cowok/One3.jpeg';
 import men1 from '../assets/Extrime/Cowok/One1.jpeg';
 import men2 from '../assets/Extrime/Cowok/One.jpeg';
@@ -33,22 +33,73 @@ const paymentMethods = [
 ];
 
 // Mock location data.
-const provinces = ['Jawa Barat', 'Jawa Tengah', 'Jawa Timur'];
+const provinces = ['Jawa Barat', 'Jawa Tengah', 'Yogyakarta', 'Jawa Timur', 'Banten', 'Bali'];
 const cities = {
-    'Jawa Barat': ['Bandung', 'Bogor', 'Bekasi'],
-    'Jawa Tengah': ['Surakarta', 'Semarang', 'Yogyakarta'],
-    'Jawa Timur': ['Surabaya', 'Malang', 'Sidoarjo'],
+    'Jawa Barat': ['Bandung', 'Bogor', 'Bekasi', 'Depok', 'Cimahi'],
+    'Jawa Tengah': ['Surakarta', 'Semarang', 'Magelang', 'Tegal', 'Pekalongan', 'Purwokerto'],
+    'Yogyakarta': ['Yogyakarta', 'Bantul', 'Sleman', 'Gunung Kidul', 'Kulon Progo'],
+    'Jawa Timur': ['Surabaya', 'Malang', 'Kediri', 'Blitar', 'Madiun', 'Pasuruan'],
+    'Bali': ['Denpasar', 'Gianyar', 'Tabanan', 'Badung', 'Buleleng', 'Karangasem'],
 };
 const subdistricts = {
-    'Bandung': ['Cileunyi', 'Gedebage'],
-    'Surakarta': ['Laweyan', 'Serengan'],
-    'Surabaya': ['Sukolilo', 'Rungkut'],
+    'Bandung': ['Coblong'],
+    'Bogor': ['Bogor Tengah'],
+    'Bekasi': ['Bekasi Timur'],
+    'Depok': ['Beji'],
+    'Cimahi': ['Cimahi Tengah'],
+    'Surakarta': ['Banjarsari'],
+    'Semarang': ['Candisari'],
+    'Magelang': ['Magelang Selatan'],
+    'Tegal': ['Tegal Barat'],
+    'Pekalongan': ['Pekalongan Timur'],
+    'Purwokerto': ['Purwokerto Selatan'],
+    'Yogyakarta': ['Umbul Harjo', 'Kraton'],
+    'Bantul': ['Banguntapan'],
+    'Sleman': ['Depok'],
+    'Gunung Kidul': ['Wonosari'],
+    'Kulon Progo': ['Wates'],
+    'Surabaya': ['Tegal Sari'],
+    'Malang': ['Klojen'],
+    'Kediri': ['Mojoroto'],
+    'Blitar': ['Sanan Wetan'],
+    'Madiun': ['Kartoharjo'],
+    'Pasuruan': ['Bugul Kidul'],
+    'Denpasar': ['Denpasar Selatan'],
+    'Gianyar': ['Ubud'],
+    'Tabanan': ['Tabanan'],
+    'Badung': ['Kuta'],
+    'Buleleng': ['Singaraja'],
+    'Karangasem': ['Karangasem'],
 };
 const villages = {
-    'Laweyan': ['Sondakan', 'Pajang'],
-    'Sukolilo': ['Keputih', 'Gebang Putih'],
-    'Gedebage': ['Cisaranten Kidul', 'Rancabolang'],
-    'Rungkut': ['Rungkut Kidul', 'Kali Rungkut'],
+    'Coblong': ['Dago', 'Lebak Gede'],
+    'Bekasi Timur': ['Aren Jaya'],
+    'Bogor Tengah': ['Pabaton'],
+    'Beji': ['Kemiri Muka'],
+    'Cimahi Tengah': ['Baros'],
+    'Banjasari': ['Manahan'],
+    'Candisari': ['Jatingaleh'],
+    'Magelang Selatan': ['Tidar'],
+    'Tegal Barat': ['Panggung'],
+    'Pekalongan Timur': ['Kauman'],
+    'Purwokerto Selatan': ['Berkoh'],
+    'Umbul Harjo': ['Muja Muju'],
+    'Banguntapan': ['Wirokerten'],
+    'Depok': ['Caturtunggal'],
+    'Wonosari': ['Kepek'],
+    'Wates': ['Wates'],
+    'Tegal Sari': ['Tegal Sari'],
+    'Klojen': ['Kasin'],
+    'Mojoroto': ['Tamanan'],
+    'Sanan Wetan': ['Gedog'],
+    'Kartoharjo': ['Pandean'],
+    'Bugul Kidul': ['Pekuncen'],
+    'Denpasar Selatan': ['Sanur'],
+    'Ubud': ['Petulu'],
+    'Tabanan': ['Delod Peken'],
+    'Kuta': ['Legian'],
+    'Singaraja': ['Kampung Baru'],
+    'Karangasem': ['Subagan'],
 };
 
 // Reusable component for a Select dropdown.
@@ -223,7 +274,7 @@ const App = () => {
             {/* <h1 className="text-3xl md:text-4xl font-extrabold text-black text-center h1-con">Checkout</h1> */}
             <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-16">
                 {/* Left Section: Product Options and Shipping Form */}
-                <div className="space-y-8">
+                <div className="space-y-8 self-1">
                     {/* Header */}
                     
 
@@ -380,7 +431,7 @@ const App = () => {
                 </div>
 
                 {/* Right Section: Order Summary Card */}
-                <div className=" self-start">
+                <div className="self-start">
                     <div className="">
                         <h2 className="text-2xl font-bold text-black rin-con">Ringkasan Pesanan</h2>
 
@@ -410,7 +461,7 @@ const App = () => {
                                 <span className='text-xl'>{formatRupiah(subtotal)}</span>
                             </div>
                             <div className="flex justify-between items-center text-red-500">
-                                <span className='text-xl'>Diskon <span className="text-xs bg-red-100 rounded-full px-2 py-0.5 ml-2 font-semibold">50%</span></span>
+                                <span className='text-xl'>Diskon <span className="text-xs bg-red-100 rounded-full px-2 py-0.5 ml-2 font-semibold"></span></span>
                                 <span className="line-through text-xl">{formatRupiah(discount)}</span>
                             </div>
                             <div className="flex justify-between text-black">

@@ -1,48 +1,44 @@
 import React, { useState, useEffect } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
-import imag from "../assets/Extrime/Cewek/Cewe1.jpeg";
-import imag1 from "../assets/Extrime/Cewek/Cewe3.jpeg";
-import imag2 from "../assets/Extrime/Cewek/Cewe.jpeg";
-import imag3 from "../assets/Extrime/Cewek/Cewe2.jpeg";
-import men from "../assets/Extrime/Cowok/One3.jpeg";
-import men1 from "../assets/Extrime/Cowok/One1.jpeg";
-import men2 from "../assets/Extrime/Cowok/One.jpeg";
-import men3 from "../assets/Extrime/Cowok/One2.jpeg";
-import men4 from "../assets/Extrime/Cowok/One4.jpeg";
-
+import imag from "../assets/Extrime/Cewek/DustyPink/Cewe.jpeg";
+import imag1 from "../assets/Extrime/Cewek/DustyPink/Cewe1.jpeg";
+import imag2 from "../assets/Extrime/Cewek/DustyPink/Cewe2.jpeg";
+import imag3 from "../assets/Extrime/Cewek/DustyPink/Cewe3.jpeg";
+import imag4 from "../assets/Extrime/Cewek/DustyPink/Cewe4.jpeg";
+import imag5 from "../assets/Extrime/Cewek/DustyPink/Cewe5.jpeg";
 
 const DustyPinkCo = () => {
     const products = [
         {
             id: 1,
-            name: 'Hijau Sage',
+            name: 'DustyPink',
             image: imag,
         },
         {
             id: 2,
-            name: 'Ungu Violet',
+            name: 'DustyPink',
             image: imag1,
         },
         {
             id: 3,
-            name: 'Dusty Pink',
+            name: 'DustyPink',
             image: imag2,
         },
         {
             id: 4,
-            name: 'Pink Muda',
+            name: 'DustyPink',
             image: imag3,
         },
-        // {
-        //     id: 5,
-        //     name: 'Beige / Khaki',
-        //     image: men,
-        // },
-        // {
-        //     id: 7,
-        //     name: 'Navy Blue',
-        //     image: men1,
-        // },
+        {
+            id: 5,
+            name: 'DustyPink',
+            image: imag4,
+        },
+        {
+            id: 6,
+            name: 'DustyPink',
+            image: imag5,
+        },
         // {
         //     id: 8,
         //     name: 'black',
@@ -73,7 +69,7 @@ const DustyPinkCo = () => {
     useEffect(() => {
         const interval = setInterval(() => {
             setCurrentSlide((prevSlide) => (prevSlide + 1) % totalPages);
-        }, 3000); // Geser slide setiap 3 detik
+        }, 10000); // Geser slide setiap 3 detik
 
         return () => clearInterval(interval);
     }, [totalPages]); // Pastikan efek berjalan ulang saat totalPages berubah
@@ -97,7 +93,11 @@ const DustyPinkCo = () => {
     const carouselTransform = `translateX(-${currentSlide * 100}%)`;
 
     return (
-        <div className=" p-2 sm:p-4 w-full">
+        <div 
+            data-aos="fade-down"
+            data-aos-delay="300"
+            data-aos-duration="1900"
+            className=" p-2 sm:p-4 w-full">
             <div className="w-[200px] div-war">
 
                 {/* Swiper container */}

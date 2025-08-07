@@ -1,43 +1,38 @@
 import React, { useState, useEffect } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
-import imag from "../assets/Extrime/Cewek/Cewe1.jpeg";
-import imag1 from "../assets/Extrime/Cewek/Cewe3.jpeg";
-import imag2 from "../assets/Extrime/Cewek/Cewe.jpeg";
-import imag3 from "../assets/Extrime/Cewek/Cewe2.jpeg";
-import men from "../assets/Extrime/Cowok/One3.jpeg";
-import men1 from "../assets/Extrime/Cowok/One1.jpeg";
-import men2 from "../assets/Extrime/Cowok/One.jpeg";
-import men3 from "../assets/Extrime/Cowok/One2.jpeg";
-import men4 from "../assets/Extrime/Cowok/One4.jpeg";
-
+import imag from "../assets/Extrime/Cewek/HijauSage/Cewe.jpeg";
+import imag1 from "../assets/Extrime/Cewek/HijauSage/Cewe1.jpeg";
+import imag2 from "../assets/Extrime/Cewek/HijauSage/Cewe2.jpeg";
+import imag3 from "../assets/Extrime/Cewek/HijauSage/Cewe3.jpeg";
+import imag4 from "../assets/Extrime/Cewek/HijauSage/Cewe4.jpeg";
 
 const HijauSaguCo = () => {
     const products = [
         {
             id: 1,
-            name: 'Hijau Sage',
+            name: 'HijauSage',
             image: imag,
         },
         {
             id: 2,
-            name: 'Ungu Violet',
+            name: 'HijauSage',
             image: imag1,
         },
         {
             id: 3,
-            name: 'Dusty Pink',
+            name: 'HijauSage',
             image: imag2,
         },
         {
             id: 4,
-            name: 'Pink Muda',
+            name: 'HijauSage',
             image: imag3,
         },
-        // {
-        //     id: 5,
-        //     name: 'Beige / Khaki',
-        //     image: men,
-        // },
+        {
+            id: 5,
+            name: 'HijauSage',
+            image: imag4,
+        },
         // {
         //     id: 7,
         //     name: 'Navy Blue',
@@ -73,7 +68,7 @@ const HijauSaguCo = () => {
     useEffect(() => {
         const interval = setInterval(() => {
             setCurrentSlide((prevSlide) => (prevSlide + 1) % totalPages);
-        }, 3000); // Geser slide setiap 3 detik
+        }, 10000); // Geser slide setiap 3 detik
 
         return () => clearInterval(interval);
     }, [totalPages]); // Pastikan efek berjalan ulang saat totalPages berubah
@@ -97,7 +92,11 @@ const HijauSaguCo = () => {
     const carouselTransform = `translateX(-${currentSlide * 100}%)`;
 
     return (
-        <div className=" p-2 sm:p-4 w-full">
+        <div 
+            data-aos="fade-down"
+            data-aos-delay="200"
+            data-aos-duration="1900"
+            className=" p-2 sm:p-4 w-full">
             <div className="w-[200px] div-war">
 
                 {/* Swiper container */}

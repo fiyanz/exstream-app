@@ -11,30 +11,36 @@ export const features = [
       title: "Desain Modern &||Jaket Kekinian",
       description: "anak muda dan dewasa.",
       image: head,
+      Delay: "350"
     },
     {
       title:  "Bahan Tebal &||Elastis",
       description: "Sudah di-Press Sealer.",
-      image: head5
+      image: head5,
+      Delay: "450"
     },
     {
       title: "Scotlight Depan &||Belakang",
       description: "Reflektif menyala saat malam.",
-      image: head1
+      image: head1,
+      Delay: "550"
     },
     {
       title: "Ritsleting &|| Kancing",
       description: "fungsi maksimal.",
-      image: head2
+      image: head2,
+      Delay: "650"
     },
     {
       title: "Real ||Picture!",
       description: "Barang original.",
-      image: head3
+      image: head3,
+      Delay: "750"
     },
     {
       title: "Dijamin|| Awet",
       description: "EXTRIME invest di kualitas.",
-      image: head4
+      image: head4,
+      Delay: "850"
     },
 ];

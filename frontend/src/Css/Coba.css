@@ -91,6 +91,20 @@
   .dif-fo {
     height: 350px;
   }
+
+  .buto-con {
+    margin-bottom: 2rem
+  }
+
+  .self-start {
+    padding: 2rem;
+  }
+
+  .self-1 {
+    padding: 2rem
+  }
+
+  
 }
 
 @media (min-width: 588px) and (max-width: 650px) {
