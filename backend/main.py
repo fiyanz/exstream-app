@@ -5,6 +5,13 @@ from core.config import settings
 from routers.wilayah import wilayah
 from routers.lokasi import lokasi
 from routers.pengiriman import pengiriman
+from routers.pengiriman_lokal import pengiriman_lokal
+from routers.transaksi import transaksi
+
+from db.database import Base, engine
+
+Base.metadata.create_all(bind=engine)
+print("Semua tabel telah dibuat.")
 
 app = FastAPI(
     title="extreme app",
@@ -22,9 +29,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# app.include_router(wilayah, prefix=f"{settings.API_PREFIX}/wilayah", tags=["Wilayah"])
+app.include_router(wilayah, prefix=f"{settings.API_PREFIX}/wilayah", tags=["Wilayah"])
 app.include_router(
-    wilayah, 
+    wilayah,
     prefix=f"{settings.API_PREFIX}/wilayah",
     tags=["Wilayah Indonesia"]
 )
@@ -32,13 +39,25 @@ app.include_router(
 app.include_router(
     lokasi,
     prefix="/api/v1/lokasi",
-    tags=["Pencarian Lokasi"]
+    tags=["Pencarian Lokasi Menggunakan API"]
+)
+
+# app.include_router(
+#     pengiriman,
+#     prefix="/api/v1/pengiriman",
+#     tags=["Pengiriman API Eksternal"]
+# )
+
+app.include_router(
+    pengiriman_lokal,
+    prefix="/api/v1/pengiriman-lokal",
+    tags=["Pengiriman dengan Data Lokal"]
 )
 
 app.include_router(
-    pengiriman,
-    prefix="/api/v1/pengiriman",
-    tags=["Pengiriman"]
+    transaksi,
+    prefix="/api/v1/transaksi",
+    tags=["Transaksi"]
 )
 
 if __name__ == "__main__":

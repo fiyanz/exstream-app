@@ -1,11 +1,20 @@
 import uuid
 
-from sqlalchemy import Column, ForeignKey, String, CHAR
+from sqlalchemy import Column, ForeignKey, String, CHAR, Integer
 from sqlalchemy.orm import relationship
-from backend.db.database import Base
+from db.database import Base
 
 class Barang(Base):
     __tablename__ = "transaksi"
 
     id = Column(CHAR(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    no_telp = Column(String(20), nullable=False)
     nama_barang = Column(String(255), nullable=False)
+    jumlah_barang = Column(Integer, nullable=False)
+    total = Column(Integer, nullable=False)
+    detail_barang = Column(String(1000), nullable=True)
+    
+    # Tambahan informasi pengguna
+    nama_pengguna = Column(String(100), nullable=True)
+    alamat = Column(String(500), nullable=True)
+    

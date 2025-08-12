@@ -8,7 +8,7 @@ from core.config import settings
 lokasi = APIRouter()
 
 
-@lokasi.get("/cari", summary="Mencari destinasi berdasarkan kata kunci (kode pos/nama wilayah)")
+@lokasi.get("/cari", summary="Mencari destinasi berdasarkan kata kunci (nama wilayah)")
 async def search_destination(keyword: str = Query(..., description="Kode pos atau nama wilayah")):
     """
     Endpoint untuk melakukan pencarian lokasi tujuan pengiriman.

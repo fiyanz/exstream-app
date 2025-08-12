@@ -10,6 +10,9 @@ class Settings(BaseSettings):
     RAJA_ONGKIR_API: str = ""
     KOMERCE_BASE_URL: str = ""
     MY_ORIGIN_DESTINATION_ID: str = ""
+    MIDTRANS_SERVER_KEY: str = ""
+    MIDTRANS_CLIENT_KEY: str = ""
+    MIDTRANS_IS_PRODUCTION: bool = False
 
 
     @field_serializer("ALLOWED_ORIGINS")
