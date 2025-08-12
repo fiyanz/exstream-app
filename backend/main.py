@@ -42,11 +42,11 @@ app.include_router(
     tags=["Pencarian Lokasi Menggunakan API"]
 )
 
-# app.include_router(
-#     pengiriman,
-#     prefix="/api/v1/pengiriman",
-#     tags=["Pengiriman API Eksternal"]
-# )
+app.include_router(
+    pengiriman,
+    prefix="/api/v1/pengiriman",
+    tags=["Pengiriman API Raja Ongkir"]
+)
 
 app.include_router(
     pengiriman_lokal,

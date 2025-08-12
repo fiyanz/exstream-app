@@ -9,6 +9,7 @@ class Settings(BaseSettings):
     DATABASE_URL: str = ""
     RAJA_ONGKIR_API: str = ""
     KOMERCE_BASE_URL: str = ""
+    RAJA_ONGKIR_BASE_URL: str = "https://rajaongkir.komerce.id/api/v1"
     MY_ORIGIN_DESTINATION_ID: str = ""
     MIDTRANS_SERVER_KEY: str = ""
     MIDTRANS_CLIENT_KEY: str = ""

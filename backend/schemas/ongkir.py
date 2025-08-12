@@ -15,7 +15,8 @@ class HitungOngkirRequest(BaseModel):
 class RajaOngkirRequest(BaseModel):
     destination_id: int  # ID kota tujuan
     weight: int  # Berat dalam gram
-    courier: str = "jne:pos:tiki:jnt:sicepat"  # Kode kurir, bisa multiple dengan separator ":"
+    courier: str
+    item_value: int
 
 class CourierService(BaseModel):
     service: str
