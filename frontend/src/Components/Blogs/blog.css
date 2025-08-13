@@ -1,0 +1,121 @@
+.blog {
+    background-image: url('../../assets/image/Wagu.jpg');
+    background-repeat: no-repeat;
+    background-size: cover;
+    width: 100%;
+    height: auto;
+    padding-top: 2rem;
+    margin-bottom: 4rem;
+}
+
+/* .logo-nav {
+    padding-top: 0.7rem;
+} */
+
+.but-blog {
+    padding: 0.5rem 1rem 0.5rem 1rem;
+    transition: transform 0.3s ease;
+}
+
+.but-blog:hover {
+    background-color: transparent;
+    border: 2px solid white;
+    transition: all .3s ease-out;
+    transform: scale(1.2); /* Perbesar 20% */
+    color: white;
+}
+
+/* .blog-text {
+    text-align: end;
+} */
+
+
+
+
+@media (min-width: 340px) and (max-width: 650px) {
+
+    /* .logo-nav {
+        margin-left: 1rem;
+        margin-bottom: 0.8rem;
+    } */
+
+    .on-blog {
+        margin-left: 0.5rem;
+    }
+
+    .blog-text {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        text-align: center;
+    }
+
+    .ina {
+        width: 320px;
+        height: 250;
+        margin-bottom: 3rem;
+        margin-left: -2rem;
+    }
+}
+
+@media (min-width: 650px) and (max-width: 750px) {
+    .on-blog {
+        margin-left: 5rem;
+    }
+
+    .blog-text {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        text-align: center;
+    }
+}
+
+@media (min-width: 770px) and (max-width: 900px) {
+    .blog-text {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        text-align: center;
+    }
+
+    .on-blog {
+        margin-left: -2rem;
+    }
+
+    .ina {
+        margin-bottom: 3rem;
+    }
+}
+
+@media (min-width: 900px) and (max-width: 1020px) {
+    .blog-text {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        text-align: center;
+    }
+
+    .on-blog {
+        margin-left: 15rem;
+    }
+
+    .image-blog {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 5rem;
+        justify-content: center;
+    }
+}
+
+@media (min-width: 1020px) and (max-width: 1200px) {
+    .image-blog {
+        display: flex;
+        flex-wrap: wrap;
+    }
+
+}

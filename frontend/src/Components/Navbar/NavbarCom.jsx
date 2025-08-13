@@ -1,0 +1,59 @@
+import React from 'react';
+// import foto from '../../assets/Logo/larisko.png';
+import logo from '../../assets/Logo/logo.png';
+import ima from '../../assets/image/Hero.png';
+import { Link } from 'react-scroll';
+import { useNavigate } from 'react-router-dom';
+import './Nav.css'
+
+const NavbarCom = () => {
+    const navigate = useNavigate()
+
+    return (
+        <div className="relative nav">
+            {/* Background image */}
+            {/* <div className='absolute flex flex-col lg:flex-row justify-between items-center nav-1'>
+                <div/>
+                <div/>
+            </div> */}
+            {/* Overlay (optional, for better text readability) */}
+
+            <nav className='relative text-black container mx-auto px-4 py-8 md:py-16  nav-0'>
+                {/* Logo */}
+                {/* <img
+                    src={logo}
+                    alt="Logo"
+                    className='w-[160px] mx-auto md:mx-0 logo-nav text-black'
+                /> */}
+
+                {/* Content Section */}
+                <div className='flex flex-col lg:flex-row justify-center items-center gap-10 on-nav'>
+                    {/* Text and Button */}
+                    <div className='flex flex-col gap-4 text-center nav-text'>
+                        <span className='text-xl md:text-xl font-semibold'>
+                            #Jas Hujan Extrime
+                        </span>
+                        <span className='text-3xl md:text-5xl font-bold leading-tight'>
+                            Jas Hujan Extrime Gaya <br /> Kekinian, Anti Rembes, <br /> Tetap Keren
+                        </span>
+                        <Link activeClass='active' to='Transaksi' spy={true} smooth={true} className='mt-4'>
+                            <button  className='bg-black text-white font-semibold rounded-lg text-lg hover:bg-gray-200 transition-colors but-nav'>
+                                Beli Sekarang
+                            </button>
+                        </Link>
+                <div>
+                </div>
+                    </div>
+                    {/* Hero Image */}
+                    <img
+                        src={ima}
+                        alt="Hero"
+                        className=' max-w-[200px] md:max-w-[320px] mt-8 md:mt-0 ima'
+                    />
+                </div>
+            </nav>
+        </div>
+    );
+}
+
+export default NavbarCom;
