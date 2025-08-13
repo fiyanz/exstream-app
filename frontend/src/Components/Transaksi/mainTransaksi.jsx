@@ -352,14 +352,7 @@ const App = () => {
     subdistricts: false,
     villages: false
   });
-  
-  // State untuk status koneksi API
-  const [apiConnectionStatus, setApiConnectionStatus] = useState({
-    connected: true,
-    lastAttempt: null,
-    errorMessage: '',
-    attempts: 0
-  });
+  // Removed API connection status tracking
 
   // State for validation errors
   const [formErrors, setFormErrors] = useState({});
@@ -377,17 +370,34 @@ const App = () => {
   const successRef = useRef(null);
   const cartRef = useRef(null);
   
+  // URL API endpoint - mudah untuk diubah jika perlu
+  const API_ENDPOINTS = {
+    PRODUCTION: 'http://service.jashujanextrime.my.id',
+    LOCAL: 'http://localhost:8000',
+    TEST: 'http://localhost:8000',
+    // Tambahkan endpoint lainnya jika perlu
+  };
+  
   // Membuat base API URL dinamis untuk mengatasi masalah port forwarding
   const getApiBaseUrl = () => {
-    // Periksa jika ada URL API yang tersimpan dari pengujian fallback sebelumnya
-    const storedApiUrl = window.sessionStorage.getItem('API_BASE_URL');
-    if (storedApiUrl) {
-      console.log('Using stored API URL from successful connection:', storedApiUrl);
-      return storedApiUrl;
+    // Deteksi development environment untuk menggunakan local API secara default
+    if (window.location.hostname === 'localhost') {
+      // Gunakan local API untuk development
+      console.log('Development environment detected, using local API by default');
+      const LOCAL_API_URL = API_ENDPOINTS.LOCAL;
+      
+      // Gunakan URL API dari sessionStorage jika ada
+      const storedApiUrl = window.sessionStorage.getItem('API_BASE_URL');
+      if (storedApiUrl) {
+        console.log('Using stored API URL:', storedApiUrl);
+        return storedApiUrl;
+      }
+      
+      return LOCAL_API_URL;
     }
     
-    // Definisi port backend yang umum digunakan
-    const backendPort = '8000';
+    // Production environment - default ke production API
+    const DEFAULT_API_URL = API_ENDPOINTS.PRODUCTION;
     
     // Deteksi berdasarkan URL parameter (untuk debugging dan pengujian)
     const urlParams = new URLSearchParams(window.location.search);
@@ -397,9 +407,27 @@ const App = () => {
       return apiUrlParam;
     }
     
+    // Gunakan URL API dari sessionStorage jika ada
+    const storedApiUrl = window.sessionStorage.getItem('API_BASE_URL');
+    if (storedApiUrl) {
+      console.log('Using stored API URL:', storedApiUrl);
+      return storedApiUrl;
+    }
+    
+    // Default menggunakan URL yang sudah ditentukan
+    console.log('Using default API URL:', DEFAULT_API_URL);
+    return DEFAULT_API_URL;
+    
+    // Cek apakah sedang mengakses dari domain produksi
+    if (window.location.hostname.includes('jashujanextrime.my.id')) {
+      console.log('Accessing from production domain, using production API URL');
+      return productionApiUrl;
+    }
+    
     // Jika mengakses dari localhost, gunakan localhost:8000
     if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-      return `http://localhost:${backendPort}`;
+      // Ketika testing, kita ingin tetap menggunakan server produksi
+      return 'http://localhost:8000';
     }
     
     // Jika mengakses melalui port forwarding dari ngrok, cloudflared, dll
@@ -420,8 +448,9 @@ const App = () => {
       return window.location.origin;
     }
     
-    // Untuk kasus umum port forwarding, coba dengan port backend
-    return `${window.location.protocol}//${window.location.hostname}:${backendPort}`;
+    // Default fallback ke API produksi
+    console.log('No specific match found, defaulting to production API URL');
+    return productionApiUrl;
   };
   
   const API_BASE_URL = getApiBaseUrl();
@@ -443,8 +472,10 @@ const App = () => {
           'Accept': 'application/json',
           'Content-Type': 'application/json'
         },
-        // Mode no-cors sebagai fallback jika terjadi masalah CORS
-        // mode: 'no-cors'
+        // Mode untuk handling CORS - omit untuk lebih baik dengan server produksi
+        // yang tidak memerlukan credential
+        mode: 'cors',
+        cache: 'no-cache'
       });
       
       if (!response.ok) {
@@ -459,13 +490,8 @@ const App = () => {
         name: province.name
       })));
       
-      // Reset connection status to connected
-      setApiConnectionStatus({
-        connected: true,
-        lastAttempt: new Date(),
-        errorMessage: '',
-        attempts: 0
-      });
+      // Koneksi berhasil
+      console.log('API connection successful');
     } catch (error) {
       console.error('Error fetching provinces:', error);
       // Tambahkan pesan error yang lebih informatif
@@ -474,20 +500,12 @@ const App = () => {
         console.error('Current hostname:', window.location.hostname);
         console.error('API Base URL being used:', API_BASE_URL);
         
-        // Update status koneksi API
-        setApiConnectionStatus(prev => ({
-          connected: false,
-          lastAttempt: new Date(),
-          errorMessage: 'Tidak dapat terhubung ke server data wilayah. Mohon periksa koneksi internet Anda.',
-          attempts: prev.attempts + 1
-        }));
+        console.error('Network error - Tidak dapat terhubung ke API.');
+        
+        // Tampilkan error sederhana
+        alert('Tidak dapat terhubung ke server. Mohon periksa koneksi internet Anda.');
       } else {
-        setApiConnectionStatus(prev => ({
-          connected: false,
-          lastAttempt: new Date(),
-          errorMessage: `Error: ${error.message}`,
-          attempts: prev.attempts + 1
-        }));
+        console.error('API error:', error.message);
       }
     } finally {
       setApiLoadingStatus(prev => ({ ...prev, provinces: false }));
@@ -506,7 +524,9 @@ const App = () => {
         headers: {
           'Accept': 'application/json',
           'Content-Type': 'application/json'
-        }
+        },
+        mode: 'cors',
+        cache: 'no-cache'
       });
       
       if (!response.ok) {
@@ -549,7 +569,9 @@ const App = () => {
         headers: {
           'Accept': 'application/json',
           'Content-Type': 'application/json'
-        }
+        },
+        mode: 'cors',
+        cache: 'no-cache'
       });
       
       if (!response.ok) {
@@ -592,7 +614,9 @@ const App = () => {
         headers: {
           'Accept': 'application/json',
           'Content-Type': 'application/json'
-        }
+        },
+        mode: 'cors',
+        cache: 'no-cache'
       });
       
       if (!response.ok) {
@@ -623,20 +647,43 @@ const App = () => {
     }
   };
   
+  // Function to set API URL manually (untuk development/debugging)
+  const changeApiUrl = (url) => {
+    // Simpan URL API di sessionStorage
+    window.sessionStorage.setItem('API_BASE_URL', url);
+    console.log('API URL changed to:', url);
+    
+    // Reload halaman untuk menerapkan perubahan
+    window.location.reload();
+  };
+  
   // Fetch provinces on component mount
   useEffect(() => {
+    // Tampilkan API URL yang sedang digunakan di console (debugging)
+    console.log('Current API URL:', API_BASE_URL);
+    
     fetchProvinces();
     
     // Implementasi fallback jika API pertama gagal
     const fallbackTimer = setTimeout(() => {
-      if (apiConnectionStatus.attempts > 0 && !apiConnectionStatus.connected) {
-        console.log('Initial API connection failed, trying fallback URLs...');
+      console.log('Checking API connection...');
+      
+      // Coba alternatif URL jika koneksi awal gagal
+      const tryFallbackUrls = async () => {
+        // Array dari URL fallback yang akan dicoba secara berurutan
+        const fallbackUrls = [
+          // 1. Coba dengan URL produksi (prioritas tertinggi)
+          'http://service.jashujanextrime.my.id',
+          // 2. Coba dengan URL tanpa protokol (untuk fleksibilitas)
+          `//${window.location.hostname}/api/v1`,
+          // 3. Coba dengan URL tanpa port
+          `${window.location.protocol}//${window.location.hostname}`,
+          // 4. Coba dengan URL origin (jika ada port)
+          window.location.origin
+        ];
         
-        // Coba alternatif port jika koneksi awal gagal
-        const tryFallbackUrl = async () => {
-          // Coba dengan port 80 (HTTP default)
+        for (const fallbackUrl of fallbackUrls) {
           try {
-            const fallbackUrl = `${window.location.protocol}//${window.location.hostname}`;
             console.log('Trying fallback URL:', fallbackUrl);
             
             const response = await fetch(`${fallbackUrl}/api/v1/wilayah/provinsi`, {
@@ -644,27 +691,47 @@ const App = () => {
                 'Accept': 'application/json',
                 'Content-Type': 'application/json'
               },
+              mode: 'cors',
+              cache: 'no-cache',
               // Timeout lebih singkat untuk fallback
               signal: AbortSignal.timeout(5000) 
             });
             
             if (response.ok) {
-              console.log('Fallback URL successful!');
+              console.log('Fallback URL successful!', fallbackUrl);
               // Update API base URL dengan yang berhasil
               window.sessionStorage.setItem('API_BASE_URL', fallbackUrl);
               window.location.reload(); // Reload untuk menggunakan URL baru
+              return; // Keluar dari loop jika berhasil
             }
           } catch (error) {
-            console.error('Fallback attempt failed:', error);
+            console.error(`Fallback attempt failed for ${fallbackUrl}:`, error);
+            // Lanjutkan ke URL berikutnya
           }
-        };
+        }
         
-        tryFallbackUrl();
-      }
-    }, 5000); // Tunggu 5 detik sebelum mencoba fallback
+        console.error('All fallback attempts failed');
+      };
+      
+      // Cek koneksi API dan gunakan fallback jika perlu
+      fetch(`${API_BASE_URL}/api/v1/wilayah/provinsi`)
+        .then(response => {
+          if (response.ok) {
+            console.log('API connection working correctly');
+          } else {
+            console.log('API connection failed with status:', response.status);
+            tryFallbackUrls();
+          }
+        })
+        .catch(error => {
+          console.log('API connection failed:', error);
+          tryFallbackUrls();
+        });
+        
+    }, 3000); // Tunggu 3 detik sebelum mencoba fallback
     
     return () => clearTimeout(fallbackTimer);
-  }, [apiConnectionStatus.attempts]);
+  }, []); // No dependencies needed
   
   // Fetch cities when province changes
   useEffect(() => {
@@ -1305,25 +1372,9 @@ const App = () => {
 
               {/* Shipping Details Form Card */}
               <div className="mt-8 det-ap">
-                <h2 className="text-2xl font-bold text-black on-a4 text-center">Detail Pengiriman</h2>
-                
-                {/* API Connection Status */}
-                {!apiConnectionStatus.connected && (
-                  <div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-4 flex items-center gap-2">
-                    <AlertCircle size={18} className="text-red-500" />
-                    <div className="text-sm text-red-600">
-                      {apiConnectionStatus.errorMessage}
-                      <div className="flex mt-1 gap-2">
-                        <button 
-                          onClick={() => fetchProvinces()}
-                          className="text-xs bg-red-100 hover:bg-red-200 text-red-700 py-1 px-2 rounded-md flex items-center gap-1 transition-colors"
-                        >
-                          <RefreshCcw size={12} /> Coba lagi
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                )}
+                <div className="flex items-center justify-center gap-2">
+                  <h2 className="text-2xl font-bold text-black on-a4 text-center">Detail Pengiriman</h2>
+                </div>
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 on-10">
                   <TextInput
