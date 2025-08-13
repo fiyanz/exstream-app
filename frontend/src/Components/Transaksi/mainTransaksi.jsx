@@ -118,6 +118,160 @@ const TextInput = ({ label, name, value, onChange, placeholder, type = 'text', r
   </div>
 );
 
+// AutocompleteInput for location selection
+const AutocompleteInput = ({ label, name, value, onChange, onSelect, options, placeholder, required, disabled = false, error, isLoading = false }) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState(value);
+  const [filteredOptions, setFilteredOptions] = useState([]);
+  const inputRef = useRef(null);
+  const dropdownRef = useRef(null);
+  
+  // Filter options when query changes
+  useEffect(() => {
+    if (!options || !Array.isArray(options)) {
+      setFilteredOptions([]);
+      return;
+    }
+    
+    if (!searchQuery.trim()) {
+      setFilteredOptions(options);
+      return;
+    }
+    
+    const filtered = options.filter(option => {
+      const optionName = typeof option === 'object' ? option.name || '' : option;
+      return optionName.toLowerCase().includes(searchQuery.toLowerCase());
+    }).slice(0, 5); // Limit to 5 suggestions
+    
+    setFilteredOptions(filtered);
+  }, [searchQuery, options]);
+  
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target) && 
+          inputRef.current && !inputRef.current.contains(event.target)) {
+        setIsOpen(false);
+      }
+    };
+    
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+  
+  const handleInputChange = (e) => {
+    const newValue = e.target.value;
+    setSearchQuery(newValue);
+    setIsOpen(true);
+    
+    // Call the original onChange to update form state
+    const mockEvent = {
+      target: {
+        name,
+        value: newValue
+      }
+    };
+    onChange(mockEvent);
+  };
+  
+  const handleOptionSelect = (option) => {
+    const optionName = typeof option === 'object' ? option.name || '' : option;
+    const optionId = typeof option === 'object' ? option.id || option : option;
+    
+    setSearchQuery(optionName);
+    setIsOpen(false);
+    
+    // Call the original onSelect to update form state with ID
+    const mockEvent = {
+      target: {
+        name,
+        value: optionId
+      }
+    };
+    onChange(mockEvent);
+    
+    if (onSelect) {
+      onSelect(option);
+    }
+  };
+  
+  return (
+    <div className="flex flex-col">
+      <label htmlFor={name} className="block text-sm font-medium text-black on-1 mb-1.5">
+        {label} {required && <span className="text-red-500">*</span>}
+      </label>
+      <div className="relative">
+        <div className="relative">
+          <input
+            ref={inputRef}
+            type="text"
+            id={name}
+            name={name}
+            value={searchQuery}
+            onChange={handleInputChange}
+            onClick={() => setIsOpen(true)}
+            placeholder={placeholder}
+            className={`mt-1 block w-full px-3 py-2.5 border ${error ? 'border-red-300' : 'border-gray-300'} rounded-lg shadow-sm focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 text-sm md:text-base transition-colors duration-200 on-11 ${isLoading ? 'bg-gray-50' : ''}`}
+            required={required}
+            disabled={disabled || isLoading}
+            aria-invalid={error ? "true" : "false"}
+            aria-describedby={error ? `${name}-error` : undefined}
+            autoComplete="off"
+          />
+          {isLoading && (
+            <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-emerald-700"></div>
+            </div>
+          )}
+        </div>
+        
+        {isOpen && options && options.length > 0 && (
+          <div 
+            ref={dropdownRef}
+            className="absolute z-50 mt-1 w-full bg-white border border-gray-200 rounded-md shadow-lg max-h-60 overflow-auto"
+          >
+            {isLoading ? (
+              <div className="flex justify-center items-center py-4">
+                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-emerald-700"></div>
+                <span className="ml-2 text-sm text-gray-500">Memuat data...</span>
+              </div>
+            ) : filteredOptions.length > 0 ? (
+              <ul className="py-1">
+                {filteredOptions.map((option, index) => {
+                  const optionName = typeof option === 'object' ? option.name || '' : option;
+                  const optionId = typeof option === 'object' ? option.id || option : option;
+                  
+                  return (
+                    <li 
+                      key={optionId || index} 
+                      className="px-3 py-2 text-sm hover:bg-gray-100 cursor-pointer"
+                      onClick={() => handleOptionSelect(option)}
+                    >
+                      {optionName}
+                    </li>
+                  );
+                })}
+              </ul>
+            ) : (
+              <div className="p-3 text-center text-sm text-gray-500">
+                Tidak ada hasil yang cocok
+              </div>
+            )}
+          </div>
+        )}
+        
+        {error && (
+          <div className="flex items-center mt-1">
+            <p className="text-xs text-gray-500" id={`${name}-error`}>{error}</p>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
 // Custom Error Boundary component to catch rendering errors gracefully
 class ErrorBoundary extends React.Component {
   constructor(props) {
@@ -182,6 +336,30 @@ const App = () => {
   const [cities, setCities] = useState({});
   const [subdistricts, setSubdistricts] = useState({});
   const [villages, setVillages] = useState({});
+  
+  // State untuk menyimpan nilai tampilan untuk input autocomplete
+  const [locationLabels, setLocationLabels] = useState({
+    province: '',
+    city: '',
+    subDistrict: '',
+    village: ''
+  });
+  
+  // State untuk loading status API dan koneksi
+  const [apiLoadingStatus, setApiLoadingStatus] = useState({
+    provinces: false,
+    cities: false,
+    subdistricts: false,
+    villages: false
+  });
+  
+  // State untuk status koneksi API
+  const [apiConnectionStatus, setApiConnectionStatus] = useState({
+    connected: true,
+    lastAttempt: null,
+    errorMessage: '',
+    attempts: 0
+  });
 
   // State for validation errors
   const [formErrors, setFormErrors] = useState({});
@@ -199,20 +377,120 @@ const App = () => {
   const successRef = useRef(null);
   const cartRef = useRef(null);
   
+  // Membuat base API URL dinamis untuk mengatasi masalah port forwarding
+  const getApiBaseUrl = () => {
+    // Periksa jika ada URL API yang tersimpan dari pengujian fallback sebelumnya
+    const storedApiUrl = window.sessionStorage.getItem('API_BASE_URL');
+    if (storedApiUrl) {
+      console.log('Using stored API URL from successful connection:', storedApiUrl);
+      return storedApiUrl;
+    }
+    
+    // Definisi port backend yang umum digunakan
+    const backendPort = '8000';
+    
+    // Deteksi berdasarkan URL parameter (untuk debugging dan pengujian)
+    const urlParams = new URLSearchParams(window.location.search);
+    const apiUrlParam = urlParams.get('api_url');
+    if (apiUrlParam) {
+      console.log('Using API URL from query parameter:', apiUrlParam);
+      return apiUrlParam;
+    }
+    
+    // Jika mengakses dari localhost, gunakan localhost:8000
+    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+      return `http://localhost:${backendPort}`;
+    }
+    
+    // Jika mengakses melalui port forwarding dari ngrok, cloudflared, dll
+    if (window.location.hostname.includes('ngrok.io') || 
+        window.location.hostname.includes('trycloudflare.com') ||
+        window.location.hostname.includes('serveo.net')) {
+      // Untuk layanan tunnel seperti ngrok, gunakan URL yang sama
+      // karena biasanya forwarding sudah diatur
+      return window.location.origin;
+    }
+    
+    // Port forwarding melalui SSH (biasanya menggunakan port yang berbeda)
+    // Coba deteksi port backend dari URL saat ini
+    const currentPort = window.location.port;
+    if (currentPort && currentPort !== '80' && currentPort !== '443') {
+      // Jika sudah menggunakan port non-standar, mungkin ada port forwarding aktif
+      // Coba akses backend di port yang sama
+      return window.location.origin;
+    }
+    
+    // Untuk kasus umum port forwarding, coba dengan port backend
+    return `${window.location.protocol}//${window.location.hostname}:${backendPort}`;
+  };
+  
+  const API_BASE_URL = getApiBaseUrl();
+  
+  // Log untuk debugging
+  console.log('Current hostname:', window.location.hostname);
+  console.log('Current origin:', window.location.origin);
+  console.log('API Base URL being used:', API_BASE_URL);
+  
   // Fungsi untuk fetch data provinsi
   const fetchProvinces = async () => {
     try {
-      const response = await fetch('http://localhost:8000/api/v1/wilayah/provinsi');
+      setApiLoadingStatus(prev => ({ ...prev, provinces: true }));
+      console.log(`Fetching provinces from: ${API_BASE_URL}/api/v1/wilayah/provinsi`);
+      
+      const response = await fetch(`${API_BASE_URL}/api/v1/wilayah/provinsi`, {
+        // Tambahkan headers untuk membantu menangani CORS
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json'
+        },
+        // Mode no-cors sebagai fallback jika terjadi masalah CORS
+        // mode: 'no-cors'
+      });
+      
       if (!response.ok) {
         throw new Error(`HTTP error! Status: ${response.status}`);
       }
+      
       const data = await response.json();
+      console.log('Provinces data received:', data.length, 'provinces');
+      
       setProvinces(data.map(province => ({
         id: province.id,
         name: province.name
       })));
+      
+      // Reset connection status to connected
+      setApiConnectionStatus({
+        connected: true,
+        lastAttempt: new Date(),
+        errorMessage: '',
+        attempts: 0
+      });
     } catch (error) {
       console.error('Error fetching provinces:', error);
+      // Tambahkan pesan error yang lebih informatif
+      if (error.name === 'TypeError' && error.message.includes('NetworkError')) {
+        console.error('Network error - Possible CORS issue or server not accessible');
+        console.error('Current hostname:', window.location.hostname);
+        console.error('API Base URL being used:', API_BASE_URL);
+        
+        // Update status koneksi API
+        setApiConnectionStatus(prev => ({
+          connected: false,
+          lastAttempt: new Date(),
+          errorMessage: 'Tidak dapat terhubung ke server data wilayah. Mohon periksa koneksi internet Anda.',
+          attempts: prev.attempts + 1
+        }));
+      } else {
+        setApiConnectionStatus(prev => ({
+          connected: false,
+          lastAttempt: new Date(),
+          errorMessage: `Error: ${error.message}`,
+          attempts: prev.attempts + 1
+        }));
+      }
+    } finally {
+      setApiLoadingStatus(prev => ({ ...prev, provinces: false }));
     }
   };
 
@@ -221,11 +499,22 @@ const App = () => {
     if (!provinsiId) return;
     
     try {
-      const response = await fetch(`http://localhost:8000/api/v1/wilayah/kota?provinsi_id=${provinsiId}`);
+      setApiLoadingStatus(prev => ({ ...prev, cities: true }));
+      console.log(`Fetching cities for province ID: ${provinsiId} from: ${API_BASE_URL}/api/v1/wilayah/kota?provinsi_id=${provinsiId}`);
+      
+      const response = await fetch(`${API_BASE_URL}/api/v1/wilayah/kota?provinsi_id=${provinsiId}`, {
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json'
+        }
+      });
+      
       if (!response.ok) {
         throw new Error(`HTTP error! Status: ${response.status}`);
       }
+      
       const data = await response.json();
+      console.log('Cities data received:', data.length, 'cities for province ID', provinsiId);
       
       setCities(prevCities => ({
         ...prevCities,
@@ -236,6 +525,15 @@ const App = () => {
       }));
     } catch (error) {
       console.error('Error fetching cities:', error);
+      
+      if (error.name === 'TypeError' && error.message.includes('NetworkError')) {
+        console.error('Network error - Possible CORS issue or server not accessible');
+        console.error('Current hostname:', window.location.hostname);
+        console.error('API Base URL being used:', API_BASE_URL);
+        console.error('Province ID being used:', provinsiId);
+      }
+    } finally {
+      setApiLoadingStatus(prev => ({ ...prev, cities: false }));
     }
   };
 
@@ -244,11 +542,22 @@ const App = () => {
     if (!kotaId) return;
     
     try {
-      const response = await fetch(`http://localhost:8000/api/v1/wilayah/kecamatan?kota_id=${kotaId}`);
+      setApiLoadingStatus(prev => ({ ...prev, subdistricts: true }));
+      console.log(`Fetching subdistricts for city ID: ${kotaId} from: ${API_BASE_URL}/api/v1/wilayah/kecamatan?kota_id=${kotaId}`);
+      
+      const response = await fetch(`${API_BASE_URL}/api/v1/wilayah/kecamatan?kota_id=${kotaId}`, {
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json'
+        }
+      });
+      
       if (!response.ok) {
         throw new Error(`HTTP error! Status: ${response.status}`);
       }
+      
       const data = await response.json();
+      console.log('Subdistricts data received:', data.length, 'subdistricts for city ID', kotaId);
       
       setSubdistricts(prevSubdistricts => ({
         ...prevSubdistricts,
@@ -259,6 +568,15 @@ const App = () => {
       }));
     } catch (error) {
       console.error('Error fetching subdistricts:', error);
+      
+      if (error.name === 'TypeError' && error.message.includes('NetworkError')) {
+        console.error('Network error - Possible CORS issue or server not accessible');
+        console.error('Current hostname:', window.location.hostname);
+        console.error('API Base URL being used:', API_BASE_URL);
+        console.error('City ID being used:', kotaId);
+      }
+    } finally {
+      setApiLoadingStatus(prev => ({ ...prev, subdistricts: false }));
     }
   };
 
@@ -267,11 +585,22 @@ const App = () => {
     if (!kecamatanId) return;
     
     try {
-      const response = await fetch(`http://localhost:8000/api/v1/wilayah/desa?kecamatan_id=${kecamatanId}`);
+      setApiLoadingStatus(prev => ({ ...prev, villages: true }));
+      console.log(`Fetching villages for subdistrict ID: ${kecamatanId} from: ${API_BASE_URL}/api/v1/wilayah/desa?kecamatan_id=${kecamatanId}`);
+      
+      const response = await fetch(`${API_BASE_URL}/api/v1/wilayah/desa?kecamatan_id=${kecamatanId}`, {
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json'
+        }
+      });
+      
       if (!response.ok) {
         throw new Error(`HTTP error! Status: ${response.status}`);
       }
+      
       const data = await response.json();
+      console.log('Villages data received:', data.length, 'villages for subdistrict ID', kecamatanId);
       
       setVillages(prevVillages => ({
         ...prevVillages,
@@ -282,13 +611,60 @@ const App = () => {
       }));
     } catch (error) {
       console.error('Error fetching villages:', error);
+      
+      if (error.name === 'TypeError' && error.message.includes('NetworkError')) {
+        console.error('Network error - Possible CORS issue or server not accessible');
+        console.error('Current hostname:', window.location.hostname);
+        console.error('API Base URL being used:', API_BASE_URL);
+        console.error('Subdistrict ID being used:', kecamatanId);
+      }
+    } finally {
+      setApiLoadingStatus(prev => ({ ...prev, villages: false }));
     }
   };
   
   // Fetch provinces on component mount
   useEffect(() => {
     fetchProvinces();
-  }, []);
+    
+    // Implementasi fallback jika API pertama gagal
+    const fallbackTimer = setTimeout(() => {
+      if (apiConnectionStatus.attempts > 0 && !apiConnectionStatus.connected) {
+        console.log('Initial API connection failed, trying fallback URLs...');
+        
+        // Coba alternatif port jika koneksi awal gagal
+        const tryFallbackUrl = async () => {
+          // Coba dengan port 80 (HTTP default)
+          try {
+            const fallbackUrl = `${window.location.protocol}//${window.location.hostname}`;
+            console.log('Trying fallback URL:', fallbackUrl);
+            
+            const response = await fetch(`${fallbackUrl}/api/v1/wilayah/provinsi`, {
+              headers: {
+                'Accept': 'application/json',
+                'Content-Type': 'application/json'
+              },
+              // Timeout lebih singkat untuk fallback
+              signal: AbortSignal.timeout(5000) 
+            });
+            
+            if (response.ok) {
+              console.log('Fallback URL successful!');
+              // Update API base URL dengan yang berhasil
+              window.sessionStorage.setItem('API_BASE_URL', fallbackUrl);
+              window.location.reload(); // Reload untuk menggunakan URL baru
+            }
+          } catch (error) {
+            console.error('Fallback attempt failed:', error);
+          }
+        };
+        
+        tryFallbackUrl();
+      }
+    }, 5000); // Tunggu 5 detik sebelum mencoba fallback
+    
+    return () => clearTimeout(fallbackTimer);
+  }, [apiConnectionStatus.attempts]);
   
   // Fetch cities when province changes
   useEffect(() => {
@@ -335,6 +711,31 @@ const App = () => {
       maximumFractionDigits: 0,
     }).format(amount);
   }, []);
+  
+  // Function to get location label from ID
+  const getLocationLabel = useCallback((type, id) => {
+    if (!id) return '';
+    
+    switch (type) {
+      case 'province':
+        const province = provinces.find(p => p.id === id);
+        return province ? province.name : '';
+      case 'city':
+        if (!formData.province || !cities[formData.province]) return '';
+        const city = cities[formData.province].find(c => c.id === id);
+        return city ? city.name : '';
+      case 'subDistrict':
+        if (!formData.city || !subdistricts[formData.city]) return '';
+        const subDistrict = subdistricts[formData.city].find(sd => sd.id === id);
+        return subDistrict ? subDistrict.name : '';
+      case 'village':
+        if (!formData.subDistrict || !villages[formData.subDistrict]) return '';
+        const village = villages[formData.subDistrict].find(v => v.id === id);
+        return village ? village.name : '';
+      default:
+        return '';
+    }
+  }, [provinces, cities, subdistricts, villages, formData.province, formData.city, formData.subDistrict]);
 
   // Handler for the product selection form input changes with validation
   const handleProductSelectionChange = useCallback((e) => {
@@ -504,12 +905,29 @@ const App = () => {
       if (name === 'province') {
         newFormData = { ...newFormData, city: '', subDistrict: '', village: '' };
         
+        // Update location label for province and reset other location labels
+        setLocationLabels(prev => ({
+          ...prev,
+          province: getLocationLabel('province', value),
+          city: '',
+          subDistrict: '',
+          village: ''
+        }));
+        
         // Fetch cities for the selected province
         if (value) {
           fetchCities(value);
         }
       } else if (name === 'city') {
         newFormData = { ...newFormData, subDistrict: '', village: '' };
+        
+        // Update location label for city and reset dependent fields
+        setLocationLabels(prev => ({
+          ...prev,
+          city: getLocationLabel('city', value),
+          subDistrict: '',
+          village: ''
+        }));
         
         // Fetch subdistricts for the selected city
         if (value) {
@@ -518,10 +936,23 @@ const App = () => {
       } else if (name === 'subDistrict') {
         newFormData = { ...newFormData, village: '' };
         
+        // Update location label for subDistrict and reset village
+        setLocationLabels(prev => ({
+          ...prev,
+          subDistrict: getLocationLabel('subDistrict', value),
+          village: ''
+        }));
+        
         // Fetch villages for the selected subdistrict
         if (value) {
           fetchVillages(value);
         }
+      } else if (name === 'village') {
+        // Update location label for village
+        setLocationLabels(prev => ({
+          ...prev,
+          village: getLocationLabel('village', value)
+        }));
       }
       
       // Clear error for this field when it's being edited
@@ -875,6 +1306,25 @@ const App = () => {
               {/* Shipping Details Form Card */}
               <div className="mt-8 det-ap">
                 <h2 className="text-2xl font-bold text-black on-a4 text-center">Detail Pengiriman</h2>
+                
+                {/* API Connection Status */}
+                {!apiConnectionStatus.connected && (
+                  <div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-4 flex items-center gap-2">
+                    <AlertCircle size={18} className="text-red-500" />
+                    <div className="text-sm text-red-600">
+                      {apiConnectionStatus.errorMessage}
+                      <div className="flex mt-1 gap-2">
+                        <button 
+                          onClick={() => fetchProvinces()}
+                          className="text-xs bg-red-100 hover:bg-red-200 text-red-700 py-1 px-2 rounded-md flex items-center gap-1 transition-colors"
+                        >
+                          <RefreshCcw size={12} /> Coba lagi
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+                
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 on-10">
                   <TextInput
                     label="Nama Lengkap"
@@ -899,48 +1349,52 @@ const App = () => {
                       <p className="text-xs text-gray-500 mt-1">Contoh: 081234567890 (harus dimulai dengan 08)</p>
                     )}
                   </div>
-                  <SelectInput
+                  <AutocompleteInput
                     label="Provinsi"
                     name="province"
-                    value={formData.province}
+                    value={locationLabels.province || getLocationLabel('province', formData.province)}
                     options={provinces}
                     onChange={handleInputChange}
-                    placeholder="Pilih Provinsi"
+                    placeholder="Masukkan nama provinsi"
                     required
                     error={formErrors.province}
+                    isLoading={apiLoadingStatus.provinces}
                   />
-                  <SelectInput
+                  <AutocompleteInput
                     label="Kota/Kabupaten"
                     name="city"
-                    value={formData.city}
+                    value={locationLabels.city || getLocationLabel('city', formData.city)}
                     options={formData.province ? cities[formData.province] || [] : []}
                     onChange={handleInputChange}
-                    placeholder={!formData.province ? "Pilih provinsi dulu" : "Pilih Kota/Kabupaten"}
+                    placeholder={!formData.province ? "Isi provinsi dulu" : "Masukkan nama kota/kabupaten"}
                     required
                     disabled={!formData.province}
                     error={formErrors.city}
+                    isLoading={apiLoadingStatus.cities}
                   />
-                  <SelectInput
+                  <AutocompleteInput
                     label="Kecamatan"
                     name="subDistrict"
-                    value={formData.subDistrict}
+                    value={locationLabels.subDistrict || getLocationLabel('subDistrict', formData.subDistrict)}
                     options={formData.city ? subdistricts[formData.city] || [] : []}
                     onChange={handleInputChange}
-                    placeholder={!formData.city ? "Pilih kota dulu" : "Pilih Kecamatan"}
+                    placeholder={!formData.city ? "Isi kota dulu" : "Masukkan nama kecamatan"}
                     required
                     disabled={!formData.city}
                     error={formErrors.subDistrict}
+                    isLoading={apiLoadingStatus.subdistricts}
                   />
-                  <SelectInput
-                    label="Desa"
+                  <AutocompleteInput
+                    label="Desa/Kelurahan"
                     name="village"
-                    value={formData.village}
+                    value={locationLabels.village || getLocationLabel('village', formData.village)}
                     options={formData.subDistrict ? villages[formData.subDistrict] || [] : []}
                     onChange={handleInputChange}
-                    placeholder={!formData.subDistrict ? "Pilih kecamatan dulu" : "Pilih Desa"}
+                    placeholder={!formData.subDistrict ? "Isi kecamatan dulu" : "Masukkan nama desa/kelurahan"}
                     required
                     disabled={!formData.subDistrict}
                     error={formErrors.village}
+                    isLoading={apiLoadingStatus.villages}
                   />
                 </div>
                 <div className="mt-6 on-10">
