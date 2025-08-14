@@ -157,9 +157,9 @@ async def cek_ongkir(
                             if isinstance(item, dict):
                                 # Adjust the cost - Komerce returns values like 27000000 for 27,000
                                 original_cost = item.get("shipping_cost", 0)
-                                # If cost > 10000, divide by 1000 to get a more reasonable value (in thousands)
-                                # Keep the pricing in reasonable range (e.g. 72,000 instead of 72)
-                                adjusted_cost = original_cost / 10 if original_cost > 10000 else original_cost
+                                # If cost > 100000, divide by 1000 to get a more reasonable value
+                                # This converts 27000000 to 27000 (27,000 IDR)
+                                adjusted_cost = original_cost / 1000 if original_cost > 100000 else original_cost
                                 
                                 courier_item = {
                                     "courier_code": item.get("shipping_name", "UNKNOWN").upper(),

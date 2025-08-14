@@ -9,10 +9,10 @@ class Barang(Base):
 
     id = Column(CHAR(36), primary_key=True, default=lambda: str(uuid.uuid4()))
     no_telp = Column(String(20), nullable=False)
-    nama_barang = Column(String(255), nullable=False)
+    nama_barang = Column(String(2000), nullable=False)  # Increased for JSON data
     jumlah_barang = Column(Integer, nullable=False)
     total = Column(Integer, nullable=False)
-    detail_barang = Column(String(1000), nullable=True)
+    detail_barang = Column(String(5000), nullable=True)  # Increased for detailed JSON
     
     # Tambahan informasi pengguna
     nama_pengguna = Column(String(100), nullable=True)
