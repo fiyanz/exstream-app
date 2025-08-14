@@ -1288,7 +1288,7 @@ const App = () => {
                     <img
                       src={getProductImage}
                       alt={currentProduct.color ? `Jas Hujan ${currentProduct.color}` : "Pilih Warna Jas Hujan"}
-                      className="w-[220px] h-[250px] rounded-lg object-cover shadow-md flex-shrink-0 ig-1 transition-all duration-300"
+                      className="w-[220px] h-[250px] rounded-lg object-cover shadow-md flex-shrink-0 ig-1 transition-all duration-300 on-v"
                       onError={(e) => {
                         e.target.src = 'https://placehold.co/150x200/A0D8B3/333?text=Product+Image';
                         e.target.alt = 'Placeholder Image';
@@ -1530,7 +1530,7 @@ const App = () => {
                   {cartItems.length > 0 ? (
                     <div className="space-y-3">
                       {cartItems.map((item) => (
-                        <div key={item.id} className="flex flex-col sm:flex-row items-center gap-4 p-4 rounded-lg shadow-sm on-b2 transition-all duration-200 hover:shadow-md">
+                        <div key={item.id} className="flex items-center gap-4 p-4 rounded-lg shadow-sm on-b2 transition-all duration-200 hover:shadow-md">
                           <img
                             src={
                               productData.find((p) => p.color === item.color)?.image ||
@@ -1543,7 +1543,7 @@ const App = () => {
                               e.target.alt = 'Placeholder Image';
                             }}
                           />
-                          <div className="flex-1 on-b22 text-center sm:text-left">
+                          <div className="flex-1 on-b22 sm:text-left">
                             <h4 className="font-semibold text-white text-lg h4">Jas Hujan</h4>
                             <p className="text-white text-sm p">Warna: {item.color}</p>
                             <p className="text-white text-sm p">Ukuran: {item.size}</p>

@@ -3,11 +3,9 @@ import React from 'react';
 import logo from '../../assets/Logo/logo.png';
 import ima from '../../assets/image/Hero.png';
 import { Link } from 'react-scroll';
-import { useNavigate } from 'react-router-dom';
 import './Nav.css'
 
 const NavbarCom = () => {
-    const navigate = useNavigate()
 
     return (
         <div className="relative nav">

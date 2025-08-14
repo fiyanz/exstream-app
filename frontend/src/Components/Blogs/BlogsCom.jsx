@@ -44,7 +44,7 @@ const BlogsCom = () => {
                          </Link> */}
                     </div>
                     {/* Hero Image */}
-                    <div className='flex flex-col md:flex-row'>
+                    <div className='flex flex-col xl:flex-row'>
                         <img src={ima1} alt="" className='h-[400px] w-[400px]' />
                         <img src={ima} alt="" className='h-[400px] w-[400px]' />
                         <img src={ima2} alt="" className='h-[400px] w-[400px]' />
