@@ -8,7 +8,7 @@
 // Determines the appropriate API base URL based on the current environment
 const getApiBaseUrl = () => {
   // URL API endpoint options
-  const productionApiUrl = 'http://service.jashujanextrime.my.id';
+  const productionApiUrl = 'https://service.jashujanextrime.my.id';
   const localApiUrl = 'http://localhost:8000';
   const testApiUrl = 'http://localhost:8000';
   
