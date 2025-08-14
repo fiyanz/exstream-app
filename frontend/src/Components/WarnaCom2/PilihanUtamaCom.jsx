@@ -49,7 +49,7 @@ const PilihanUtamaCom = () => {
                         <br />
                         harga khusus.
                     </span>
-                    <Link activeClass='active' to='Transaksi' spy={true} smooth={true} className='mt-4'>
+                    <Link activeClass='active' to='TransaksiOne' spy={true} smooth={true} className='mt-4'>
                         <button className='font-semibold rounded-lg text-lg hover:bg-gray-200 transition-colors but-pil'>
                             Beli Sekarang
                         </button>

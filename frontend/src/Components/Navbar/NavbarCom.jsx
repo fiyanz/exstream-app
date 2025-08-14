@@ -34,7 +34,7 @@ const NavbarCom = () => {
                         <span className='text-3xl md:text-5xl font-bold leading-tight'>
                             Jas Hujan Extrime Gaya <br /> Kekinian, Anti Rembes, <br /> Tetap Keren
                         </span>
-                        <Link activeClass='active' to='Transaksi' spy={true} smooth={true} className='mt-4'>
+                        <Link activeClass='active' to="TransaksiOne" smooth={true} duration={500}  className='mt-4'>
                             <button  className='bg-black text-white font-semibold rounded-lg text-lg hover:bg-gray-200 transition-colors but-nav'>
                                 Beli Sekarang
                             </button>
