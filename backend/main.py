@@ -10,6 +10,7 @@ from routers.lokasi import lokasi
 from routers.cost_ongkir import cost_ongkir
 from routers.cost_ongkir_local import cost_ongkir_lokal
 from routers.transaksi import transaksi
+from routers.store_order import store_order
 
 from db.database import Base, engine
 
@@ -62,6 +63,12 @@ app.include_router(
     transaksi,
     prefix="/api/v1/transaksi",
     tags=["Transaksi"]
+)
+
+app.include_router(
+    store_order,
+    prefix="/api/v1/store_order",
+    tags=["Store Order"]
 )
 
 if __name__ == "__main__":
