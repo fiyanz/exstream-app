@@ -10,9 +10,9 @@ from models.data_wilayah import Province, Regency, District, Village
 from schemas.ongkir import HitungOngkirRequest, RajaOngkirResponse, CourierService, CourierResult, LocationDetail
 
 # Router
-pengiriman_lokal = APIRouter()
+cost_ongkir_lokal = APIRouter()
 
-@pengiriman_lokal.post("/cek-ongkir", response_model=RajaOngkirResponse, summary="Cek Ongkos Kirim")
+@cost_ongkir_lokal.post("/cek-ongkir", response_model=RajaOngkirResponse, summary="Cek Ongkos Kirim")
 async def cek_ongkir(
     request: HitungOngkirRequest,
     db: Session = Depends(get_db)

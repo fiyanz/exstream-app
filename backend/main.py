@@ -7,8 +7,8 @@ from starlette.responses import Response
 from core.config import settings
 from routers.wilayah import wilayah
 from routers.lokasi import lokasi
-from routers.pengiriman import pengiriman
-from routers.pengiriman_lokal import pengiriman_lokal
+from routers.cost_ongkir import cost_ongkir
+from routers.cost_ongkir_local import cost_ongkir_lokal
 from routers.transaksi import transaksi
 
 from db.database import Base, engine
@@ -47,14 +47,14 @@ app.include_router(
 )
 
 app.include_router(
-    pengiriman,
-    prefix="/api/v1/pengiriman",
+    cost_ongkir,
+    prefix="/api/v1/cost_ongkir",
     tags=["Pengiriman API Raja Ongkir"]
 )
 
 app.include_router(
-    pengiriman_lokal,
-    prefix="/api/v1/pengiriman-lokal",
+    cost_ongkir_lokal,
+    prefix="/api/v1/cost_ongkir_lokal",
     tags=["Pengiriman dengan Data Lokal"]
 )
 
