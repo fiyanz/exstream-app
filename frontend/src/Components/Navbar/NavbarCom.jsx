@@ -1,7 +1,7 @@
 import React from 'react';
 // import foto from '../../assets/Logo/larisko.png';
 import logo from '../../assets/Logo/logo.png';
-import ima from '../../assets/image/Hero.png';
+import ima from '../../assets/ppalingatas.png';
 import { Link } from 'react-scroll';
 import './Nav.css'
 
@@ -32,13 +32,13 @@ const NavbarCom = () => {
                             #Jas Hujan Extrime
                         </span>
                         <span className='text-3xl md:text-5xl font-bold leading-tight'>
-                            Jas Hujan Extrime Gaya <br /> Kekinian, Anti Rembes, <br /> Tetap Keren
+                            Jas Hujan Extrime, Super <br /> Awet, Full Sealing Press, <br /> 100% Original
                         </span>
-                        <Link activeClass='active' to="TransaksiOne" smooth={true} duration={500}  className='mt-4'>
+                        {/* <Link activeClass='active' to="TransaksiOne" smooth={true} duration={500}  className='mt-4'>
                             <button  className='bg-black text-white font-semibold rounded-lg text-lg hover:bg-gray-200 transition-colors but-nav'>
                                 Beli Sekarang
                             </button>
-                        </Link>
+                        </Link> */}
                 <div>
                 </div>
                     </div>
@@ -46,7 +46,7 @@ const NavbarCom = () => {
                     <img
                         src={ima}
                         alt="Hero"
-                        className=' max-w-[200px] md:max-w-[320px] mt-8 md:mt-0 ima'
+                        className=' max-w-[340px] md:max-w-[500px] lg:max-w-[500px] mt-8 md:mt-0 ima'
                     />
                 </div>
             </nav>

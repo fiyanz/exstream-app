@@ -62,8 +62,8 @@ const SelectInput = ({ label, name, value, options, onChange, placeholder, requi
       >
         <option value="" disabled>{placeholder}</option>
         {Array.isArray(options) && options.map((option) => (
-          <option 
-            key={typeof option === 'object' ? option.id || JSON.stringify(option) : option} 
+          <option
+            key={typeof option === 'object' ? option.id || JSON.stringify(option) : option}
             value={typeof option === 'object' ? option.id || option.value || option.name : option}
           >
             {typeof option === 'object' ? option.name || option.label : option}
@@ -170,24 +170,24 @@ const App = () => {
   // State for validation errors
   const [formErrors, setFormErrors] = useState({});
   const [productErrors, setProductErrors] = useState({});
-  
+
   // State for location data from API
   const [provinces, setProvinces] = useState([]);
   const [cities, setCities] = useState([]);
   const [subdistricts, setSubdistricts] = useState([]);
   const [villages, setVillages] = useState([]);
-  
+
   // State for shipping options
   const [shippingOptions, setShippingOptions] = useState([]);
   const [isLoadingShipping, setIsLoadingShipping] = useState(false);
-  
+
   // State for loading and submission state
   const [isFormValid, setIsFormValid] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [orderPlaced, setOrderPlaced] = useState(false);
   const [isLoadingLocations, setIsLoadingLocations] = useState(false);
   const [orderDetails, setOrderDetails] = useState(null);
-  
+
   // Create refs for various form sections
   const productFormRef = useRef(null);
   const successRef = useRef(null);
@@ -199,7 +199,7 @@ const App = () => {
     const discountValue = subtotalValue * DISCOUNT_RATE;
     const handlingFeeValue = 0; // Assuming no handling fee for now
     const totalValue = subtotalValue - discountValue + formData.shippingCost + formData.taxCost + handlingFeeValue;
-    
+
     return {
       subtotal: subtotalValue,
       discount: discountValue,
@@ -221,37 +221,37 @@ const App = () => {
   // Function to display toast notifications
   const showToast = useCallback((message, type = 'error') => {
     const toast = document.createElement('div');
-    
+
     // Set base classes with proper styling
     const baseClasses = 'fixed bottom-4 left-1/2 transform -translate-x-1/2 z-50 py-3 px-6 rounded-md shadow-lg flex items-center gap-3 transition-all duration-300 animate-fade-in max-w-md';
-    
+
     // Set color based on type
-    const typeClasses = 
-      type === 'error' ? 'bg-white border-l-4 border-red-500 text-gray-700' : 
-      type === 'success' ? 'bg-white border-l-4 border-green-500 text-gray-700' : 
-      'bg-white border-l-4 border-blue-500 text-gray-700';
-    
+    const typeClasses =
+      type === 'error' ? 'bg-white border-l-4 border-red-500 text-gray-700' :
+        type === 'success' ? 'bg-white border-l-4 border-green-500 text-gray-700' :
+          'bg-white border-l-4 border-blue-500 text-gray-700';
+
     toast.className = `${baseClasses} ${typeClasses}`;
-    
+
     // Icon based on type
-    const icon = type === 'error' 
+    const icon = type === 'error'
       ? '<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-red-500" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>'
-      : type === 'success' 
+      : type === 'success'
         ? '<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-green-500" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>'
         : '<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-blue-500" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2h-1V9a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>';
-    
+
     toast.innerHTML = `
       ${icon}
       <p class="font-medium">${message}</p>
     `;
-    
+
     document.body.appendChild(toast);
-    
+
     // Fade in effect
     setTimeout(() => {
       toast.style.opacity = '1';
     }, 10);
-    
+
     // Auto-remove after 3 seconds
     setTimeout(() => {
       toast.style.opacity = '0';
@@ -275,7 +275,7 @@ const App = () => {
         setIsLoadingLocations(false);
       }
     };
-    
+
     loadProvinces();
   }, [showToast]);
 
@@ -286,7 +286,7 @@ const App = () => {
         setCities([]);
         return;
       }
-      
+
       try {
         setIsLoadingLocations(true);
         const citiesData = await fetchCities(formData.province);
@@ -305,7 +305,7 @@ const App = () => {
         setIsLoadingLocations(false);
       }
     };
-    
+
     loadCities();
   }, [formData.province, showToast]);
 
@@ -316,7 +316,7 @@ const App = () => {
         setSubdistricts([]);
         return;
       }
-      
+
       try {
         setIsLoadingLocations(true);
         const subdistrictsData = await fetchSubdistricts(formData.city);
@@ -334,7 +334,7 @@ const App = () => {
         setIsLoadingLocations(false);
       }
     };
-    
+
     loadSubdistricts();
   }, [formData.city, showToast]);
 
@@ -345,7 +345,7 @@ const App = () => {
         setVillages([]);
         return;
       }
-      
+
       try {
         setIsLoadingLocations(true);
         const villagesData = await fetchVillages(formData.subDistrict);
@@ -362,7 +362,7 @@ const App = () => {
         setIsLoadingLocations(false);
       }
     };
-    
+
     loadVillages();
   }, [formData.subDistrict, showToast]);
 
@@ -380,10 +380,10 @@ const App = () => {
         }));
         return;
       }
-      
+
       try {
         setIsLoadingShipping(true);
-        
+
         // Use the actual village ID for shipping calculation
         const shippingData = await calculateShippingCost({
           receiver_destination_id: formData.village,
@@ -391,7 +391,7 @@ const App = () => {
           item_value: subtotal,
           cod: formData.paymentMethod === 'COD (Bayar Di Tempat)'
         });
-        
+
         if (shippingData.success) {
           const options = formatShippingOptions(shippingData);
           setShippingOptions(options);
@@ -407,7 +407,7 @@ const App = () => {
         setIsLoadingShipping(false);
       }
     };
-    
+
     calculateShipping();
   }, [formData.province, formData.city, formData.subDistrict, formData.village, subtotal, formData.paymentMethod, showToast]);
 
@@ -415,11 +415,11 @@ const App = () => {
   const handleProductSelectionChange = useCallback((e) => {
     const { name, value } = e.target;
     setCurrentProduct((prev) => ({ ...prev, [name]: value }));
-    
+
     // Clear error for this field when it's being edited
     if (productErrors[name]) {
       setProductErrors(prev => {
-        const newErrors = {...prev};
+        const newErrors = { ...prev };
         delete newErrors[name];
         return newErrors;
       });
@@ -437,19 +437,19 @@ const App = () => {
   // Validate product selection before adding to cart
   const validateProductSelection = useCallback(() => {
     const errors = {};
-    
+
     if (!currentProduct.size) {
       errors.size = 'Ukuran wajib dipilih';
     }
-    
+
     if (!currentProduct.color) {
       errors.color = 'Warna wajib dipilih';
     }
-    
+
     if (currentProduct.quantity < 1) {
       errors.quantity = 'Jumlah minimal 1';
     }
-    
+
     setProductErrors(errors);
     return Object.keys(errors).length === 0;
   }, [currentProduct]);
@@ -457,7 +457,7 @@ const App = () => {
   // Handler for adding the current product selection to the cart
   const handleAddProduct = useCallback(() => {
     const isValid = validateProductSelection();
-    
+
     if (isValid) {
       setCartItems((prevItems) => [...prevItems, { ...currentProduct, id: Date.now() }]);
       // Reset the product selection form
@@ -466,16 +466,16 @@ const App = () => {
         color: '',
         quantity: 1,
       });
-      
+
       // Show success message
       showToast('Produk berhasil ditambahkan ke keranjang', 'success');
-      
+
       // Scroll to cart if it exists
-      if (cartRef.current) {
-        setTimeout(() => {
-          cartRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        }, 100);
-      }
+      // if (cartRef.current) {
+      //   setTimeout(() => {
+      //     cartRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      //   }, 100);
+      // }
     }
   }, [currentProduct, validateProductSelection, showToast]);
 
@@ -487,27 +487,27 @@ const App = () => {
   // Handler for main checkout form input changes with improved validation.
   const handleInputChange = useCallback((e) => {
     const { name, value } = e.target;
-    
+
     // Handle special case for telephone: ensure it starts with 8 and contains only numbers
     if (name === 'telephone') {
       // Remove non-numeric characters
       const numericValue = value.replace(/\D/g, '');
-      
+
       // Ensure it starts with 8
-      const formattedValue = numericValue.startsWith('0') || numericValue.startsWith('62') 
+      const formattedValue = numericValue.startsWith('0') || numericValue.startsWith('62')
         ? numericValue.replace(/^(0|62)/, '8')  // Replace leading 0 or 62 with 8
-        : numericValue.startsWith('8') 
-          ? numericValue 
+        : numericValue.startsWith('8')
+          ? numericValue
           : numericValue ? `8${numericValue}` : '';
-      
+
       setFormData((prevData) => ({
         ...prevData,
         [name]: formattedValue
       }));
-      
+
       return;
     }
-    
+
     // Handle all other fields
     setFormData((prevData) => {
       let newFormData = { ...prevData, [name]: value };
@@ -533,16 +533,16 @@ const App = () => {
         }
       }
 
-      
+
       // Clear error for this field when it's being edited
       if (formErrors[name]) {
         setFormErrors(prev => {
-          const newErrors = {...prev};
+          const newErrors = { ...prev };
           delete newErrors[name];
           return newErrors;
         });
       }
-      
+
       return newFormData;
     });
   }, [formErrors, shippingOptions]);
@@ -561,24 +561,24 @@ const App = () => {
       'shippingMethod',
       'paymentMethod',
     ];
-    
+
     // Check for empty required fields
     requiredFields.forEach(field => {
       if (!formData[field]) {
         errors[field] = 'Bidang ini wajib diisi';
       }
     });
-    
+
     // Validate phone number format (starts with 8 as requested)
     if (formData.telephone && !/^8[0-9]{8,11}$/.test(formData.telephone.replace(/\s+/g, ''))) {
       errors.telephone = 'Format nomor telepon tidak valid (harus dimulai dengan angka 8)';
     }
-    
+
     // Validate cart has items
     if (cartItems.length === 0) {
       errors.cart = 'Keranjang belanja tidak boleh kosong';
     }
-    
+
     setFormErrors(errors);
     return Object.keys(errors).length === 0;
   }, [formData, cartItems]);
@@ -595,7 +595,7 @@ const App = () => {
       successRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
   }, [orderPlaced]);
-  
+
   // Effect to prepare focus management for accessibility
   useEffect(() => {
     return () => {
@@ -607,11 +607,11 @@ const App = () => {
   const handleBuy = useCallback(async () => {
     // Force validation to show any errors
     const isValid = validateForm();
-    
+
     if (isValid) {
       try {
         setIsSubmitting(true);
-        
+
         // Prepare order data for API
         const orderData = {
           // Customer information
@@ -622,7 +622,7 @@ const App = () => {
           city: formData.city,
           subdistrict: formData.subDistrict,
           village: formData.village,
-          
+
           // Order items
           items: cartItems.map(item => ({
             name: "Jas Hujan Extrime",
@@ -632,22 +632,22 @@ const App = () => {
             price: PRODUCT_PRICE,
             image: productData.find(p => p.color === item.color)?.image || null
           })),
-          
+
           // Shipping and payment
           shipping_method: formData.shippingMethod,
           shipping_cost: formData.shippingCost,
           payment_method: formData.paymentMethod.toLowerCase().includes('cod') ? 'cod' : 'transfer',
-          
+
           // Pricing
           subtotal: subtotal,
           discount: discount,
           total: total
         };
-        
+
         // Store order data first
         const storedOrder = await storeOrderData(orderData);
         console.log('Order stored:', storedOrder);
-        
+
         // Create transaction from stored order
         const transactionResult = await createTransactionFromStoredOrder(storedOrder.order_id);
         console.log('Transaction result received:', transactionResult);
@@ -658,7 +658,7 @@ const App = () => {
         console.log('Midtrans amount:', transactionResult.midtrans_amount);
         console.log('Discount:', transactionResult.discount);
         console.log('Shipping cost:', transactionResult.shipping_cost);
-        
+
         // Handle response based on payment method
         if (transactionResult.payment_status === 'pending_cod') {
           // COD - Direct success
@@ -670,20 +670,20 @@ const App = () => {
           showToast(transactionResult.message, 'success');
           setOrderDetails(transactionResult);
           setOrderPlaced(true);
-          
-                     // Handle Midtrans payment using enhanced handler
-           if (transactionResult.redirect_url) {
-             // If we have redirect_url but no token, use redirect directly
-             if (transactionResult.token) {
-               handleMidtransPaymentEnhanced(transactionResult.token, transactionResult.redirect_url);
-             } else {
-               // Direct redirect to Midtrans payment page
-               window.open(transactionResult.redirect_url, '_blank');
-               showToast('Halaman pembayaran dibuka di tab baru', 'success');
-             }
-           } else {
-             showToast('Data pembayaran tidak lengkap', 'error');
-           }
+
+          // Handle Midtrans payment using enhanced handler
+          if (transactionResult.redirect_url) {
+            // If we have redirect_url but no token, use redirect directly
+            if (transactionResult.token) {
+              handleMidtransPaymentEnhanced(transactionResult.token, transactionResult.redirect_url);
+            } else {
+              // Direct redirect to Midtrans payment page
+              window.open(transactionResult.redirect_url, '_blank');
+              showToast('Halaman pembayaran dibuka di tab baru', 'success');
+            }
+          } else {
+            showToast('Data pembayaran tidak lengkap', 'error');
+          }
         }
       } catch (error) {
         console.error('Error processing order:', error);
@@ -696,14 +696,14 @@ const App = () => {
       const errorFieldNames = Object.keys(formErrors);
       if (errorFieldNames.length > 0) {
         const firstErrorField = errorFieldNames[0];
-        
+
         // Find element by ID or name attribute
         const errorElement = document.querySelector(`[name="${firstErrorField}"], #${firstErrorField}`);
         if (errorElement) {
           // Scroll to error element with some offset to make it visible
           errorElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
           errorElement.focus();
-          
+
           // Show toast notification
           const fieldName = firstErrorField.replace(/([A-Z])/g, ' $1').toLowerCase();
           showToast(`Harap lengkapi bidang "${fieldName}" yang masih kosong`, 'error');
@@ -726,7 +726,7 @@ const App = () => {
     setCartItems([]);
     setFormErrors({});
     setProductErrors({});
-    
+
     setFormData({
       fullName: '',
       telephone: '',
@@ -740,13 +740,13 @@ const App = () => {
       shippingCost: 0,
       taxCost: 0,
     });
-    
+
     setCurrentProduct({
       size: '',
       color: '',
       quantity: 1,
     });
-    
+
     // Scroll back to the top of the form
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, []);
@@ -768,29 +768,29 @@ const App = () => {
                 <div className="bg-green-100 p-4 rounded-full w-20 h-20 flex items-center justify-center mb-2 animate__animated animate__pulse">
                   <CheckCircle size={50} className="text-green-600" />
                 </div>
-                
+
                 <div className="bg-green-50 text-green-800 px-4 py-1 rounded-full text-sm font-medium inline-flex items-center">
                   <span>Order #ES{Math.floor(Math.random() * 100000)}</span>
                 </div>
-                
+
                 <h1 className="text-4xl md:text-5xl font-bold text-gray-800 leading-tight">
                   Pembelian Berhasil!
                 </h1>
-                
-                                 <p className="text-gray-600 text-lg">
-                   {orderDetails?.payment_status === 'pending_cod' ? (
-                     <>
-                       Terima kasih telah memilih Jas Hujan Extrime!<br />
-                       Pesanan COD Anda telah dibuat. Pembayaran dilakukan saat barang diterima.
-                     </>
-                   ) : (
-                     <>
-                       Terima kasih telah memilih Jas Hujan Extrime!<br />
-                       Silakan lakukan pembayaran untuk menyelesaikan pesanan Anda.
-                     </>
-                   )}
-                 </p>
-                
+
+                <p className="text-gray-600 text-lg">
+                  {orderDetails?.payment_status === 'pending_cod' ? (
+                    <>
+                      Terima kasih telah memilih Jas Hujan Extrime!<br />
+                      Pesanan COD Anda telah dibuat. Pembayaran dilakukan saat barang diterima.
+                    </>
+                  ) : (
+                    <>
+                      Terima kasih telah memilih Jas Hujan Extrime!<br />
+                      Silakan lakukan pembayaran untuk menyelesaikan pesanan Anda.
+                    </>
+                  )}
+                </p>
+
                 <div className="mt-2 bg-gray-50 p-6 rounded-lg w-full shadow-sm">
                   <h3 className="font-semibold text-gray-800 mb-4 text-lg border-b pb-2">Informasi Pesanan</h3>
                   <ul className="space-y-3">
@@ -818,19 +818,19 @@ const App = () => {
                       <span className="text-gray-600">Metode Pembayaran:</span>
                       <span className="font-medium text-gray-900">{formData.paymentMethod}</span>
                     </li>
-                                         <li className="flex justify-between items-center">
-                       <span className="text-gray-600">Pengiriman:</span>
-                       <span className="font-medium text-gray-900">{formData.shippingMethod}</span>
-                     </li>
-                     <li className="flex justify-between items-center">
-                       <span className="text-gray-600">Status:</span>
-                       <span className="font-medium text-gray-900">
-                         {orderDetails?.payment_status === 'pending_cod' ? 'Menunggu Pembayaran COD' : 'Menunggu Pembayaran'}
-                       </span>
-                     </li>
+                    <li className="flex justify-between items-center">
+                      <span className="text-gray-600">Pengiriman:</span>
+                      <span className="font-medium text-gray-900">{formData.shippingMethod}</span>
+                    </li>
+                    <li className="flex justify-between items-center">
+                      <span className="text-gray-600">Status:</span>
+                      <span className="font-medium text-gray-900">
+                        {orderDetails?.payment_status === 'pending_cod' ? 'Menunggu Pembayaran COD' : 'Menunggu Pembayaran'}
+                      </span>
+                    </li>
                   </ul>
                 </div>
-                
+
                 <button
                   onClick={handleBackToForm}
                   className="mt-6 bg-orange-500 hover:bg-orange-600 text-white font-bold py-3 px-8 rounded-xl shadow-lg transition-all duration-300 transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-orange-300 but-text flex items-center justify-center"
@@ -846,18 +846,18 @@ const App = () => {
                   <span className="font-bold text-white text-lg">New!</span>
                 </div>
                 <div className="bg-gradient-to-br from-green-100 to-blue-100 p-1 rounded-2xl shadow-lg">
-                  <img 
-                    src={Testi} 
-                    alt="Successful purchase confirmation" 
-                    className="img-test rounded-xl shadow-md border-2 border-white transform transition-transform duration-300 hover:scale-105 object-cover w-full h-full max-w-xs" 
+                  <img
+                    src={Testi}
+                    alt="Successful purchase confirmation"
+                    className="img-test rounded-xl shadow-md border-2 border-white transform transition-transform duration-300 hover:scale-105 object-cover w-full h-full max-w-xs"
                   />
                 </div>
               </div>
             </div>
-            
+
             <div className="flex justify-center w-full mt-6">
-              <a 
-                href="#" 
+              <a
+                href="#"
                 className="text-sm text-blue-600 hover:underline flex items-center gap-1"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -943,31 +943,33 @@ const App = () => {
                       onClick={handleAddProduct}
                       type="button"
                       className={`w-full h-12 py-4 px-6 font-bold rounded-lg shadow-md transition-all duration-300 flex items-center justify-center text-lg
-                                  ${
-                                    currentProduct.size && currentProduct.color
-                                      ? 'bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white'
-                                      : 'bg-gray-200 text-gray-400 cursor-not-allowed'
-                                  }`}
+                                  ${currentProduct.size && currentProduct.color
+                          ? 'bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white'
+                          : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                        }`}
                       style={{
                         boxShadow: currentProduct.size && currentProduct.color ? '0 4px 14px rgba(79, 70, 229, 0.3)' : 'none'
                       }}
                     >
                       <div className="flex items-center justify-center gap-3">
                         <ShoppingBag size={22} />
-                        <span>Tambah ke Keranjang</span>
+                        <span>TambahKan Pesanan</span>
                       </div>
                     </button>
+                    <p className='text-center text-sm '>
+                      Pastikan Klik Dulu sebelum Pemesanan
+                    </p>
                   </div>
                 </div>
               </div>
 
               {/* Shipping Details Form Card */}
               <div className="mt-8 det-ap">
-                                 <h2 className="text-2xl font-bold text-black on-a4 text-center">Detail Pengiriman</h2>
-                 <p className="text-sm text-gray-600 text-center mb-6">
-                   Pilih lokasi dari dropdown untuk menghitung ongkos kirim secara otomatis
-                 </p>
-                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 on-10">
+                <h2 className="text-2xl font-bold text-black on-a4 text-center">Detail Pengiriman</h2>
+                <p className="text-sm text-gray-600 text-center mb-6">
+                  Pilih lokasi dari dropdown untuk menghitung ongkos kirim secara otomatis
+                </p>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 on-10">
                   <TextInput
                     label="Nama Lengkap"
                     name="fullName"
@@ -983,7 +985,7 @@ const App = () => {
                       name="telephone"
                       value={formData.telephone}
                       onChange={handleInputChange}
-                      placeholder="081234567890"
+                      placeholder="081234567"
                       required
                       error={formErrors.telephone}
                     />
@@ -991,50 +993,50 @@ const App = () => {
                       <p className="text-xs text-gray-500 mt-1">Contoh: 081234567890 (tanpa awalan 0 atau +62)</p>
                     )}
                   </div>
-                                     <SelectInput
-                     label="Provinsi"
-                     name="province"
-                     value={formData.province}
-                     options={provinces.map(p => ({ id: p.id, name: p.name }))}
-                     onChange={handleInputChange}
-                     placeholder={isLoadingLocations ? "Memuat..." : "Pilih Provinsi"}
-                     required
-                     disabled={isLoadingLocations}
-                     error={formErrors.province}
-                   />
-                   <SelectInput
-                     label="Kota/Kabupaten"
-                     name="city"
-                     value={formData.city}
-                     options={cities.map(c => ({ id: c.id, name: c.name }))}
-                     onChange={handleInputChange}
-                     placeholder={!formData.province ? "Pilih provinsi dulu" : isLoadingLocations ? "Memuat..." : "Pilih Kota/Kabupaten"}
-                     required
-                     disabled={!formData.province || isLoadingLocations}
-                     error={formErrors.city}
-                   />
-                   <SelectInput
-                     label="Kecamatan"
-                     name="subDistrict"
-                     value={formData.subDistrict}
-                     options={subdistricts.map(s => ({ id: s.id, name: s.name }))}
-                     onChange={handleInputChange}
-                     placeholder={!formData.city ? "Pilih kota dulu" : isLoadingLocations ? "Memuat..." : "Pilih Kecamatan"}
-                     required
-                     disabled={!formData.city || isLoadingLocations}
-                     error={formErrors.subDistrict}
-                   />
-                   <SelectInput
-                     label="Desa"
-                     name="village"
-                     value={formData.village}
-                     options={villages.map(v => ({ id: v.id, name: v.name }))}
-                     onChange={handleInputChange}
-                     placeholder={!formData.subDistrict ? "Pilih kecamatan dulu" : isLoadingLocations ? "Memuat..." : "Pilih Desa"}
-                     required
-                     disabled={!formData.subDistrict || isLoadingLocations}
-                     error={formErrors.village}
-                   />
+                  <SelectInput
+                    label="Provinsi"
+                    name="province"
+                    value={formData.province}
+                    options={provinces.map(p => ({ id: p.id, name: p.name }))}
+                    onChange={handleInputChange}
+                    placeholder={isLoadingLocations ? "Memuat..." : "Pilih Provinsi"}
+                    required
+                    disabled={isLoadingLocations}
+                    error={formErrors.province}
+                  />
+                  <SelectInput
+                    label="Kota/Kabupaten"
+                    name="city"
+                    value={formData.city}
+                    options={cities.map(c => ({ id: c.id, name: c.name }))}
+                    onChange={handleInputChange}
+                    placeholder={!formData.province ? "Pilih provinsi dulu" : isLoadingLocations ? "Memuat..." : "Pilih Kota/Kabupaten"}
+                    required
+                    disabled={!formData.province || isLoadingLocations}
+                    error={formErrors.city}
+                  />
+                  <SelectInput
+                    label="Kecamatan"
+                    name="subDistrict"
+                    value={formData.subDistrict}
+                    options={subdistricts.map(s => ({ id: s.id, name: s.name }))}
+                    onChange={handleInputChange}
+                    placeholder={!formData.city ? "Pilih kota dulu" : isLoadingLocations ? "Memuat..." : "Pilih Kecamatan"}
+                    required
+                    disabled={!formData.city || isLoadingLocations}
+                    error={formErrors.subDistrict}
+                  />
+                  <SelectInput
+                    label="Desa"
+                    name="village"
+                    value={formData.village}
+                    options={villages.map(v => ({ id: v.id, name: v.name }))}
+                    onChange={handleInputChange}
+                    placeholder={!formData.subDistrict ? "Pilih kecamatan dulu" : isLoadingLocations ? "Memuat..." : "Pilih Desa"}
+                    required
+                    disabled={!formData.subDistrict || isLoadingLocations}
+                    error={formErrors.village}
+                  />
                 </div>
                 <div className="mt-6 on-10">
                   <div className="flex flex-col">
@@ -1068,9 +1070,9 @@ const App = () => {
                     label=""
                     name="shippingMethod"
                     value={formData.shippingMethod}
-                    options={shippingOptions.map(option => ({ 
-                      id: option.id, 
-                      name: option.label 
+                    options={shippingOptions.map(option => ({
+                      id: option.id,
+                      name: option.label
                     }))}
                     onChange={handleInputChange}
                     placeholder={isLoadingShipping ? "Menghitung ongkir..." : "Pilih Metode Pengiriman"}
@@ -1086,17 +1088,17 @@ const App = () => {
                       )}
                     </div>
                   )}
-                                     {isLoadingShipping && (
-                     <div className="mt-3 flex items-center gap-2 text-sm text-gray-600">
-                       <Loader2 size={16} className="animate-spin" />
-                       <span>Menghitung ongkos kirim...</span>
-                     </div>
-                   )}
-                   {!isLoadingShipping && shippingOptions.length === 0 && formData.province && formData.city && formData.subDistrict && formData.village && (
-                     <div className="mt-3 text-sm text-gray-500">
-                       <p>Menunggu pemilihan lokasi lengkap untuk menghitung ongkos kirim</p>
-                     </div>
-                   )}
+                  {isLoadingShipping && (
+                    <div className="mt-3 flex items-center gap-2 text-sm text-gray-600">
+                      <Loader2 size={16} className="animate-spin" />
+                      <span>Menghitung ongkos kirim...</span>
+                    </div>
+                  )}
+                  {!isLoadingShipping && shippingOptions.length === 0 && formData.province && formData.city && formData.subDistrict && formData.village && (
+                    <div className="mt-3 text-sm text-gray-500">
+                      <p>Menunggu pemilihan lokasi lengkap untuk menghitung ongkos kirim</p>
+                    </div>
+                  )}
                 </div>
                 <div>
                   <h2 className="text-2xl font-bold mb-6 text-black">Metode Pembayaran</h2>
@@ -1113,9 +1115,9 @@ const App = () => {
                   {formData.paymentMethod && (
                     <div className="mt-3 text-sm">
                       <p className="text-gray-600">{
-                        formData.paymentMethod.includes('COD') ? 
-                        'Pembayaran dilakukan saat barang diterima' : 
-                        'Lakukan pembayaran setelah checkout'
+                        formData.paymentMethod.includes('COD') ?
+                          'Pembayaran dilakukan saat barang diterima' :
+                          'Lakukan pembayaran setelah checkout'
                       }</p>
                     </div>
                   )}
@@ -1177,7 +1179,7 @@ const App = () => {
                           <div className="flex items-center justify-center text-gray-600 gap-1 mt-2 bg-gray-100 px-4 py-2 rounded-lg">
                             <p>{formErrors.cart}</p>
                           </div>
-                          <button 
+                          <button
                             onClick={() => productFormRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })}
                             className="w-full h-12 mt-3 px-5 py-2.5 bg-gradient-to-r from-purple-500 to-indigo-600 text-white font-medium text-sm rounded-lg shadow-md hover:shadow-lg transform hover:-translate-y-0.5 transition-all duration-200 flex items-center justify-center"
                             type="button"
@@ -1232,11 +1234,10 @@ const App = () => {
                   onClick={handleBuy}
                   disabled={!isFormValid || isSubmitting}
                   className={`mt-6 w-full py-4 font-bold text-lg md:text-xl rounded-xl shadow-lg transition-all duration-300 flex items-center justify-center gap-2 on-b5 focus:outline-none focus:ring-2 focus:ring-emerald-400
-                                  ${
-                                    isFormValid && !isSubmitting
-                                      ? 'bg-emerald-500 hover:bg-emerald-600 text-white'
-                                      : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                                  }`}
+                                  ${isFormValid && !isSubmitting
+                      ? 'bg-emerald-500 hover:bg-emerald-600 text-white'
+                      : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                    }`}
                 >
                   {isSubmitting ? (
                     <div className="flex items-center justify-center gap-2">

@@ -74,7 +74,7 @@
   }
 
   .tes-1 {
-    margin-top: 186rem;
+    margin-top: 192rem;
     margin-bottom: 5rem;
   }
 
@@ -94,8 +94,12 @@
   }
 
   .tes-1 {
-    margin-top: 186rem;
+    margin-top: 193rem;
     margin-bottom: 5rem;
+  }
+
+  .gr-te {
+    width: 20rem;
   }
 }
 
@@ -110,7 +114,7 @@
   }
 
   .tes-1 {
-    margin-top: 165rem;
+    margin-top: 188rem;
     margin-bottom: 5rem;
   }
 }
@@ -131,7 +135,7 @@
     }
 
   .tes-1 {
-    margin-top: 60rem;
+    margin-top: 79rem;
     margin-bottom: 5rem;
   }
 }
@@ -147,7 +151,7 @@
     }
 
     .tes-1 {
-      margin-top: 60rem;
+      margin-top: 79rem;
       margin-bottom: 5rem;
     }
 
@@ -168,11 +172,11 @@
     }
 
     .tes-1 {
-      margin-top: 25rem;
+      margin-top: 47rem;
       margin-bottom: 5rem;
     }
 
-     .li-2 {
+    .li-2 {
       display: flex;
       flex-direction: column;
     }
@@ -189,7 +193,7 @@
     }
 
     .tes-1 {
-      margin-top: 25rem;
+      margin-top: 46.6rem;
       margin-bottom: 5rem;
     }
 

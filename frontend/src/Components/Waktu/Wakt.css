@@ -1,0 +1,31 @@
+.wak {
+    padding-top: 1rem;
+    padding-bottom: 1rem;
+    margin-top: 1rem;
+}
+
+.wak-3 {
+    padding: 0.8rem 2rem 0.8rem 2rem;
+}
+
+.wak-3a {
+    margin-top: 1.2rem;
+    margin-bottom: 1.2rem;
+}
+
+.wak-4 {
+    padding: 0.8rem 2rem 0.8rem 2rem;
+    margin-bottom: 1rem;
+}
+
+@media (min-width: 300px) and (max-width: 410px) {
+    
+}
+
+@media (min-width: 410px) and (max-width: 500px) {
+    
+}
+
+@media (min-width: 500px) and (max-width: 1020px) {
+    
+}
