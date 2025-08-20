@@ -41,16 +41,17 @@ function WaktuL() {
           
           {/* Informasi harga */}
           <div className="mb-8 flex flex-col gap-2 wak-2">
-            <p className="text-lg lg:text-3xl text-gray-500 line-through">
+            <p className="text-lg lg:text-3xl text-gray-500 line-through bg-gradient-to-r from-purple-500 to-indigo-600 text-white rounded-full">
               Harga Normal: Rp. {normalPrice.toLocaleString('id-ID')}
             </p>
             <div className="wak-3a">
-              <span className="bg-gradient-to-r from-purple-500 to-indigo-600 text-white rounded-full text-sm lg:text-3xl font-semibold wak-3">Diskon 70%</span>
+              <span className="bg-gradient-to-r from-cyan-500 to-blue-600 text-white 0
+              rounded-full text-sm lg:text-3xl font-semibold wak-3">Diskon 70%</span>
             </div>
             {/* Ukuran teks dinamis: text-3xl di mobile, md:text-4xl di desktop */}
-            <p className="text-3xl md:text-4xl font-extrabold text-gray-500">
+            {/* <p className="text-3xl lg:text-4xl font-extrabold text-gray-500">
               Menjadi: Rp. {discountedPrice.toLocaleString('id-ID')}
-            </p>
+            </p> */}
           </div>
   
           {/* Panah (opsional, bisa diganti ikon) */}
@@ -68,7 +69,7 @@ function WaktuL() {
   
           {/* Harga Akhir dan Timer */}
           <div className="flex flex-col items-center">
-            <button className="bg-gradient-to-r from-purple-500 to-indigo-600 text-white rounded-full text-sm lg:text-3xl font-semibold wak-4">
+            <button className="bg-gradient-to-r from-purple-500 to-indigo-600 text-white rounded-full text-2xl lg:text-3xl font-semibold wak-4">
               Rp. {discountedPrice.toLocaleString('id-ID')}
             </button>
             <div className="text-xl lg:text-2xl font-mono text-gray-700">

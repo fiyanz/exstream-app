@@ -17,8 +17,8 @@ const LandingOne = () => {
         <>
             <NavbarCom />
             <Koded />
-            <SizingGuide />
-            <ProductSection />
+            {/* <SizingGuide />
+            <ProductSection /> */}
             <HeaderCom />
             <BlogsCom />
             <PilihanUtamaCom />

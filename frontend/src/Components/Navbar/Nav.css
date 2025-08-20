@@ -53,14 +53,7 @@
         margin-bottom: 0.8rem;
     }
 
-    .on-nav {
-        margin-left: 0.7rem;
-    }
-
-    .ima {
-        height: 25rem;
-    }
-
+    
     .nav-text {
         display: flex;
         flex-direction: column;
@@ -68,6 +61,14 @@
         align-items: center;
         text-align: center;
     }
+
+    /* .ima {
+        margin-left: -1rem;
+    } */
+}
+
+@media (min-width: 400px) and (max-width: 500px) {
+    
 }
 
 @media (min-width: 650px) and (max-width: 750px) {

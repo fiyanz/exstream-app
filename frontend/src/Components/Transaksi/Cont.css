@@ -148,9 +148,7 @@
         text-align: center;
     }
 
-    .ig-1 {
-        margin-left: 3rem;
-    }
+    
 
     .on-c {
         margin-left: 0.2rem;
@@ -187,12 +185,16 @@
     .on-b21 {
         width: 5rem;
     }
+
+    .on-b2 {
+        display: flex;
+    }
 }
 
 @media (min-width: 400px) and (max-width: 500px) {
     .on-a {
         width: 25rem;
-        margin-left: 0.6rem;
+        margin-left: 3rem;
     }
 
     .on-9 {
@@ -209,9 +211,7 @@
         text-align: center;
     }
 
-    .ig-1 {
-        margin-left: 6rem;
-    }
+    
 
     .on-c {
         margin-left: 0.2rem;
@@ -257,7 +257,7 @@
 @media (min-width: 500px) and (max-width: 600px) {
     .on-a {
         width: 30rem;
-        margin-left: 0.6rem;
+        margin-left: 3.7rem;
         padding: 3rem;
     }
 
@@ -265,9 +265,7 @@
         text-align: center;
     }
 
-    .ig-1 {
-        margin-left: 6rem;
-    }
+    
 
     .on-c {
         margin-left: 0.2rem;
@@ -320,9 +318,7 @@
         text-align: center;
     }
 
-    .ig-1 {
-        margin-left: 6rem;
-    }
+    
 
     .on-c {
         margin-left: 0.2rem;
@@ -333,7 +329,7 @@
     }
 
     .on-b1 {
-        width: 24rem;
+        width: 30rem;
         margin-left: -0.3rem;
         gap: 2rem;
     }
@@ -375,9 +371,7 @@
         text-align: center;
     }
 
-    .ig-1 {
-        margin-left: 6rem;
-    }
+    
 
     .on-c {
         margin-left: 0.2rem;
@@ -388,7 +382,7 @@
     }
 
     .on-b1 {
-        width: 24rem;
+        width: 40rem;
         margin-left: -0.3rem;
         gap: 2rem;
     }

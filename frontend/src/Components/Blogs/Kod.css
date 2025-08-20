@@ -30,6 +30,10 @@
     .kod-4 {
         margin-left: 0.8rem;
     }
+
+    .img-kod1 {
+        margin-top: 5rem;
+    }
 }
 
 @media (min-width: 410px) and (max-width: 500px) {
@@ -52,10 +56,18 @@
     .kod-4 {
         margin-left: 0.8rem;
     }
+
+    .img-kod1 {
+        margin-top: 5rem;
+    }
 }
 
 @media (min-width: 500px) and (max-width: 1020px) {
     .kod-2 {
         margin-top: 9rem;
+    }
+
+    .img-kod1 {
+        margin-top: 5rem;
     }
 }

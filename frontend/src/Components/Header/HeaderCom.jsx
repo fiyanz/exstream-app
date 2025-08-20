@@ -20,7 +20,7 @@ const HeaderCom = () => {
                         dalam Gaya Kekinian Nyaman Dipakai Kapan Saja
                 </h2>
                 <div>
-                    <div
+                    {/* <div
                         className="flex flex-wrap justify-center items-center gap-7 ">
                         {features.map((feature, index) => (
                             <div 
@@ -43,7 +43,7 @@ const HeaderCom = () => {
                                 <p className="text-white font-bold text-center p-he1 relative">{feature.description}</p>
                             </div>
                         ))}
-                    </div>
+                    </div> */}
                 </div>
             </header>
         </div>
