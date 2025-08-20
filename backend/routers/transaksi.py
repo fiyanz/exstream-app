@@ -100,102 +100,102 @@ def buat_transaksi(order: TransaksiCreate, db: Session = Depends(get_db)):
         "redirect_url": snap_response["redirect_url"]
     }
 
-@transaksi.post("/store-order")
-def store_order_data(order: TransaksiCreateEnhanced, db: Session = Depends(get_db)):
-    """
-    Menyimpan data order sementara sebelum pembayaran
-    """
-    try:
-        # Generate unique order ID
-        order_id = str(uuid.uuid4())
+# @transaksi.post("/store-order")
+# def store_order_data(order: TransaksiCreateEnhanced, db: Session = Depends(get_db)):
+#     """
+#     Menyimpan data order sementara sebelum pembayaran
+#     """
+#     try:
+#         # Generate unique order ID
+#         order_id = str(uuid.uuid4())
         
-        # Convert Pydantic models to dictionaries for JSON serialization
-        items_dict = [item.dict() for item in order.items]
+#         # Convert Pydantic models to dictionaries for JSON serialization
+#         items_dict = [item.dict() for item in order.items]
         
-        # Format phone number for consistency
-        formatted_phone = format_phone_number(order.customer_phone)
+#         # Format phone number for consistency
+#         formatted_phone = format_phone_number(order.customer_phone)
         
-        # Prepare order details with serializable data
-        order_details = {
-            "items": items_dict,
-            "shipping_method": order.shipping_method,
-            "shipping_cost": order.shipping_cost,
-            "payment_method": order.payment_method,
-            "subtotal": order.subtotal,
-            "discount": order.discount,
-            "total": order.total,
-            "customer_info": {
-                "name": order.customer_name,
-                "phone": formatted_phone,
-                "address": order.customer_address,
-                "province": order.province,
-                "city": order.city,
-                "subdistrict": order.subdistrict,
-                "village": order.village
-            }
-        }
+#         # Prepare order details with serializable data
+#         order_details = {
+#             "items": items_dict,
+#             "shipping_method": order.shipping_method,
+#             "shipping_cost": order.shipping_cost,
+#             "payment_method": order.payment_method,
+#             "subtotal": order.subtotal,
+#             "discount": order.discount,
+#             "total": order.total,
+#             "customer_info": {
+#                 "name": order.customer_name,
+#                 "phone": formatted_phone,
+#                 "address": order.customer_address,
+#                 "province": order.province,
+#                 "city": order.city,
+#                 "subdistrict": order.subdistrict,
+#                 "village": order.village
+#             }
+#         }
         
-        # Simpan transaksi ke database dengan status pending
-        transaksi_db = Barang(
-            id=order_id,
-            no_telp=formatted_phone,
-            nama_barang=json.dumps(items_dict),
-            jumlah_barang=len(order.items),
-            total=order.total,
-            detail_barang=json.dumps(order_details),
-            nama_pengguna=order.customer_name,
-            alamat=order.customer_address
-        )
-        db.add(transaksi_db)
-        db.commit()
-        db.refresh(transaksi_db)
+#         # Simpan transaksi ke database dengan status pending
+#         transaksi_db = Barang(
+#             id=order_id,
+#             no_telp=formatted_phone,
+#             nama_barang=json.dumps(items_dict),
+#             jumlah_barang=len(order.items),
+#             total=order.total,
+#             detail_barang=json.dumps(order_details),
+#             nama_pengguna=order.customer_name,
+#             alamat=order.customer_address
+#         )
+#         db.add(transaksi_db)
+#         db.commit()
+#         db.refresh(transaksi_db)
         
-        return {
-            "order_id": order_id,
-            "status": "stored",
-            "message": "Order data stored successfully",
-            "frontend_total": order.total,
-            "subtotal": order.subtotal,
-            "discount": order.discount,
-            "shipping_cost": order.shipping_cost
-        }
+#         return {
+#             "order_id": order_id,
+#             "status": "stored",
+#             "message": "Order data stored successfully",
+#             "frontend_total": order.total,
+#             "subtotal": order.subtotal,
+#             "discount": order.discount,
+#             "shipping_cost": order.shipping_cost
+#         }
         
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Gagal menyimpan order: {str(e)}")
+#     except Exception as e:
+#         raise HTTPException(status_code=500, detail=f"Gagal menyimpan order: {str(e)}")
 
-@transaksi.get("/order/{order_id}")
-def get_order_data(order_id: str, db: Session = Depends(get_db)):
-    """
-    Mengambil data order berdasarkan order ID
-    """
-    try:
-        transaksi_db = db.query(Barang).filter(Barang.id == order_id).first()
-        if not transaksi_db:
-            raise HTTPException(status_code=404, detail="Order tidak ditemukan")
+# @transaksi.get("/order/{order_id}")
+# def get_order_data(order_id: str, db: Session = Depends(get_db)):
+#     """
+#     Mengambil data order berdasarkan order ID
+#     """
+#     try:
+#         transaksi_db = db.query(Barang).filter(Barang.id == order_id).first()
+#         if not transaksi_db:
+#             raise HTTPException(status_code=404, detail="Order tidak ditemukan")
         
-        # Parse detail_barang JSON
-        order_details = json.loads(transaksi_db.detail_barang) if transaksi_db.detail_barang else {}
-        customer_info = order_details.get("customer_info", {})
+#         # Parse detail_barang JSON
+#         order_details = json.loads(transaksi_db.detail_barang) if transaksi_db.detail_barang else {}
+#         customer_info = order_details.get("customer_info", {})
         
-        return {
-            "customer_name": transaksi_db.nama_pengguna,
-            "customer_phone": transaksi_db.no_telp,
-            "customer_address": transaksi_db.alamat,
-            "province": customer_info.get("province", ""),
-            "city": customer_info.get("city", ""),
-            "subdistrict": customer_info.get("subdistrict", ""),
-            "village": customer_info.get("village", ""),
-            "items": json.loads(transaksi_db.nama_barang) if transaksi_db.nama_barang else [],
-            "shipping_method": order_details.get("shipping_method", ""),
-            "shipping_cost": order_details.get("shipping_cost", 0),
-            "payment_method": order_details.get("payment_method", ""),
-            "subtotal": order_details.get("subtotal", 0),
-            "discount": order_details.get("discount", 0),
-            "total": transaksi_db.total
-        }
+#         return {
+#             "customer_name": transaksi_db.nama_pengguna,
+#             "customer_phone": transaksi_db.no_telp,
+#             "customer_address": transaksi_db.alamat,
+#             "province": customer_info.get("province", ""),
+#             "city": customer_info.get("city", ""),
+#             "subdistrict": customer_info.get("subdistrict", ""),
+#             "village": customer_info.get("village", ""),
+#             "items": json.loads(transaksi_db.nama_barang) if transaksi_db.nama_barang else [],
+#             "shipping_method": order_details.get("shipping_method", ""),
+#             "shipping_cost": order_details.get("shipping_cost", 0),
+#             "payment_method": order_details.get("payment_method", ""),
+#             "subtotal": order_details.get("subtotal", 0),
+#             "discount": order_details.get("discount", 0),
+#             "total": transaksi_db.total
+#         }
         
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Gagal mengambil data order: {str(e)}")
+#     except Exception as e:
+#         raise HTTPException(status_code=500, detail=f"Gagal mengambil data order: {str(e)}")
 
 @transaksi.post("/enhanced", response_model=TransaksiOut)
 def buat_transaksi_enhanced(order: TransaksiCreateEnhanced, db: Session = Depends(get_db)):
@@ -361,22 +361,22 @@ def buat_transaksi_enhanced(order: TransaksiCreateEnhanced, db: Session = Depend
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Gagal membuat transaksi: {str(e)}")
 
-@transaksi.get("/{order_id}/status")
-def get_order_status(order_id: str, db: Session = Depends(get_db)):
-    """
-    Get order status by order ID
-    """
-    transaksi_db = db.query(Barang).filter(Barang.id == order_id).first()
-    if not transaksi_db:
-        raise HTTPException(status_code=404, detail="Order tidak ditemukan")
+# @transaksi.get("/{order_id}/status")
+# def get_order_status(order_id: str, db: Session = Depends(get_db)):
+#     """
+#     Get order status by order ID
+#     """
+#     transaksi_db = db.query(Barang).filter(Barang.id == order_id).first()
+#     if not transaksi_db:
+#         raise HTTPException(status_code=404, detail="Order tidak ditemukan")
     
-    return {
-        "order_id": transaksi_db.id,
-        "status": "pending",  # You can add status field to your model
-        "total": transaksi_db.total,
-        "customer_name": transaksi_db.nama_pengguna,
-        "created_at": transaksi_db.created_at if hasattr(transaksi_db, 'created_at') else None
-    }
+#     return {
+#         "order_id": transaksi_db.id,
+#         "status": "pending",  # You can add status field to your model
+#         "total": transaksi_db.total,
+#         "customer_name": transaksi_db.nama_pengguna,
+#         "created_at": transaksi_db.created_at if hasattr(transaksi_db, 'created_at') else None
+#     }
 
 
 
