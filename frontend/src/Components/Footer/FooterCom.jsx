@@ -33,7 +33,7 @@ const FooterOneJo = () => {
 
         {/* Copyright */}
         <p className="text-xs sm:text-sm text-black pt-4">
-          © 2025. Jas Hujan Extrime. All Rights Reserved.
+          © 2020. Jas Hujan Extrime. All Rights Reserved.
         </p>
 
       </div>

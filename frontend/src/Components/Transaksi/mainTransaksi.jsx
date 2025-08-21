@@ -39,8 +39,8 @@ const paymentMethods = [
 
 // Product price configuration
 const PRODUCT_PRICE = 299000;
-const DISCOUNT_RATE = 0.5; // 50% discount
-const PRODUCT_WEIGHT = 1000; // 1kg in grams
+const DISCOUNT_RATE = 0.5484; // 54.85% discount
+const PRODUCT_WEIGHT = 1000;
 
 // Reusable component for a Select dropdown.
 const SelectInput = ({ label, name, value, options, onChange, placeholder, required, disabled = false, error }) => (
@@ -985,7 +985,7 @@ const App = () => {
                       name="telephone"
                       value={formData.telephone}
                       onChange={handleInputChange}
-                      placeholder="081234567"
+                      placeholder="087712345678"
                       required
                       error={formErrors.telephone}
                     />
@@ -1049,7 +1049,7 @@ const App = () => {
                       rows="3"
                       value={formData.completeAddress}
                       onChange={handleInputChange}
-                      placeholder="Jl. Contoh No. 123 atau Gang Bunga 123"
+                      placeholder="Jl. Kenanga No. 23 RT 02 RW 05, (Depan Toko Sembako Makmur, Belakang Klinik Sehat Sentosa)"
                       className={`w-full h-[160px] p-3 border ${formErrors.completeAddress ? 'border-red-500' : 'border-gray-300'} rounded-lg shadow-sm focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 text-sm md:text-base text-black al-11`}
                       required
                       aria-invalid={formErrors.completeAddress ? "true" : "false"}
@@ -1134,7 +1134,7 @@ const App = () => {
                   {cartItems.length > 0 ? (
                     <div className="space-y-3">
                       {cartItems.map((item) => (
-                        <div key={item.id} className="flex flex-col sm:flex-row items-center gap-4 p-4 rounded-lg shadow-sm on-b2 transition-all duration-200 hover:shadow-md">
+                        <div key={item.id} className="flex flex-row items-center gap-4 p-4 rounded-lg shadow-sm on-b2 transition-all duration-200 hover:shadow-md">
                           <img
                             src={
                               productData.find((p) => p.color === item.color)?.image ||
@@ -1147,14 +1147,14 @@ const App = () => {
                               e.target.alt = 'Placeholder Image';
                             }}
                           />
-                          <div className="flex-1 on-b22 text-center sm:text-left">
+                          <div className="flex-1 on-b22 text-left">
                             <h4 className="font-semibold text-white text-lg h4">Jas Hujan</h4>
                             <p className="text-white text-sm p">Warna: {item.color}</p>
                             <p className="text-white text-sm p">Ukuran: {item.size}</p>
                             <p className="text-white text-sm p">Jumlah: {item.quantity}</p>
                           </div>
                           <div className="flex sm:flex-col items-center sm:items-end">
-                            <span className="font-bold text-white">
+                            <span className="font-bold text-white pu">
                               {formatRupiah(PRODUCT_PRICE * item.quantity)}
                             </span>
                             <button
