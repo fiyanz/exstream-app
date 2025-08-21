@@ -1154,7 +1154,7 @@ const App = () => {
                             <p className="text-white text-sm p">Jumlah: {item.quantity}</p>
                           </div>
                           <div className="flex sm:flex-col items-center sm:items-end">
-                            <span className="font-bold text-white">
+                            <span className="font-bold text-white pu">
                               {formatRupiah(PRODUCT_PRICE * item.quantity)}
                             </span>
                             <button

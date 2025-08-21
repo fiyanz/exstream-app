@@ -74,7 +74,7 @@
   }
 
   .tes-1 {
-    margin-top: 192rem;
+    margin-top: 200rem;
     margin-bottom: 5rem;
   }
 
@@ -83,7 +83,7 @@
   }
 }
 
-@media (min-width: 400px) and (max-width: 550px) {
+@media (min-width: 400px) and (max-width: 500px) {
   .tes-0 {
     display: flex;
     flex-direction: column;
@@ -94,7 +94,27 @@
   }
 
   .tes-1 {
-    margin-top: 193rem;
+    margin-top: 200rem;
+    margin-bottom: 5rem;
+  }
+
+  .gr-te {
+    width: 20rem;
+  }
+}
+
+@media (min-width: 500px) and (max-width: 550px) {
+  .tes-0 {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    margin-left: 0.1rem;
+  }
+
+  .tes-1 {
+    margin-top: 189rem;
     margin-bottom: 5rem;
   }
 
@@ -114,12 +134,12 @@
   }
 
   .tes-1 {
-    margin-top: 188rem;
+    margin-top: 187rem;
     margin-bottom: 5rem;
   }
 }
 
-@media (min-width: 650px) and (max-width: 770px) {
+@media (min-width: 650px) and (max-width: 750px) {
     .tes-0 {
     display: flex;
     flex-direction: column;
@@ -135,12 +155,12 @@
     }
 
   .tes-1 {
-    margin-top: 79rem;
+    margin-top: 78rem;
     margin-bottom: 5rem;
   }
 }
 
-@media (min-width: 770px) and (max-width: 900px) {
+@media (min-width: 750px) and (max-width: 850px) {
     .tes-0 {
       display: flex;
       flex-direction: column;
@@ -151,7 +171,28 @@
     }
 
     .tes-1 {
-      margin-top: 79rem;
+      margin-top: 77rem;
+      margin-bottom: 5rem;
+    }
+
+    .li-2 {
+      display: flex;
+      flex-direction: column;
+    }
+}
+
+@media (min-width: 850px) and (max-width: 900px) {
+    .tes-0 {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+      margin-left: 0.1rem;
+    }
+
+    .tes-1 {
+      margin-top: 76rem;
       margin-bottom: 5rem;
     }
 
