@@ -79,11 +79,11 @@ export const Pilihan = [
     name: 'Beige',
     image: head3,
   },
-  // {
-  //   id: 5,
-  //   name: 'Red',
-  //   image: head4,
-  // },
+  {
+    id: 5,
+    name: 'Red',
+    image: head4,
+  },
   {
     id: 6,
     name: 'Dusty Pink',

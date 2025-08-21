@@ -24,7 +24,7 @@ const PilihanUtamaCom = () => {
                                 data-aos-duration="1900"
                             >
                                 <img src={pilihan.image} alt={pilihan.title} className=" w-[200px] h-[230px] rounded-lg pil-img" />
-                                <p className="text-xl font-bold text-center relative text-black">
+                                <p className="text-lg lg:text-xl font-semibold text-center relative text-black">
                                     {pilihan.name}
                                 </p>
                                 {/* <p className="text-black font-bold text-center relative">{pilihan.description}</p> */}
