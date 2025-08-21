@@ -18,6 +18,18 @@
     margin-bottom: 1rem;
 }
 
+.svg {
+  display: inline-block;
+  animation: svg 2s ease-in-out infinite;
+}
+
+@keyframes svg {
+  0% { transform: translateY(0); }
+  50% { transform: translateY(-15px); } /* naik */
+  100% { transform: translateY(0); }   /* turun */
+}
+
+
 @media (min-width: 300px) and (max-width: 410px) {
     
 }

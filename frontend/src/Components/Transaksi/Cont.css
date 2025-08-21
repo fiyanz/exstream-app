@@ -130,8 +130,7 @@
 
 @media (min-width: 300px) and (max-width: 400px) {
     .on-a {
-        width: 22rem;
-        margin-left: 1rem;
+        width: 100%;
     }
 
     .on-9 {
@@ -198,7 +197,6 @@
 @media (min-width: 400px) and (max-width: 500px) {
     .on-a {
         width: 100%;
-
     }
 
     .on-9 {
