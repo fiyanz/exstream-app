@@ -11,6 +11,7 @@ from routers.cost_ongkir import cost_ongkir
 from routers.cost_ongkir_local import cost_ongkir_lokal
 from routers.transaksi import transaksi
 from routers.store_order import store_order
+from routers.domestic import ongkir_router
 
 from db.database import Base, engine
 
@@ -57,6 +58,12 @@ app.include_router(
     cost_ongkir_lokal,
     prefix="/api/v1/cost_ongkir_lokal",
     tags=["Pengiriman dengan Data Lokal"]
+)
+
+app.include_router(
+    ongkir_router,
+    prefix="/api/v1/hitung-domestik",
+    tags=["Hitung Domestik"]
 )
 
 app.include_router(

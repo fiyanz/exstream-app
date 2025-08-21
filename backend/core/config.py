@@ -11,6 +11,8 @@ class Settings(BaseSettings):
     RAJA_ONGKIR_BASE_URL: str = ""
     KOMERCE_ORDER_BASE_URL: str = ""
     MY_ORIGIN_DESTINATION_ID: str = ""
+    RAJA_ONGKIR_DOMESTIC_URL: str = ""
+    RAJA_ONGKIR_DESTINATION_URL: str = ""
     MIDTRANS_SERVER_KEY: str = ""
     MIDTRANS_CLIENT_KEY: str = ""
     MIDTRANS_IS_PRODUCTION: bool = False

@@ -9,7 +9,7 @@ ORIGIN_CITY_ID = settings.MY_ORIGIN_DESTINATION_ID  # ID 3305: KEBUMEN, JAWA TEN
 def get_provinces():
     """Mendapatkan daftar provinsi di Indonesia"""
     url = f"{RAJA_ONGKIR_BASE_URL}/province"
-    headers = {"key": RAJA_ONGKIR_API_KEY}
+    headers = {"key": KOMERCE_API_KEY}
     
     response = requests.get(url, headers=headers)
     return response.json()
@@ -21,7 +21,7 @@ def get_cities(province_id=None):
         province_id: ID provinsi (opsional, jika ingin filter berdasarkan provinsi)
     """
     url = f"{RAJA_ONGKIR_BASE_URL}/city"
-    headers = {"key": RAJA_ONGKIR_API_KEY}
+    headers = {"key": KOMERCE_API_KEY}
     params = {}
     
     if province_id:
@@ -60,10 +60,15 @@ def get_cost(destination_id, weight, item_value, cod):
     
     try:
         response = requests.get(url, headers=headers, params=params)
-        response.raise_for_status()  # Raise exception for 4XX/5XX responses
-        result = response.json()
         print(f"API Response status: {response.status_code}")
+        
+        result = response.json()
         print(f"API Response: {result}")
+        
+        # Check if the response indicates an error
+        if "meta" in result and result["meta"].get("status") == "failed":
+            print(f"Komerce API returned an error: {result['meta'].get('message')}")
+        
         return result
     except requests.exceptions.RequestException as e:
         print(f"Error calling Komerce API: {str(e)}")

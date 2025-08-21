@@ -136,6 +136,17 @@ async def cek_ongkir(
                 destination=location_detail,
                 weight=request.weight
             )
+            
+        # Cek apakah ada error dalam response dari API
+        if "meta" in response and response["meta"].get("status") != "success":
+            error_message = response["meta"].get("message", "Gagal menghitung ongkos kirim")
+            return RajaOngkirResponse(
+                success=False,
+                message=f"API Error: {error_message}",
+                origin=origin_detail,
+                destination=location_detail,
+                weight=request.weight
+            )
 
         # Format response dari Komerce API
         if isinstance(response, dict) and response.get("data"):
@@ -161,13 +172,18 @@ async def cek_ongkir(
                                 # This converts 27000000 to 27000 (27,000 IDR)
                                 adjusted_cost = original_cost / 1000 if original_cost > 100000 else original_cost
                                 
+                                # Format ETD correctly
+                                etd_value = item.get("etd", "1-3")
+                                if not etd_value or etd_value == "-":
+                                    etd_value = "1-3"
+                                
                                 courier_item = {
                                     "courier_code": item.get("shipping_name", "UNKNOWN").upper(),
                                     "courier_name": item.get("shipping_name", "Unknown"),
                                     "service_code": item.get("service_name", "Regular"),
                                     "service_name": item.get("service_name", "Layanan Reguler"),
                                     "cost": int(adjusted_cost),
-                                    "etd": item.get("etd", "1-3")
+                                    "etd": etd_value
                                 }
                                 all_shipping_options.append(courier_item)
             
@@ -192,19 +208,29 @@ async def cek_ongkir(
                 etd_value = courier_data.get("etd", "1-3")
                 
                 # Format ETD correctly (avoid duplicate "hari")
-                if "day" in etd_value.lower():
+                etd_value = courier_data.get("etd", "1-3")
+                
+                # Handle special cases
+                if not etd_value or etd_value == "-":
+                    formatted_etd = "1-3"
+                elif "day" in etd_value.lower():
                     formatted_etd = etd_value.replace("day", "").strip()
                 else:
                     formatted_etd = etd_value
                 
+                # Ensure we have a value
                 if not formatted_etd:
                     formatted_etd = "1-3"
+                
+                # Add "hari" if it's not already there
+                if "hari" not in formatted_etd.lower():
+                    formatted_etd = formatted_etd + " hari"
                 
                 service_data = {
                     "service": courier_data.get("service_code", "Regular"),
                     "description": courier_data.get("service_name", "Layanan Reguler"),
                     "cost": int(courier_data.get("cost", 0)),  # Convert to integer, default 0
-                    "etd": formatted_etd + " hari"
+                    "etd": formatted_etd
                 }
                 couriers_grouped[courier_code]["costs"].append(service_data)
             
