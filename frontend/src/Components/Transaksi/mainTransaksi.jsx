@@ -495,10 +495,10 @@ const App = () => {
 
       // Ensure it starts with 8
       const formattedValue = numericValue.startsWith('0') || numericValue.startsWith('62')
-        ? numericValue.replace(/^(0|62)/, '8')  // Replace leading 0 or 62 with 8
-        : numericValue.startsWith('8')
+        ? numericValue.replace(/^(0|62)/, '0')  // Replace leading 0 or 62 with 8
+        : numericValue.startsWith('0')
           ? numericValue
-          : numericValue ? `8${numericValue}` : '';
+          : numericValue ? `0${numericValue}` : '';
 
       setFormData((prevData) => ({
         ...prevData,
