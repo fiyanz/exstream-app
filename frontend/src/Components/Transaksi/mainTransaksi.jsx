@@ -39,8 +39,8 @@ const paymentMethods = [
 
 // Product price configuration
 const PRODUCT_PRICE = 299000;
-const DISCOUNT_RATE = 0.55; // 50% discount
-const PRODUCT_WEIGHT = 1000; // 1kg in grams
+const DISCOUNT_RATE = 0.5484; // 54.85% discount
+const PRODUCT_WEIGHT = 1000;
 
 // Reusable component for a Select dropdown.
 const SelectInput = ({ label, name, value, options, onChange, placeholder, required, disabled = false, error }) => (
