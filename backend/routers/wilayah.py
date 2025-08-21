@@ -1,6 +1,7 @@
 from typing import List
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
+from sqlalchemy import or_  # Pastikan import ini ada
 
 # Impor dependency get_db dan model/schema kita
 from db.database import get_db
@@ -13,9 +14,40 @@ wilayah = APIRouter()
 @wilayah.get("/provinsi", response_model=List[WilayahBase], summary="Mendapatkan Semua Provinsi")
 async def get_all_provinsi(db: Session = Depends(get_db)):
     """
-    Mengambil daftar semua provinsi dari database lokal.
+    Mengambil daftar provinsi Jawa, Sumatra, dan Bali dari database lokal.
     """
-    provinces = db.query(models.Province).order_by(models.Province.name).all()
+    # Daftar nama provinsi di Jawa
+    jawa_provinces = [
+        'BANTEN', 'DKI JAKARTA', 'JAWA BARAT', 'JAWA TENGAH', 
+        'DAERAH ISTIMEWA YOGYAKARTA', 'JAWA TIMUR'
+    ]
+    
+    # Daftar nama provinsi di Sumatra
+    sumatra_provinces = [
+        'ACEH', 'SUMATERA UTARA', 'SUMATERA BARAT', 'RIAU', 'JAMBI', 
+        'SUMATERA SELATAN', 'BENGKULU', 'LAMPUNG', 'KEPULAUAN BANGKA BELITUNG', 
+        'KEPULAUAN RIAU'
+    ]
+    
+    # Filter berdasarkan nama provinsi (case insensitive)
+    filter_conditions = []
+    
+    # Tambahkan filter untuk provinsi Jawa
+    for province in jawa_provinces:
+        filter_conditions.append(models.Province.name.ilike(f"%{province}%"))
+        
+    # Tambahkan filter untuk provinsi Sumatra
+    for province in sumatra_provinces:
+        filter_conditions.append(models.Province.name.ilike(f"%{province}%"))
+    
+    # Tambahkan filter untuk Bali
+    filter_conditions.append(models.Province.name.ilike("%BALI%"))
+    
+    # Gabungkan semua kondisi dengan OR
+    provinces = db.query(models.Province).filter(
+        or_(*filter_conditions)
+    ).order_by(models.Province.name).all()
+    
     return provinces
 
 @wilayah.get("/kota", response_model=List[WilayahBase], summary="Mendapatkan Kota/Kabupaten berdasarkan ID Provinsi")

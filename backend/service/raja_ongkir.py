@@ -3,6 +3,7 @@ from core.config import settings
 
 KOMERCE_API_KEY = settings.RAJA_ONGKIR_API
 KOMERCE_BASE_URL = settings.KOMERCE_BASE_URL
+RAJA_ONGKIR_BASE_URL = settings.RAJA_ONGKIR_BASE_URL
 ORIGIN_CITY_ID = settings.MY_ORIGIN_DESTINATION_ID  # ID 3305: KEBUMEN, JAWA TENGAH (dari file .env)
 
 def get_provinces():
@@ -35,8 +36,8 @@ def get_cost(destination_id, weight, item_value, cod):
     Args:
         destination_id: ID kota/kabupaten tujuan
         weight: Berat barang dalam gram
-        item_value: Nilai barang dalam Rupiah (default: 50000)
-        cod: Apakah menggunakan COD (default: False)
+        item_value: Nilai barang dalam Rupiah
+        cod: Apakah menggunakan COD
         
     Returns:
         Dict berisi informasi ongkos kirim
@@ -54,7 +55,7 @@ def get_cost(destination_id, weight, item_value, cod):
     }
     
     print(f"Sending request to Komerce API: {url}")
-    print(f"Headers: {headers}")
+    # print(f"Headers: {headers}")
     print(f"Parameters: {params}")
     
     try:

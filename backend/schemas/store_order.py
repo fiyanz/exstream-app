@@ -84,3 +84,10 @@ class StoreOrderDetail(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+class StoreOrderListResponse(BaseModel):
+    nama_pengguna: str
+    no_telp: str
+    alamat: str
+    nama_barang: str
