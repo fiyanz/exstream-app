@@ -60,11 +60,11 @@ app.include_router(
     tags=["Pengiriman dengan Data Lokal"]
 )
 
-app.include_router(
-    ongkir_router,
-    prefix="/api/v1/hitung-domestik",
-    tags=["Hitung Domestik"]
-)
+# app.include_router(
+#     ongkir_router,
+#     prefix="/api/v1/hitung-domestik",
+#     tags=["Hitung Domestik"]
+# )
 
 app.include_router(
     transaksi,

@@ -14,7 +14,7 @@ class HitungOngkirRequest(BaseModel):
 # Schema untuk Raja Ongkir
 class RajaOngkirRequest(BaseModel):
     destination_id: int  # ID kota tujuan
-    weight: int  # Berat dalam gram
+    weight: float
     courier: str
     item_value: int
 
@@ -41,7 +41,7 @@ class RajaOngkirResponse(BaseModel):
     message: str
     origin: Optional[LocationDetail] = None
     destination: Optional[LocationDetail] = None
-    weight: Optional[int] = None
+    weight: Optional[float] = None
     results: Optional[List[CourierResult]] = None
 
 
