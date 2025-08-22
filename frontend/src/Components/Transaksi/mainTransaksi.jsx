@@ -569,10 +569,7 @@ const App = () => {
       }
     });
 
-    // Validate phone number format (starts with 8 as requested)
-    if (formData.telephone && !/^8[0-9]{8,11}$/.test(formData.telephone.replace(/\s+/g, ''))) {
-      errors.telephone = 'Format nomor telepon tidak valid (harus dimulai dengan angka 8)';
-    }
+    // Tidak ada validasi khusus untuk nomor telepon
 
     // Validate cart has items
     if (cartItems.length === 0) {

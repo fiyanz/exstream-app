@@ -261,11 +261,6 @@ const App = () => {
       }
     });
     
-    // Validasi nomor telepon dengan format Indonesia
-    if (formData.telephone && !/^(\+62|62|0)[0-9]{9,12}$/.test(formData.telephone.replace(/\s+/g, ''))) {
-      errors.telephone = 'Format nomor telepon tidak valid';
-    }
-    
     // Validasi email jika diisi
     if (formData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
       errors.email = 'Format email tidak valid';
@@ -275,12 +270,27 @@ const App = () => {
     return Object.keys(errors).length === 0;
   }, [formData]);
 
+  // Dummy function that returns the phone number as-is (for backward compatibility)
+  const standardizePhoneNumber = useCallback((phoneNumber) => {
+    return phoneNumber || '';
+  }, []);
+  
+  // Dummy function that returns the phone input as-is (for backward compatibility)
+  const formatPhoneInput = useCallback((phone) => {
+    return phone;
+  }, []);
+
   // Handler untuk perubahan input form menggunakan useCallback untuk optimasi.
   const handleInputChange = useCallback((e) => {
     const { name, value } = e.target;
+    
     setFormData((prevData) => {
-      let newFormData = { ...prevData, [name]: value };
-
+      let newFormData = {...prevData};
+      
+      // Tidak ada validasi khusus untuk nomor telepon
+      newFormData[name] = value;
+      
+      // Logika untuk shipping method
       if (name === 'shippingMethod') {
         if (value === 'Standard Shipping') {
           newFormData.shippingCost = 19000;
@@ -299,7 +309,9 @@ const App = () => {
 
       // Mengatur ulang pilihan lokasi yang bergantung pada pilihan sebelumnya.
       if (name === 'province') {
-        newFormData = { ...newFormData, city: '', subDistrict: '', village: '' };
+        newFormData.city = '';
+        newFormData.subDistrict = '';
+        newFormData.village = '';
         // Fetch kota/kabupaten berdasarkan provinsi yang dipilih
         if (value) {
           console.log('Selected province ID:', value);
@@ -308,7 +320,8 @@ const App = () => {
           setCities([]);
         }
       } else if (name === 'city') {
-        newFormData = { ...newFormData, subDistrict: '', village: '' };
+        newFormData.subDistrict = '';
+        newFormData.village = '';
         // Fetch kecamatan berdasarkan kota/kabupaten yang dipilih
         if (value) {
           console.log('Selected city ID:', value);
@@ -317,7 +330,7 @@ const App = () => {
           setSubdistricts([]);
         }
       } else if (name === 'subDistrict') {
-        newFormData = { ...newFormData, village: '' };
+        newFormData.village = '';
         // Fetch desa/kelurahan berdasarkan kecamatan yang dipilih
         if (value) {
           console.log('Selected district ID:', value);
@@ -327,17 +340,17 @@ const App = () => {
         }
       }
       
-      // Clear the error for this field when it's being edited
-      if (formErrors[name]) {
-        setFormErrors(prev => {
-          const newErrors = {...prev};
-          delete newErrors[name];
-          return newErrors;
-        });
-      }
-      
       return newFormData;
     });
+    
+    // Clear the error for this field when it's being edited
+    if (formErrors[name]) {
+      setFormErrors(prev => {
+        const newErrors = {...prev};
+        delete newErrors[name];
+        return newErrors;
+      });
+    }
   }, [formErrors, fetchCities, fetchSubdistricts, fetchVillages]);
 
   // Handler untuk perubahan kuantitas dengan useCallback.
@@ -394,6 +407,8 @@ const App = () => {
       console.log('Mengirimkan data pesanan ke backend...');
       
       try {
+        // Tidak perlu standarisasi nomor telepon lagi
+        
         // Kirim data ke backend API
         const response = await fetch('http://localhost:8000/api/v1/transaksi', {
           method: 'POST',
@@ -575,7 +590,7 @@ const App = () => {
                 name="telephone"
                 value={formData.telephone}
                 onChange={handleInputChange}
-                placeholder="08XX XXXX XXXX"
+                placeholder="Masukkan nomor telepon Anda"
                 required
                 error={formErrors.telephone}
               />

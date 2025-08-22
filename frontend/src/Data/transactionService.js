@@ -2,7 +2,8 @@
  * transactionService.js
  * 
  * This module provides functions to handle transaction creation
- * with support for both COD and non-COD (Midtrans) payments.
+ * with support for both COD and non-COD (Midtrans) payments,
+ * as well as integration with Komerce Store Order API.
  */
 
 import { API_BASE_URL } from './dataWilayah';
@@ -416,6 +417,279 @@ export const getOrderData = async (orderId) => {
 };
 
 /**
+ * Creates a store order using Komerce API
+ * @param {Object} orderData - Order data according to Komerce API format
+ * @returns {Promise<Object>} Store order response
+ */
+export const createStoreOrder = async (orderData) => {
+  try {
+    // Validasi data order sebelum mengirim ke API
+    if (!orderData) {
+      throw new Error('Data order tidak tersedia');
+    }
+    
+    // Validasi field-field yang wajib ada
+    const requiredFields = [
+      'order_date', 'receiver_name', 'receiver_phone', 
+      'receiver_destination_id', 'receiver_address', 'shipping',
+      'shipping_type', 'payment_method', 'grand_total'
+    ];
+    
+    for (const field of requiredFields) {
+      if (!orderData[field]) {
+        throw new Error(`Field wajib '${field}' tidak tersedia pada data order`);
+      }
+    }
+    
+    // Validasi order details
+    if (!orderData.order_details || !Array.isArray(orderData.order_details) || orderData.order_details.length === 0) {
+      throw new Error('Detail produk tidak tersedia');
+    }
+    
+    console.log('Creating store order with data:', orderData);
+    
+    // Kirim request ke API dengan timeout
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 detik timeout
+    
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/v1/store_order`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        body: JSON.stringify(orderData),
+        signal: controller.signal
+      });
+      
+      clearTimeout(timeoutId);
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error(`HTTP error! Status: ${response.status}`, errorText);
+        throw new Error(`Gagal membuat store order (${response.status}): ${errorText}`);
+      }
+
+      const data = await response.json();
+      console.log('Store order created successfully:', data);
+      return data;
+    } catch (fetchError) {
+      clearTimeout(timeoutId);
+      
+      if (fetchError.name === 'AbortError') {
+        throw new Error('Koneksi timeout, silakan coba lagi');
+      }
+      
+      throw fetchError;
+    }
+  } catch (error) {
+    console.error('Error creating store order:', error);
+    throw error;
+  }
+};
+
+/**
+ * Format checkout data into Komerce store order format
+ * @param {Object} checkoutData - Checkout data from frontend form
+ * @returns {Object} Formatted store order data
+ */
+export const formatStoreOrderData = (checkoutData) => {
+  // Current timestamp in YYYY-MM-DD HH:MM:SS format
+  const now = new Date();
+  const orderDate = now.toISOString().slice(0, 19).replace('T', ' ');
+  
+  // Extract customer and shipping information
+  const {
+    fullName,
+    telephone,
+    address,
+    city,
+    province,
+    shippingMethod,
+    paymentMethod,
+    shippingCost,
+    items,
+    totalAmount,
+    destination_id,
+    shipper_info
+  } = checkoutData;
+  
+  if (!fullName || !telephone || !address || !destination_id) {
+    throw new Error('Data penerima tidak lengkap');
+  }
+  
+  if (!items || !Array.isArray(items) || items.length === 0) {
+    throw new Error('Data produk tidak tersedia');
+  }
+  
+  // Map payment method to Komerce format
+  const mappedPaymentMethod = paymentMethod.includes('COD') ? 'COD' : 'Transfer';
+  
+  // Parse shipping method to get courier and service type
+  const [courier, serviceType] = parseShippingMethod(shippingMethod);
+  
+  // Calculate COD value
+  const codValue = mappedPaymentMethod === 'COD' ? totalAmount : 0;
+  
+  // Format full address
+  const fullAddress = `${address}${city ? `, ${city}` : ''}${province ? `, ${province}` : ''}`;
+  
+  // Format order details
+  const orderDetails = items.map(item => {
+    if (!item.name || !item.price || !item.quantity) {
+      throw new Error(`Data produk tidak lengkap: ${JSON.stringify(item)}`);
+    }
+    
+    return {
+      product_name: item.name,
+      product_variant_name: item.color && item.size ? `${item.color} - ${item.size}` : item.variant || item.name,
+      product_price: parseInt(item.price),
+      product_width: item.width || item.product_width || (shipper_info?.product_width || 20),
+      product_height: item.height || item.product_height || (shipper_info?.product_height || 5),
+      product_weight: item.weight || item.product_weight || (shipper_info?.product_weight || 300),
+      product_length: item.length || item.product_length || (shipper_info?.product_length || 30),
+      qty: parseInt(item.quantity),
+      subtotal: parseInt(item.price * item.quantity)
+    };
+  });
+  
+  // Get shipper info from checkout data or use store info from configuration
+  const shipper = shipper_info || checkoutData.shipper || {};
+  
+  // Create store order object according to backend schema
+  return {
+    order_date: orderDate,
+    brand_name: shipper.brand_name || checkoutData.brand_name || "Extreme Store",
+    shipper_name: shipper.name || checkoutData.shipper_name || "Extreme Store Official",
+    shipper_phone: shipper.phone || checkoutData.shipper_phone || telephone, // Fallback to customer phone
+    shipper_destination_id: parseInt(shipper.destination_id || checkoutData.shipper_destination_id || destination_id), // Use origin from config
+    shipper_address: shipper.address || checkoutData.shipper_address || address, // Fallback to customer address
+    shipper_email: shipper.email || checkoutData.shipper_email || checkoutData.email || "store@extreme.com",
+    receiver_name: fullName,
+    receiver_phone: telephone,
+    receiver_destination_id: parseInt(destination_id),
+    receiver_address: fullAddress,
+    shipping: courier,
+    shipping_type: serviceType,
+    payment_method: mappedPaymentMethod,
+    shipping_cost: parseInt(shippingCost),
+    shipping_cashback: parseInt(checkoutData.shipping_cashback || 0),
+    service_fee: parseInt(checkoutData.service_fee || 0), // Will be auto-calculated by backend
+    additional_cost: parseInt(checkoutData.additional_cost || 0),
+    grand_total: parseInt(totalAmount),
+    cod_value: parseInt(codValue),
+    insurance_value: parseInt(checkoutData.insurance_value || 0),
+    order_details: orderDetails
+  };
+};
+
+/**
+ * Parse shipping method string into courier and service type
+ * @param {string} shippingMethod - Shipping method string (e.g. "JNE - REG (2-3 hari)")
+ * @returns {Array} [courier, serviceType]
+ */
+const parseShippingMethod = (shippingMethod) => {
+  if (!shippingMethod || typeof shippingMethod !== 'string') {
+    throw new Error('Metode pengiriman tidak valid');
+  }
+  
+  // Parse the shipping method string
+  // Format example: "JNE - REG (2-3 hari)" or "J&T - EKONOMI"
+  const parts = shippingMethod.split(' - ');
+  
+  if (parts.length < 2) {
+    throw new Error(`Format metode pengiriman tidak valid: ${shippingMethod}`);
+  }
+  
+  const courier = parts[0].trim().toUpperCase();
+  
+  // Extract service type without the ETD part
+  const servicePart = parts[1];
+  let serviceType;
+  
+  if (servicePart.includes('(')) {
+    serviceType = servicePart.split('(')[0].trim();
+  } else {
+    serviceType = servicePart.trim();
+  }
+  
+  // Validasi hasil parsing
+  if (!courier || !serviceType) {
+    throw new Error(`Tidak dapat mengurai metode pengiriman: ${shippingMethod}`);
+  }
+  
+  return [courier, serviceType];
+};
+
+/**
+ * Get a store order by ID
+ * @param {number} orderId - Order ID
+ * @returns {Promise<Object>} Store order details
+ */
+export const getStoreOrder = async (orderId) => {
+  try {
+    // Validasi ID order
+    if (!orderId) {
+      throw new Error('ID order tidak tersedia');
+    }
+    
+    console.log('Getting store order with ID:', orderId);
+    
+    // Kirim request ke API dengan timeout
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 detik timeout
+    
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/v1/store_order/${orderId}`, {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+        },
+        signal: controller.signal
+      });
+      
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error(`HTTP error! Status: ${response.status}`, errorText);
+        
+        // Berikan pesan error yang sesuai berdasarkan status code
+        if (response.status === 404) {
+          throw new Error(`Order dengan ID ${orderId} tidak ditemukan`);
+        } else if (response.status === 401 || response.status === 403) {
+          throw new Error('Tidak memiliki akses untuk melihat order ini');
+        } else {
+          throw new Error(`Gagal mengambil data order (${response.status}): ${errorText}`);
+        }
+      }
+
+      const data = await response.json();
+      
+      // Validasi data respons
+      if (!data) {
+        throw new Error('Respons API tidak valid');
+      }
+      
+      console.log('Store order retrieved successfully:', data);
+      return data;
+    } catch (fetchError) {
+      clearTimeout(timeoutId);
+      
+      if (fetchError.name === 'AbortError') {
+        throw new Error('Koneksi timeout, silakan coba lagi');
+      }
+      
+      throw fetchError;
+    }
+  } catch (error) {
+    console.error('Error getting store order:', error);
+    throw error;
+  }
+};
+
+/**
  * Create a new transaction with stored order data
  * @param {string} orderId - Order ID from stored order
  * @returns {Promise<Object>} Transaction result
@@ -471,5 +745,94 @@ export const createTransactionFromStoredOrder = async (orderId) => {
   } catch (error) {
     console.error('Error creating transaction from stored order:', error);
     throw error;
+  }
+};
+
+/**
+ * Create store order from checkout data and handle multiple payment options
+ * @param {Object} checkoutData - Complete checkout data
+ * @returns {Promise<Object>} Complete transaction result with store order info
+ */
+export const createStoreOrderTransaction = async (checkoutData) => {
+  try {
+    // Validasi data checkout
+    if (!checkoutData) {
+      throw new Error('Data checkout tidak tersedia');
+    }
+    
+    console.log('Creating store order transaction with data:', checkoutData);
+    
+    // Step 1: Format checkout data to store order format
+    const storeOrderData = formatStoreOrderData(checkoutData);
+    
+    // Step 2: Create store order
+    const storeOrderResponse = await createStoreOrder(storeOrderData);
+    
+    // Validasi respons dari API
+    if (!storeOrderResponse) {
+      throw new Error('Tidak ada respons dari API store order');
+    }
+    
+    // Check store order response
+    if (!storeOrderResponse.meta || storeOrderResponse.meta.status !== 'success') {
+      throw new Error(`Gagal membuat store order: ${storeOrderResponse.meta?.message || 'Terjadi kesalahan pada server'}`);
+    }
+    
+    console.log('Store order created successfully:', storeOrderResponse);
+    
+    // Validasi data respons
+    if (!storeOrderResponse.data) {
+      throw new Error('Data store order tidak tersedia dalam respons API');
+    }
+    
+    // Step 3: Extract order ID and save for reference
+    const orderId = storeOrderResponse.data.id || storeOrderResponse.data.order_id;
+    
+    if (!orderId) {
+      throw new Error('ID order tidak tersedia dalam respons API');
+    }
+    
+    // Save order ID for reference
+    localStorage.setItem('last_store_order_id', orderId);
+    
+    // Step 4: For COD payment, we're done
+    if (checkoutData.paymentMethod && checkoutData.paymentMethod.includes('COD')) {
+      return {
+        success: true,
+        payment_type: 'COD',
+        order_id: orderId,
+        store_order: storeOrderResponse.data,
+        timestamp: new Date().toISOString()
+      };
+    }
+    
+    // Step 5: For non-COD payment, create Midtrans transaction
+    // Format order data for Midtrans transaction
+    const midtransOrderData = {
+      ...checkoutData,
+      store_order_id: orderId // Include store order ID for reference
+    };
+    
+    // Create Midtrans transaction
+    const transactionResponse = await createTransaction(midtransOrderData);
+    
+    // Validasi respons transaksi
+    if (!transactionResponse) {
+      throw new Error('Tidak ada respons dari API transaksi');
+    }
+    
+    // Return combined response
+    return {
+      ...transactionResponse,
+      success: true,
+      store_order_id: orderId,
+      store_order: storeOrderResponse.data,
+      timestamp: new Date().toISOString()
+    };
+    
+  } catch (error) {
+    console.error('Error creating store order transaction:', error);
+    // Berikan pesan error yang lebih deskriptif
+    throw new Error(`Gagal membuat transaksi: ${error.message}`);
   }
 };
