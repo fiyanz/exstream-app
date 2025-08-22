@@ -32,23 +32,16 @@ class StoreOrderRequest(BaseModel):
     payment_method: str
     shipping_cost: int
     shipping_cashback: int = 0
-    service_fee: Optional[int] = Field(default=None, description="Service fee (typically 2.8% of grand total or COD value). Will be auto-calculated if not provided.")
+    service_fee: Optional[int] = Field(default=None, description="Service fee (2.8% of grand total, minimum 3000). Will be auto-calculated if not provided.")
     additional_cost: int = 0
     grand_total: int
     cod_value: int
-    insurance_value: int = 0
+    insurance_value: Optional[int] = Field(default=0, description="Insurance value based on courier policies. Will be auto-calculated if not provided.")
     order_details: List[OrderDetailItem]
     
-    @validator('service_fee', always=True)
-    def validate_service_fee(cls, v, values):
-        """Auto-calculate service fee if not provided"""
-        if v is None or v <= 0:
-            grand_total = values.get('grand_total', 0)
-            cod_value = values.get('cod_value', 0)
-            base_amount = max(grand_total, cod_value)
-            calculated_fee = int(base_amount * 0.028)  # 2.8%
-            return calculated_fee
-        return v
+    # Note: Removing schema-level validators since we're using the service_store.py
+    # implementation for more complex logic. This way we don't have the logic duplicated.
+    # The service will handle both service fee and insurance value calculations
 
 
 class StoreOrderResponse(BaseModel):

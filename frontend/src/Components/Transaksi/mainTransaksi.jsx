@@ -609,36 +609,35 @@ const App = () => {
       try {
         setIsSubmitting(true);
 
-        // Prepare order data for API
+        // Prepare order data for API - format disesuaikan dengan backend
+        const address = `${formData.completeAddress}, ${formData.village}, ${formData.subDistrict}, ${formData.city}, ${formData.province}`;
+        const destination_id = formData.village || formData.subDistrict || formData.city;
+        
         const orderData = {
-          // Customer information
-          customer_name: formData.fullName,
-          customer_phone: formData.telephone,
-          customer_address: formData.completeAddress,
-          province: formData.province,
-          city: formData.city,
-          subdistrict: formData.subDistrict,
-          village: formData.village,
-
-          // Order items
+          // Customer information - format sesuai backend
+          fullName: formData.fullName,
+          telephone: formData.telephone,
+          address: address,
+          destination_id: destination_id,
+          
+          // Order items - format sesuai backend
           items: cartItems.map(item => ({
             name: "Jas Hujan Extrime",
             color: item.color,
             size: item.size,
             quantity: item.quantity,
             price: PRODUCT_PRICE,
-            image: productData.find(p => p.color === item.color)?.image || null
+            product_weight: 1000, // Berat dalam gram
+            variant: `${item.color} - ${item.size}`
           })),
 
-          // Shipping and payment
-          shipping_method: formData.shippingMethod,
-          shipping_cost: formData.shippingCost,
-          payment_method: formData.paymentMethod.toLowerCase().includes('cod') ? 'cod' : 'transfer',
+          // Shipping and payment - format sesuai backend
+          shippingMethod: formData.shippingMethod,
+          shippingCost: formData.shippingCost,
+          paymentMethod: formData.paymentMethod.toLowerCase().includes('cod') ? 'COD' : 'Transfer',
 
-          // Pricing
-          subtotal: subtotal,
-          discount: discount,
-          total: total
+          // Pricing - format sesuai backend
+          totalAmount: total
         };
 
         // Store order data first

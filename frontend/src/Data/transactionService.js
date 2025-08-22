@@ -357,20 +357,44 @@ export const handleMidtransPaymentEnhanced = (snapToken, redirectUrl) => {
  */
 export const storeOrderData = async (orderData) => {
   try {
-    console.log('Storing order data:', orderData);
+    console.log('Storing order data (raw):', orderData);
     
-    const response = await fetch(`${API_BASE_URL}/api/v1/transaksi/store-order`, {
+    // Format order data sesuai dengan yang diharapkan backend
+    const formattedData = formatStoreOrderData(orderData);
+    console.log('Formatted order data:', formattedData);
+    
+    const response = await fetch(`${API_BASE_URL}/api/v1/store_order/store_order`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
       },
-      body: JSON.stringify(orderData)
+      body: JSON.stringify(formattedData)
     });
 
     if (!response.ok) {
       const errorText = await response.text();
       console.error(`HTTP error! Status: ${response.status}`, errorText);
+      
+      // Try to parse error response as JSON
+      try {
+        const errorJson = JSON.parse(errorText);
+        
+        // Check if this is an insurance-related error
+        if (errorJson.detail && typeof errorJson.detail === 'object' && errorJson.detail.error_type === 'insurance_validation') {
+          console.error('Insurance validation error:', errorJson.detail);
+          throw new Error(`Pesanan tidak dapat diasuransikan: Total produk harus lebih dari Rp 300.000. Silakan coba lagi tanpa asuransi.`);
+        }
+        
+        // Include error message from API if available
+        if (errorJson.detail) {
+          throw new Error(`Failed to store order: ${typeof errorJson.detail === 'string' ? errorJson.detail : JSON.stringify(errorJson.detail)}`);
+        }
+      } catch (parseError) {
+        // If not valid JSON, use the original error text
+        console.warn('Error parsing API error response:', parseError);
+      }
+      
       throw new Error(`Failed to store order (${response.status})`);
     }
 
@@ -423,6 +447,26 @@ export const getOrderData = async (orderId) => {
  */
 export const createStoreOrder = async (orderData) => {
   try {
+    // Debug log untuk membantu troubleshooting
+    console.log('=== CREATE STORE ORDER DEBUG INFO ===');
+    console.log('Full order data received:', orderData);
+    console.log('Order date:', orderData.order_date);
+    console.log('Receiver info:', {
+      name: orderData.receiver_name,
+      phone: orderData.receiver_phone,
+      address: orderData.receiver_address,
+      destination_id: orderData.receiver_destination_id
+    });
+    console.log('Shipping info:', {
+      method: orderData.shipping,
+      type: orderData.shipping_type,
+      cost: orderData.shipping_cost
+    });
+    console.log('Payment info:', {
+      method: orderData.payment_method,
+      grand_total: orderData.grand_total
+    });
+    
     // Validasi data order sebelum mengirim ke API
     if (!orderData) {
       throw new Error('Data order tidak tersedia');
@@ -434,6 +478,12 @@ export const createStoreOrder = async (orderData) => {
       'receiver_destination_id', 'receiver_address', 'shipping',
       'shipping_type', 'payment_method', 'grand_total'
     ];
+    
+    // Cetak daftar field yang hilang
+    const missingFields = requiredFields.filter(field => !orderData[field]);
+    if (missingFields.length > 0) {
+      console.error('Missing required fields:', missingFields);
+    }
     
     for (const field of requiredFields) {
       if (!orderData[field]) {
@@ -453,7 +503,7 @@ export const createStoreOrder = async (orderData) => {
     const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 detik timeout
     
     try {
-      const response = await fetch(`${API_BASE_URL}/api/v1/store_order`, {
+      const response = await fetch(`${API_BASE_URL}/api/v1/store_order/store_order`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -466,9 +516,26 @@ export const createStoreOrder = async (orderData) => {
       clearTimeout(timeoutId);
       
       if (!response.ok) {
-        const errorText = await response.text();
-        console.error(`HTTP error! Status: ${response.status}`, errorText);
-        throw new Error(`Gagal membuat store order (${response.status}): ${errorText}`);
+        let errorDetail = '';
+        try {
+          const errorResponse = await response.json();
+          console.error(`HTTP error! Status: ${response.status}`, errorResponse);
+          // Check for specific error messages about service fee or insurance
+          if (errorResponse.detail && typeof errorResponse.detail === 'string') {
+            if (errorResponse.detail.includes('service fee') || errorResponse.detail.includes('insurance')) {
+              errorDetail = errorResponse.detail;
+            } else {
+              errorDetail = `Error from server: ${errorResponse.detail}`;
+            }
+          } else {
+            errorDetail = JSON.stringify(errorResponse);
+          }
+        } catch (e) {
+          const errorText = await response.text();
+          console.error(`HTTP error (text)! Status: ${response.status}`, errorText);
+          errorDetail = errorText;
+        }
+        throw new Error(`Gagal membuat store order (${response.status}): ${errorDetail}`);
       }
 
       const data = await response.json();
@@ -495,9 +562,13 @@ export const createStoreOrder = async (orderData) => {
  * @returns {Object} Formatted store order data
  */
 export const formatStoreOrderData = (checkoutData) => {
+  console.log('=== FORMAT STORE ORDER DATA DEBUG ===');
+  console.log('Checkout data received:', checkoutData);
+  
   // Current timestamp in YYYY-MM-DD HH:MM:SS format
   const now = new Date();
   const orderDate = now.toISOString().slice(0, 19).replace('T', ' ');
+  console.log('Formatted order date:', orderDate);
   
   // Extract customer and shipping information
   const {
@@ -515,6 +586,9 @@ export const formatStoreOrderData = (checkoutData) => {
     shipper_info
   } = checkoutData;
   
+  console.log('Shipping method received:', shippingMethod);
+  console.log('Payment method received:', paymentMethod);
+  
   if (!fullName || !telephone || !address || !destination_id) {
     throw new Error('Data penerima tidak lengkap');
   }
@@ -525,17 +599,23 @@ export const formatStoreOrderData = (checkoutData) => {
   
   // Map payment method to Komerce format
   const mappedPaymentMethod = paymentMethod.includes('COD') ? 'COD' : 'Transfer';
+  console.log('Mapped payment method:', mappedPaymentMethod);
   
   // Parse shipping method to get courier and service type
+  console.log('Parsing shipping method:', shippingMethod);
   const [courier, serviceType] = parseShippingMethod(shippingMethod);
+  console.log('Parsed shipping details:', { courier, serviceType });
   
   // Calculate COD value
   const codValue = mappedPaymentMethod === 'COD' ? totalAmount : 0;
+  console.log('COD value:', codValue);
   
   // Format full address
   const fullAddress = `${address}${city ? `, ${city}` : ''}${province ? `, ${province}` : ''}`;
+  console.log('Formatted address:', fullAddress);
   
   // Format order details
+  console.log('Items to format:', items);
   const orderDetails = items.map(item => {
     if (!item.name || !item.price || !item.quantity) {
       throw new Error(`Data produk tidak lengkap: ${JSON.stringify(item)}`);
@@ -558,7 +638,7 @@ export const formatStoreOrderData = (checkoutData) => {
   const shipper = shipper_info || checkoutData.shipper || {};
   
   // Create store order object according to backend schema
-  return {
+  const formattedOrder = {
     order_date: orderDate,
     brand_name: shipper.brand_name || checkoutData.brand_name || "Extreme Store",
     shipper_name: shipper.name || checkoutData.shipper_name || "Extreme Store Official",
@@ -575,13 +655,47 @@ export const formatStoreOrderData = (checkoutData) => {
     payment_method: mappedPaymentMethod,
     shipping_cost: parseInt(shippingCost),
     shipping_cashback: parseInt(checkoutData.shipping_cashback || 0),
-    service_fee: parseInt(checkoutData.service_fee || 0), // Will be auto-calculated by backend
+    // Calculate service fee according to Komerce's requirements: 2.8% of COD value or grand total
+    service_fee: mappedPaymentMethod === 'COD' 
+      ? Math.round(parseInt(codValue) * 0.028) 
+      : Math.round(parseInt(totalAmount) * 0.028),
     additional_cost: parseInt(checkoutData.additional_cost || 0),
     grand_total: parseInt(totalAmount),
     cod_value: parseInt(codValue),
-    insurance_value: parseInt(checkoutData.insurance_value || 0),
+    // Insurance value - explicitly set to 0 to avoid issues with Komerce API
+    // Per Komerce API, only products with total price > IDR 300,000 can be insured
+    // The backend will calculate this if appropriate
+    insurance_value: 0,
     order_details: orderDetails
   };
+  
+  // Log final formatted data for debugging
+  console.log('=== FINAL STORE ORDER DATA ===');
+  console.log('Shipping details:', { 
+    courier: formattedOrder.shipping,
+    serviceType: formattedOrder.shipping_type,
+    cost: formattedOrder.shipping_cost
+  });
+  console.log('Order details count:', formattedOrder.order_details.length);
+  console.log('Grand total:', formattedOrder.grand_total);
+  
+  // Log service fee and insurance calculation details
+  console.log('Service fee details:');
+  console.log('- Payment method:', formattedOrder.payment_method);
+  console.log('- Service fee value:', formattedOrder.service_fee);
+  console.log('- Calculated as 2.8% of:', formattedOrder.payment_method === 'COD' ? 
+               `COD value (${formattedOrder.cod_value})` : 
+               `Grand total (${formattedOrder.grand_total})`);
+  
+  // Calculate total product price to check insurance eligibility
+  const totalProductPrice = formattedOrder.order_details.reduce((sum, item) => sum + item.subtotal, 0);
+  console.log('Insurance details:');
+  console.log('- Total product price:', totalProductPrice);
+  console.log('- Insurance eligibility:', totalProductPrice > 300000 ? 'Eligible (>300,000)' : 'Not eligible (≤300,000)');
+  console.log('- Courier:', formattedOrder.shipping);
+  console.log('- Insurance value set to:', formattedOrder.insurance_value);
+  
+  return formattedOrder;
 };
 
 /**
@@ -589,37 +703,157 @@ export const formatStoreOrderData = (checkoutData) => {
  * @param {string} shippingMethod - Shipping method string (e.g. "JNE - REG (2-3 hari)")
  * @returns {Array} [courier, serviceType]
  */
+/**
+ * Mapper untuk kode kurir ke format yang dikenali oleh API Komerce
+ */
+const courierCodeMapper = {
+  'jne': 'JNE',
+  'jnt': 'JNT',
+  'j&t': 'JNT',
+  'ninja': 'NINJA',
+  'anteraja': 'ANTERAJA',
+  'sicepat': 'SICEPAT',
+  'sap': 'SAP',
+  'pos': 'POS',
+  'idexpress': 'IDEXPRESS',
+  'lion': 'LION',
+  // tambahkan mapper lain jika diperlukan
+};
+
+/**
+ * Mapper untuk tipe layanan ke format yang dikenali oleh API Komerce
+ */
+const serviceTypeMapper = {
+  'reg': 'REG',
+  'regular': 'REG',
+  'ctc23': 'CTC23',
+  'ez': 'EZ',
+  'udrreg': 'UDRREG',
+  'standard': 'Standard',
+  'siunt': 'SIUNT',
+  'idlite': 'IDlite',
+  'regpack': 'REGPACK',
+  // tambahkan mapper lain jika diperlukan
+};
+
 const parseShippingMethod = (shippingMethod) => {
+  console.log("=== PARSING SHIPPING METHOD DEBUG ===");
+  
   if (!shippingMethod || typeof shippingMethod !== 'string') {
+    console.error("Invalid shipping method input:", shippingMethod);
     throw new Error('Metode pengiriman tidak valid');
   }
   
-  // Parse the shipping method string
-  // Format example: "JNE - REG (2-3 hari)" or "J&T - EKONOMI"
-  const parts = shippingMethod.split(' - ');
+  console.log("Input shipping method:", shippingMethod);
+  console.log("Type:", typeof shippingMethod);
+  console.log("Length:", shippingMethod.length);
+  console.log("Contains '-':", shippingMethod.includes('-'));
+  console.log("Contains ' - ':", shippingMethod.includes(' - '));
   
-  if (parts.length < 2) {
+  try {
+    // Format yang mungkin:
+    // 1. ID dari shippingOptions: "jne-REG23"
+    // 2. Label: "JNE - REG - Rp 10.000 (2-3 hari)"
+    // 3. Nama: "JNE - REG (2-3 hari)"
+    
+    let courier, serviceType;
+    
+    // Prioritaskan format ID dari shippingOptions (format langsung)
+    if (shippingMethod.includes('-') && !shippingMethod.includes(' - ')) {
+      const parts = shippingMethod.split('-');
+      console.log("Direct format parts:", parts);
+      
+      if (parts.length >= 2) {
+        courier = parts[0].trim().toLowerCase(); // Extract courier code
+        // Combine all the remaining parts as the service type
+        serviceType = parts.slice(1).join('-').trim();
+        
+        // Map courier and service type to standardized format
+        const mappedCourier = courierCodeMapper[courier] || courier.toUpperCase();
+        const mappedServiceType = serviceTypeMapper[serviceType.toLowerCase()] || serviceType.toUpperCase();
+        
+        console.log(`Parsed direct format: courier=${courier} → ${mappedCourier}, serviceType=${serviceType} → ${mappedServiceType}`);
+        return [mappedCourier, mappedServiceType];
+      }
+    }
+    
+    // Coba format label: "JNE - REG - Rp 10.000 (2-3 hari)"
+    if (shippingMethod.includes(' - Rp ')) {
+      console.log("Trying label format parse");
+      const splitByPrice = shippingMethod.split(' - Rp ');
+      console.log("Split by price:", splitByPrice);
+      
+      const firstParts = splitByPrice[0].split(' - ');
+      console.log("First parts:", firstParts);
+      
+      if (firstParts.length >= 2) {
+        courier = firstParts[0].trim().toLowerCase();
+        serviceType = firstParts[1].trim();
+        
+        // Map courier and service type to standardized format
+        const mappedCourier = courierCodeMapper[courier] || courier.toUpperCase();
+        const mappedServiceType = serviceTypeMapper[serviceType.toLowerCase()] || serviceType.toUpperCase();
+        
+        console.log(`Parsed label format: courier=${courier} → ${mappedCourier}, serviceType=${serviceType} → ${mappedServiceType}`);
+        return [mappedCourier, mappedServiceType];
+      }
+    }
+    
+    // Format nama: "JNE - REG (2-3 hari)" atau "J&T - EKONOMI"
+    console.log("Trying name format parse");
+    const parts = shippingMethod.split(' - ');
+    console.log("Parts by ' - ':", parts);
+    
+    if (parts.length >= 2) {
+      courier = parts[0].trim().toLowerCase();
+      
+      // Extract service type without the ETD part
+      const servicePart = parts[1];
+      
+      if (servicePart.includes('(')) {
+        serviceType = servicePart.split('(')[0].trim();
+        console.log("Service part contains ETD, extracted:", serviceType);
+      } else {
+        serviceType = servicePart.trim();
+        console.log("Service part without ETD:", serviceType);
+      }
+      
+      // Map courier and service type to standardized format
+      const mappedCourier = courierCodeMapper[courier] || courier.toUpperCase();
+      const mappedServiceType = serviceTypeMapper[serviceType.toLowerCase()] || serviceType.toUpperCase();
+      
+      console.log(`Parsed name format: courier=${courier} → ${mappedCourier}, serviceType=${serviceType} → ${mappedServiceType}`);
+      return [mappedCourier, mappedServiceType];
+    }
+    
+    // Fallback - jika tidak ada format yang cocok, coba ekstrak dengan regex
+    console.log("Trying regex fallback");
+    const courierMatch = /^([a-zA-Z&]+)/.exec(shippingMethod);
+    const serviceMatch = /-\s*([a-zA-Z0-9]+)/.exec(shippingMethod);
+    
+    console.log("Courier regex match:", courierMatch);
+    console.log("Service regex match:", serviceMatch);
+    
+    if (courierMatch && serviceMatch) {
+      courier = courierMatch[1].trim().toLowerCase();
+      serviceType = serviceMatch[1].trim();
+      
+      // Map courier and service type to standardized format
+      const mappedCourier = courierCodeMapper[courier] || courier.toUpperCase();
+      const mappedServiceType = serviceTypeMapper[serviceType.toLowerCase()] || serviceType.toUpperCase();
+      
+      console.log(`Parsed regex format: courier=${courier} → ${mappedCourier}, serviceType=${serviceType} → ${mappedServiceType}`);
+      return [mappedCourier, mappedServiceType];
+    }
+    
+    console.error("No parsing pattern matched for:", shippingMethod);
     throw new Error(`Format metode pengiriman tidak valid: ${shippingMethod}`);
+  } catch (error) {
+    console.error("Error parsing shipping method:", error);
+    // Fallback ke nilai default untuk mencegah aplikasi crash
+    console.warn("Using fallback shipping method: jne-reg");
+    return ["JNE", "REG"]; // Menggunakan kode kurir dalam huruf besar yang didukung oleh API Komerce
   }
-  
-  const courier = parts[0].trim().toUpperCase();
-  
-  // Extract service type without the ETD part
-  const servicePart = parts[1];
-  let serviceType;
-  
-  if (servicePart.includes('(')) {
-    serviceType = servicePart.split('(')[0].trim();
-  } else {
-    serviceType = servicePart.trim();
-  }
-  
-  // Validasi hasil parsing
-  if (!courier || !serviceType) {
-    throw new Error(`Tidak dapat mengurai metode pengiriman: ${shippingMethod}`);
-  }
-  
-  return [courier, serviceType];
 };
 
 /**
@@ -754,28 +988,51 @@ export const createTransactionFromStoredOrder = async (orderId) => {
  * @returns {Promise<Object>} Complete transaction result with store order info
  */
 export const createStoreOrderTransaction = async (checkoutData) => {
+  console.log('=== CREATE STORE ORDER TRANSACTION WORKFLOW ===');
   try {
     // Validasi data checkout
     if (!checkoutData) {
+      console.error('Checkout data is undefined or null');
       throw new Error('Data checkout tidak tersedia');
     }
     
-    console.log('Creating store order transaction with data:', checkoutData);
+    console.log('Creating store order transaction with data:');
+    console.log('- Customer:', checkoutData.fullName);
+    console.log('- Phone:', checkoutData.telephone);
+    console.log('- Payment method:', checkoutData.paymentMethod);
+    console.log('- Shipping method:', checkoutData.shippingMethod);
+    console.log('- Items count:', checkoutData.items ? checkoutData.items.length : 0);
+    console.log('- Total amount:', checkoutData.totalAmount);
     
     // Step 1: Format checkout data to store order format
+    console.log('Step 1: Formatting checkout data to store order format');
     const storeOrderData = formatStoreOrderData(checkoutData);
+    console.log('Store order data formatted successfully:', storeOrderData.order_date);
     
     // Step 2: Create store order
+    console.log('Step 2: Creating store order with formatted data');
     const storeOrderResponse = await createStoreOrder(storeOrderData);
     
     // Validasi respons dari API
     if (!storeOrderResponse) {
+      console.error('API returned empty response');
       throw new Error('Tidak ada respons dari API store order');
     }
     
+    console.log('Store order created successfully with ID:', storeOrderResponse.id || storeOrderResponse.order_id);
+    
     // Check store order response
     if (!storeOrderResponse.meta || storeOrderResponse.meta.status !== 'success') {
-      throw new Error(`Gagal membuat store order: ${storeOrderResponse.meta?.message || 'Terjadi kesalahan pada server'}`);
+      // Extract error message and check if it's related to insurance
+      const errorMessage = storeOrderResponse.meta?.message || 'Terjadi kesalahan pada server';
+      
+      // Check if this is an insurance-related error
+      if (errorMessage.includes('insurance') || errorMessage.includes('300,000')) {
+        console.error('Insurance validation error:', errorMessage);
+        throw new Error(`Pesanan tidak dapat diasuransikan: Total produk harus lebih dari Rp 300.000. Silakan coba lagi tanpa asuransi.`);
+      } else {
+        throw new Error(`Gagal membuat store order: ${errorMessage}`);
+      }
     }
     
     console.log('Store order created successfully:', storeOrderResponse);

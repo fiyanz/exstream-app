@@ -84,10 +84,28 @@ def create_store_order(order: StoreOrderRequest, db: Session = Depends(get_db)):
         # Check if Komerce API call was successful
         if komerce_response.get("meta", {}).get("status") == "error":
             logger.error(f"Komerce API error: {komerce_response}")
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Komerce API error: {komerce_response.get('meta', {}).get('message', 'Unknown error')}"
-            )
+            
+            # Get error message details
+            error_message = komerce_response.get("meta", {}).get("message", "Unknown error")
+            error_code = komerce_response.get("meta", {}).get("code", "")
+            
+            # Check if this is an insurance-related error
+            if error_code == "INSURANCE_THRESHOLD_NOT_MET" or "insurance" in error_message.lower() or "300,000" in error_message:
+                logger.warning(f"Insurance validation error: {error_message}")
+                raise HTTPException(
+                    status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                    detail={
+                        "message": "Product total value is below IDR 300,000 - insurance cannot be applied",
+                        "error_type": "insurance_validation",
+                        "original_error": error_message
+                    }
+                )
+            else:
+                # General API error
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"Komerce API error: {error_message}"
+                )
         
         # Save to local database if API call was successful
         try:
