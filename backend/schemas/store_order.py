@@ -48,6 +48,18 @@ class StoreOrderResponse(BaseModel):
     meta: dict
     data: Optional[dict] = None
     message: Optional[str] = None
+    # Additional fields to make the response compatible with frontend expectations
+    id: Optional[str] = None
+    payment_method: Optional[str] = None
+    payment_status: Optional[str] = None
+    grand_total: Optional[int] = None
+    order_date: Optional[str] = None
+    token: Optional[str] = None
+    redirect_url: Optional[str] = None
+    
+    class Config:
+        # This allows extra fields to be included
+        extra = "allow"
 
 
 class StoreOrderDetail(BaseModel):

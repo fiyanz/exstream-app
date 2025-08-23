@@ -42,11 +42,11 @@ app.include_router(
     tags=["Wilayah Indonesia"]
 )
 
-app.include_router(
-    lokasi,
-    prefix="/api/v1/lokasi",
-    tags=["Pencarian Lokasi Menggunakan API"]
-)
+# app.include_router(
+#     lokasi,
+#     prefix="/api/v1/lokasi",
+#     tags=["Pencarian Lokasi Menggunakan API"]
+# )
 
 app.include_router(
     cost_ongkir,

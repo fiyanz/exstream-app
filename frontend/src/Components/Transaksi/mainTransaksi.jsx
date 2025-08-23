@@ -609,65 +609,115 @@ const App = () => {
       try {
         setIsSubmitting(true);
 
-        // Prepare order data for API - format disesuaikan dengan backend
+        // Common data preparation
         const address = `${formData.completeAddress}, ${formData.village}, ${formData.subDistrict}, ${formData.city}, ${formData.province}`;
         const destination_id = formData.village || formData.subDistrict || formData.city;
+        const paymentMethod = formData.paymentMethod.toLowerCase().includes('cod') ? 'COD' : 'Transfer';
         
+        console.log('Starting order process with payment method:', paymentMethod);
+        
+        // Data for COD orders (direct to store_order)
         const orderData = {
-          // Customer information - format sesuai backend
+          // Customer information
           fullName: formData.fullName,
           telephone: formData.telephone,
           address: address,
           destination_id: destination_id,
+          province: formData.province,
+          city: formData.city,
           
-          // Order items - format sesuai backend
+          // Order items
           items: cartItems.map(item => ({
             name: "Jas Hujan Extrime",
             color: item.color,
             size: item.size,
             quantity: item.quantity,
             price: PRODUCT_PRICE,
-            product_weight: 1000, // Berat dalam gram
+            product_weight: PRODUCT_WEIGHT, // Berat dalam gram
             variant: `${item.color} - ${item.size}`
           })),
 
-          // Shipping and payment - format sesuai backend
+          // Shipping and payment
           shippingMethod: formData.shippingMethod,
           shippingCost: formData.shippingCost,
-          paymentMethod: formData.paymentMethod.toLowerCase().includes('cod') ? 'COD' : 'Transfer',
+          paymentMethod: paymentMethod,
 
-          // Pricing - format sesuai backend
+          // Pricing
           totalAmount: total
         };
 
-        // Store order data first
-        const storedOrder = await storeOrderData(orderData);
-        console.log('Order stored:', storedOrder);
+        // Handle different paths based on payment method
+        let transactionResult;
+        
+        if (formData.paymentMethod.toLowerCase().includes('cod')) {
+          // For COD, directly use storeOrderData
+          console.log('Processing COD order...');
+          transactionResult = await storeOrderData(orderData);
+          console.log('COD Order stored:', transactionResult);
+          
+          // Ensure we have necessary data for the success page
+          if (transactionResult && transactionResult.data) {
+            // Add direct access to common fields from the Komerce response
+            transactionResult.id = transactionResult.data.order_id || transactionResult.id || "COD-" + Date.now();
+            transactionResult.total = total;
+            transactionResult.grand_total = total;
+          }
+          
+        } else {
+          // For transfers/non-COD, create transaction with Midtrans integration
+          console.log('Processing Transfer/Bank payment...');
+          // Format data for enhanced transaction API
+          const enhancedOrderData = {
+            customer_name: formData.fullName,
+            customer_phone: formData.telephone,
+            customer_address: formData.completeAddress,
+            province: formData.province,
+            city: formData.city,
+            subdistrict: formData.subDistrict,
+            village: formData.village,
+            items: cartItems.map(item => ({
+              name: "Jas Hujan Extrime",
+              color: item.color,
+              size: item.size,
+              quantity: item.quantity,
+              price: PRODUCT_PRICE,
+              variant: `${item.color} - ${item.size}`,
+              product_weight: PRODUCT_WEIGHT
+            })),
+            shipping_method: formData.shippingMethod,
+            payment_method: 'Transfer', // Explicitly set as Transfer
+            shipping_cost: formData.shippingCost,
+            subtotal: subtotal,
+            discount: discount,
+            total: total
+          };
+          
+          transactionResult = await createTransaction(enhancedOrderData);
+          console.log('Transaction result received:', transactionResult);
+        }
+        
+        // Log transaction details
+        console.log('Transaction complete with result:', transactionResult);
+        console.log('Payment method:', formData.paymentMethod);
+        console.log('Total amount:', total);
 
-        // Create transaction from stored order
-        const transactionResult = await createTransactionFromStoredOrder(storedOrder.order_id);
-        console.log('Transaction result received:', transactionResult);
-        console.log('Token:', transactionResult.token);
-        console.log('Redirect URL:', transactionResult.redirect_url);
-        console.log('Payment status:', transactionResult.payment_status);
-        console.log('Frontend total:', transactionResult.frontend_total);
-        console.log('Midtrans amount:', transactionResult.midtrans_amount);
-        console.log('Discount:', transactionResult.discount);
-        console.log('Shipping cost:', transactionResult.shipping_cost);
-
+        // Store the order details for the success page
+        setOrderDetails(transactionResult);
+        setOrderPlaced(true);
+        
+        // Add reference to console for debugging
+        console.log('Order completed with details:', transactionResult);
+        
         // Handle response based on payment method
-        if (transactionResult.payment_status === 'pending_cod') {
+        if (formData.paymentMethod.toLowerCase().includes('cod')) {
           // COD - Direct success
-          showToast(transactionResult.message, 'success');
-          setOrderDetails(transactionResult);
-          setOrderPlaced(true);
-        } else if (transactionResult.payment_status === 'pending_payment') {
-          // Non-COD - Redirect to Midtrans
-          showToast(transactionResult.message, 'success');
-          setOrderDetails(transactionResult);
-          setOrderPlaced(true);
-
-          // Handle Midtrans payment using enhanced handler
+          showToast('Pesanan COD berhasil dibuat. Terima kasih telah berbelanja!', 'success');
+          
+        } else {
+          // Non-COD - Check for Midtrans payment details
+          showToast('Pesanan berhasil dibuat. Silakan lanjutkan ke pembayaran.', 'success');
+          
+          // Handle Midtrans payment
           if (transactionResult.redirect_url) {
             // If we have redirect_url but no token, use redirect directly
             if (transactionResult.token) {
@@ -766,7 +816,7 @@ const App = () => {
                 </div>
 
                 <div className="bg-green-50 text-green-800 px-4 py-1 rounded-full text-sm font-medium inline-flex items-center">
-                  <span>Order #ES{Math.floor(Math.random() * 100000)}</span>
+                  <span>Order #{orderDetails?.id || `ES${Math.floor(Math.random() * 100000)}`}</span>
                 </div>
 
                 <h1 className="text-4xl md:text-5xl font-bold text-gray-800 leading-tight">
@@ -774,7 +824,7 @@ const App = () => {
                 </h1>
 
                 <p className="text-gray-600 text-lg">
-                  {orderDetails?.payment_status === 'pending_cod' ? (
+                  {formData.paymentMethod.toLowerCase().includes('cod') ? (
                     <>
                       Terima kasih telah memilih Jas Hujan Extrime!<br />
                       Pesanan COD Anda telah dibuat. Pembayaran dilakukan saat barang diterima.
@@ -796,19 +846,19 @@ const App = () => {
                     </li>
                     <li className="flex justify-between items-center">
                       <span className="text-gray-600">Subtotal:</span>
-                      <span className="font-medium text-gray-900">{formatRupiah(transactionResult?.midtrans_amount || subtotal)}</span>
+                      <span className="font-medium text-gray-900">{formatRupiah(subtotal)}</span>
                     </li>
                     <li className="flex justify-between items-center">
                       <span className="text-gray-600">Diskon:</span>
-                      <span className="font-medium text-gray-900">-{formatRupiah(transactionResult?.discount || discount)}</span>
+                      <span className="font-medium text-gray-900">-{formatRupiah(discount)}</span>
                     </li>
                     <li className="flex justify-between items-center">
                       <span className="text-gray-600">Ongkir:</span>
-                      <span className="font-medium text-gray-900">{formatRupiah(transactionResult?.shipping_cost || formData.shippingCost)}</span>
+                      <span className="font-medium text-gray-900">{formatRupiah(formData.shippingCost)}</span>
                     </li>
                     <li className="flex justify-between items-center">
                       <span className="text-gray-600">Total Bayar:</span>
-                      <span className="font-medium text-gray-900">{formatRupiah(transactionResult?.frontend_total || total)}</span>
+                      <span className="font-medium text-gray-900">{formatRupiah(orderDetails?.total || orderDetails?.grand_total || total)}</span>
                     </li>
                     <li className="flex justify-between items-center">
                       <span className="text-gray-600">Metode Pembayaran:</span>
@@ -821,7 +871,7 @@ const App = () => {
                     <li className="flex justify-between items-center">
                       <span className="text-gray-600">Status:</span>
                       <span className="font-medium text-gray-900">
-                        {orderDetails?.payment_status === 'pending_cod' ? 'Menunggu Pembayaran COD' : 'Menunggu Pembayaran'}
+                        {formData.paymentMethod.toLowerCase().includes('cod') ? 'Menunggu Pengiriman (COD)' : 'Menunggu Pembayaran'}
                       </span>
                     </li>
                   </ul>

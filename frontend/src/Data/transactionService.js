@@ -352,8 +352,9 @@ export const handleMidtransPaymentEnhanced = (snapToken, redirectUrl) => {
 
 /**
  * Store order data before payment
+ * For COD orders, this will be the final order processing step
  * @param {Object} orderData - Order data from frontend
- * @returns {Promise<Object>} Stored order result
+ * @returns {Promise<Object>} Stored order result with complete order details
  */
 export const storeOrderData = async (orderData) => {
   try {
@@ -362,6 +363,11 @@ export const storeOrderData = async (orderData) => {
     // Format order data sesuai dengan yang diharapkan backend
     const formattedData = formatStoreOrderData(orderData);
     console.log('Formatted order data:', formattedData);
+    
+    // Check if this is a COD order - ensure payment_method is correctly set
+    if (orderData.paymentMethod && orderData.paymentMethod.toUpperCase() === 'COD') {
+      console.log('Processing COD order - payment_method set to:', formattedData.payment_method);
+    }
     
     const response = await fetch(`${API_BASE_URL}/api/v1/store_order/store_order`, {
       method: 'POST',

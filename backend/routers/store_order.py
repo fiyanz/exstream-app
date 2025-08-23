@@ -72,13 +72,18 @@ def create_store_order(order: StoreOrderRequest, db: Session = Depends(get_db)):
     2. Sends the order to Komerce API
     3. Saves the order to local database if API call is successful
     4. Returns the response from Komerce API
+    
+    Note: This endpoint handles both COD and non-COD orders
     """
     try:
         # Convert Pydantic model to dict for API call
         order_data = order.dict()
         
+        # Check payment method for logging purposes
+        payment_method = order_data.get("payment_method", "Unknown")
+        logger.info(f"Creating store order via Komerce API. Payment method: {payment_method}")
+        
         # Call Komerce API to create the order
-        logger.info(f"Creating store order via Komerce API")
         komerce_response = create_komerce_order(order_data)
         
         # Check if Komerce API call was successful
@@ -163,11 +168,31 @@ def create_store_order(order: StoreOrderRequest, db: Session = Depends(get_db)):
             # Continue execution even if database save fails
             # The order was successfully created in Komerce
         
-        return StoreOrderResponse(
-            meta=komerce_response.get("meta", {}),
-            data=komerce_response.get("data"),
-            message="Order created successfully"
-        )
+        # Create response with additional fields for frontend
+        response_data = {
+            "meta": komerce_response.get("meta", {}),
+            "data": komerce_response.get("data"),
+            "message": "Order created successfully"
+        }
+        
+        # Add additional fields for frontend to use, especially for COD orders
+        if db_order and komerce_response.get("data"):
+            # Check if this is a COD order and add payment status
+            is_cod = order.payment_method.upper() == "COD"
+            
+            # Add fields to help frontend with rendering
+            response_data["id"] = str(db_order.id)
+            response_data["payment_method"] = order.payment_method
+            response_data["payment_status"] = "pending_cod" if is_cod else "created"
+            response_data["grand_total"] = order.grand_total
+            response_data["order_date"] = str(order.order_date)
+            
+            # Add these fields to make the response compatible with the frontend's expectations
+            if is_cod:
+                response_data["token"] = None
+                response_data["redirect_url"] = None
+        
+        return StoreOrderResponse(**response_data)
         
     except HTTPException:
         raise
