@@ -28,10 +28,10 @@ const NavbarCom = () => {
                 <div className='flex flex-col lg:flex-row justify-center lg:items-center gap-6 on-nav'>
                     {/* Text and Button */}
                     <div className='flex flex-col gap-4 text-center nav-text'>
-                        <span className='text-xl md:text-xl font-semibold'>
+                        <span className='text-lg md:text-xl font-semibold'>
                             #Jas Hujan Extrime
                         </span>
-                        <span className='text-3xl md:text-5xl font-bold leading-tight'>
+                        <span className='text-2xl md:text-3xl lg:text-5xl font-semibold leading-tight'>
                             Jas Hujan Extrime, Super <br /> Awet, Full Sealing Press, <br /> 100% Original
                         </span>
                         {/* <Link activeClass='active' to="TransaksiOne" smooth={true} duration={500}  className='mt-4'>

@@ -74,12 +74,13 @@
   }
 
   .tes-1 {
-    margin-top: 60rem;
+    margin-top: 64rem;
     margin-bottom: 5rem;
   }
 
   .gr-te {
-    width: 15rem;
+    width: 20rem;
+    height: auto;
   }
 }
 
@@ -94,12 +95,13 @@
   }
 
   .tes-1 {
-    margin-top: 60rem;
+    margin-top: 74rem;
     margin-bottom: 5rem;
   }
 
   .gr-te {
-    width: 20rem;
+    width: 23rem;
+    height: auto;
   }
 }
 
@@ -119,7 +121,8 @@
   }
 
   .gr-te {
-    width: 20rem;
+    width: 26rem;
+    height: auto;
   }
 }
 
@@ -134,13 +137,18 @@
   }
 
   .tes-1 {
-    margin-top: 85rem;
+    margin-top: 75rem;
     margin-bottom: 5rem;
+  }
+
+  .gr-te {
+    width: 26rem;
+    height: auto;
   }
 }
 
 @media (min-width: 650px) and (max-width: 750px) {
-    .tes-0 {
+  .tes-0 {
     display: flex;
     flex-direction: column;
     justify-content: center;
@@ -155,8 +163,13 @@
     }
 
   .tes-1 {
-    margin-top: 85rem;
+    margin-top: 82rem;
     margin-bottom: 5rem;
+  }
+
+  .gr-te {
+    width: 26rem;
+    height: auto;
   }
 }
 

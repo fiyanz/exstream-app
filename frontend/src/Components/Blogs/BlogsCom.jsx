@@ -18,7 +18,7 @@ const BlogsCom = () => {
                 <div className='flex flex-col justify-center items-center gap-10 on-blog'>
                     {/* Text and Button */}
                     <div className='flex flex-col gap-4 text-center blog-text'>
-                        <span className='text-2xl lg:text-6xl font-bold'>
+                        <span className='text-2xl md:text-3xl lg:text-6xl font-bold'>
                             Mau Jas Hujan Keren dan
                             <br />
                             Tahan Lama? Extrime 
@@ -45,9 +45,9 @@ const BlogsCom = () => {
                     </div>
                     {/* Hero Image */}
                     <div className='flex flex-col xl:flex-row'>
-                        <img src={ima1} alt="" className='h-[400px] w-[400px]' />
-                        <img src={ima} alt="" className='h-[400px] w-[400px]' />
-                        <img src={ima2} alt="" className='h-[400px] w-[400px]' />
+                        <img src={ima1} alt="" className='h-[400px] w-[400px] ina' />
+                        <img src={ima} alt="" className='h-[400px] w-[400px] ina' />
+                        <img src={ima2} alt="" className='h-[400px] w-[400px] ina' />
                     </div>
                 </div>
             </nav>

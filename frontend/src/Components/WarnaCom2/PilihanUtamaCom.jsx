@@ -6,10 +6,10 @@ import { Link } from 'react-scroll'
 const PilihanUtamaCom = () => {
     return (
         <div className='pil text-black'>
-            <section className='flex justify-center items-center pil-a1'>
-                <div className='flex flex-col gap-2 items-center pil-a'>
+            <section className='flex flex-col lg:flex-row justify-center items-center pil-a1'>
+                <div className='flex flex-col gap-2 justify-center items-center pil-a'>
                     <div>
-                        <button className='text-white bu-pil'>
+                        <button className='text-white bu-pil text-center'>
                             Tersedia 8 Pilihan Warna Jas Hujan
                         </button>
                     </div>
