@@ -7,17 +7,17 @@ from core.config import settings
 from schemas.domestic import DomesticCostRequest
 import requests
 
-ongkir_router = APIRouter()
+domesticCostRequest = APIRouter()
 
-@ongkir_router.post("/hitung-domestic", summary="Hitung ongkir domestik via Komerce RajaOngkir")
+@domesticCostRequest.post("/domestic-cost", summary="Hitung ongkir domestik via Komerce RajaOngkir")
 async def calculate_domestic_cost(request: DomesticCostRequest):
     """
     Hitung ongkos kirim domestik menggunakan Komerce RajaOngkir API.
     """
 
-    url = settings.RAJA_ONGKIR_DOMESTIC_URL
+    url = f"{settings.RAJA_ONGKIR_DOMESTIC_URL}/calculate/district/domestic-cost"
     headers = {
-        "x-api-key": settings.RAJA_ONGKIR_API,
+        "key": settings.SHIPPING_COST_API_KEY,
         "Content-Type": "application/x-www-form-urlencoded"
     }
 

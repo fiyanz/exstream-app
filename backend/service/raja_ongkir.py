@@ -1,7 +1,7 @@
 import requests
 from core.config import settings
 
-KOMERCE_API_KEY = settings.RAJA_ONGKIR_API
+KOMERCE_API_KEY = settings.SHIPPING_COST_API_KEY
 KOMERCE_BASE_URL = settings.KOMERCE_BASE_URL
 RAJA_ONGKIR_BASE_URL = settings.RAJA_ONGKIR_BASE_URL
 ORIGIN_CITY_ID = settings.MY_ORIGIN_DESTINATION_ID  # ID 3305: KEBUMEN, JAWA TENGAH (dari file .env)

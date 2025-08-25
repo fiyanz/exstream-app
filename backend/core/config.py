@@ -6,7 +6,7 @@ class Settings(BaseSettings):
     API_PREFIX: str = "/api/v1"
     DEBUG: bool = False
     DATABASE_URL: str = ""
-    RAJA_ONGKIR_API: str = ""
+    SHIPPING_COST_API_KEY: str = ""
     KOMERCE_BASE_URL: str = ""
     RAJA_ONGKIR_BASE_URL: str = ""
     KOMERCE_ORDER_BASE_URL: str = ""

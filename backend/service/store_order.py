@@ -6,7 +6,7 @@ import math
 
 logger = logging.getLogger(__name__)
 
-KOMERCE_API_KEY = settings.RAJA_ONGKIR_API
+KOMERCE_API_KEY = settings.SHIPPING_COST_API_KEY
 KOMERCE_ORDER_BASE_URL = settings.KOMERCE_ORDER_BASE_URL
 
 def calculate_service_fee(grand_total: int, cod_value: int, payment_method: str = "") -> int:
