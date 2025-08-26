@@ -76,7 +76,7 @@ export const Pilihan = [
   },
   {
     id: 4,
-    name: 'Beige',
+    name: 'Cream',
     image: head3,
   },
   {
