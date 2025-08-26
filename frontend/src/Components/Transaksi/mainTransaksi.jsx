@@ -649,7 +649,7 @@ const App = () => {
           // Store the order details for the success page
           setOrderDetails(transactionResult);
           setOrderPlaced(true);
-          console.log('Order placed successfully:', transactionResult);
+          // console.log('Order placed successfully:', transactionResult);
         } else {
           console.error('Invalid transaction result:', transactionResult);
           throw new Error('Respons dari server tidak valid. Silakan coba lagi.');
