@@ -54,8 +54,16 @@ const Koded = () => {
           </div>
         </div> */}
         <div className='flex flex-col gap-16 justify-center items-center'>
-          <img src={des} alt="" className='img-kod1'/>
-          <img src={des1} alt="" className='img-ko1' />
+          <div className='kid flex flex-col gap-4 items-center'>
+            <h1 className='text-center text-2xl lg:text-4xl font-bold'>Daftar Ukuran</h1>
+            <img src={des} alt="" className='img-kod1'/>
+          </div>
+          <div className='flex flex-col gap-4 items-center'>
+            <h1 className='text-center text-2xl lg:text-4xl font-bold'>
+              Kelebihan atau Keunggulan Produk Kami
+            </h1>
+            <img src={des1} alt="" className='img-ko1' />
+          </div>
         </div>
       </div>
     </div>
