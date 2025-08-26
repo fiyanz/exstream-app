@@ -83,6 +83,17 @@ def create_store_order(order: StoreOrderRequest, db: Session = Depends(get_db)):
         payment_method = order_data.get("payment_method", "Unknown")
         logger.info(f"Creating store order via Komerce API. Payment method: {payment_method}")
         
+        # Preemptively validate insurance before sending to API
+        # Calculate total product price from order details
+        order_details = order_data.get("order_details", [])
+        total_product_price = sum(item.get("subtotal", 0) for item in order_details)
+        
+        # Check if insurance should be applied based on product price
+        if total_product_price <= 300000 and "insurance_value" in order_data:
+            logger.info(f"Removing insurance_value field because product total ({total_product_price}) is below threshold")
+            # Remove insurance_value field completely instead of setting to 0
+            del order_data["insurance_value"]
+        
         # Call Komerce API to create the order
         komerce_response = create_komerce_order(order_data)
         

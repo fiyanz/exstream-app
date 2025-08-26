@@ -7,11 +7,12 @@ class Settings(BaseSettings):
     DEBUG: bool = False
     DATABASE_URL: str = ""
     SHIPPING_COST_API_KEY: str = ""
+
+    KOMERCE_API_KEY: str = ""
     KOMERCE_BASE_URL: str = ""
     RAJA_ONGKIR_BASE_URL: str = ""
     KOMERCE_ORDER_BASE_URL: str = ""
     MY_ORIGIN_DESTINATION_ID: str = ""
-    RAJA_ONGKIR_DOMESTIC_URL: str = ""
     RAJA_ONGKIR_DESTINATION_URL: str = ""
     MIDTRANS_SERVER_KEY: str = ""
     MIDTRANS_CLIENT_KEY: str = ""

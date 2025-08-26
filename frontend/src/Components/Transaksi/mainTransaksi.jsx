@@ -387,9 +387,7 @@ const App = () => {
         // Use the actual village ID for shipping calculation
         const shippingData = await calculateShippingCost({
           receiver_destination_id: formData.village,
-          weight: PRODUCT_WEIGHT,
-          item_value: subtotal,
-          cod: formData.paymentMethod === 'COD (Bayar Di Tempat)'
+          weight: PRODUCT_WEIGHT
         });
 
         if (shippingData.success) {

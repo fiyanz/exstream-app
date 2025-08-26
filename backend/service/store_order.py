@@ -1,4 +1,5 @@
 import requests
+import re
 from core.config import settings
 from typing import Dict, Any, List, Optional
 import logging
@@ -6,7 +7,7 @@ import math
 
 logger = logging.getLogger(__name__)
 
-KOMERCE_API_KEY = settings.SHIPPING_COST_API_KEY
+KOMERCE_API_KEY = settings.KOMERCE_API_KEY
 KOMERCE_ORDER_BASE_URL = settings.KOMERCE_ORDER_BASE_URL
 
 def calculate_service_fee(grand_total: int, cod_value: int, payment_method: str = "") -> int:
@@ -157,15 +158,25 @@ def validate_insurance_value(order_data: Dict[str, Any]) -> Dict[str, Any]:
     total_product_price = sum(item.get("subtotal", 0) for item in order_details)
     
     grand_total = order_data.get("grand_total", 0)
-    current_insurance_value = order_data.get("insurance_value", 0)
     
     # Log the total product price for debugging
     logger.info(f"Total product price: {total_product_price} (minimum 300,000 required for insurance)")
     
+    # Check if insurance_value field exists in the order_data
+    has_insurance_value = "insurance_value" in order_data
+    current_insurance_value = order_data.get("insurance_value", 0) if has_insurance_value else None
+    
+    # If insurance_value field doesn't exist, don't add it
+    if current_insurance_value is None:
+        logger.info("No insurance_value field in request. Skipping insurance calculation.")
+        return order_data
+    
     # Per Komerce API: only products with price > 300,000 can be insured
     if total_product_price <= 300000:
-        logger.info(f"Product price ({total_product_price}) is below the minimum threshold for insurance. Setting insurance_value to 0.")
-        order_data["insurance_value"] = 0
+        logger.info(f"Product price ({total_product_price}) is below the minimum threshold for insurance. Removing insurance_value field.")
+        # Don't include insurance_value field at all for products below threshold
+        if "insurance_value" in order_data:
+            del order_data["insurance_value"]
         return order_data
     
     # Calculate expected insurance value (only if product price is above threshold)
@@ -218,11 +229,22 @@ def create_store_order(order_data: Dict[str, Any]) -> Dict[str, Any]:
     logger.info(f"Order data: {order_data}")
     
     try:
+        # Log full URL and request details
+        logger.info(f"Full URL: {url}")
+        logger.info(f"API Key: {KOMERCE_API_KEY[:4]}...{KOMERCE_API_KEY[-4:] if len(KOMERCE_API_KEY) > 8 else ''}")
+        logger.info(f"Request data: {order_data}")
+        
         response = requests.post(url, headers=headers, json=order_data)
-        response.raise_for_status()  # Raise exception for 4XX/5XX responses
-        result = response.json()
+        
+        # Log response details regardless of status code
         logger.info(f"API Response status: {response.status_code}")
-        logger.info(f"API Response: {result}")
+        logger.info(f"API Response content: {response.text}")
+        
+        # Raise exception for 4XX/5XX responses
+        response.raise_for_status()
+        
+        result = response.json()
+        logger.info(f"API Response parsed: {result}")
         return result
     except requests.exceptions.RequestException as e:
         logger.error(f"Error calling Komerce Store Order API: {str(e)}")
@@ -235,8 +257,61 @@ def create_store_order(order_data: Dict[str, Any]) -> Dict[str, Any]:
                 if 'meta' in error_detail and 'message' in error_detail['meta']:
                     error_message = error_detail['meta']['message'].lower()
                     
+                    # Handle expedition/courier not found errors
+                    if 'expedition not found' in error_message:
+                        courier = order_data.get('shipping', 'unknown')
+                        service_type = order_data.get('shipping_type', 'unknown')
+                        
+                        logger.error(f"Expedition not found error. Courier: {courier}, Service type: {service_type}")
+                        
+                        # Common mapping for couriers
+                        courier_map = {
+                            'JNE': 'jne',
+                            'J&T': 'jnt',
+                            'SICEPAT': 'sicepat',
+                            'ID EXPRESS': 'idexpress',
+                            'NINJA': 'ninja',
+                            'SAP': 'sap',
+                            'POS': 'pos',
+                            'ANTERAJA': 'anteraja',
+                            'LION': 'lion'
+                        }
+                        
+                        # Try to find the correct courier format
+                        suggested_courier = courier_map.get(courier.upper(), courier.lower())
+                        
+                        return {
+                            "meta": {
+                                "status": "error", 
+                                "message": f"Courier '{courier}' not found in Komerce API. Try using '{suggested_courier}' instead.",
+                                "code": "EXPEDITION_NOT_FOUND",
+                            },
+                            "data": None
+                        }
+                    
+                    # Handle COD payment not supported for certain couriers
+                    elif 'only payment_method bank transfer supported for shipping' in error_message or 'cod not supported' in error_message:
+                        courier = order_data.get('shipping', 'unknown').upper()
+                        
+                        # Extract courier name from error message if available
+                        courier_match = re.search(r'for shipping (\w+)', error_message)
+                        if courier_match:
+                            courier = courier_match.group(1).upper()
+                        
+                        logger.error(f"COD payment not supported for courier: {courier}")
+                        
+                        return {
+                            "meta": {
+                                "status": "error", 
+                                "message": f"Kurir {courier} tidak mendukung pembayaran COD. Silakan gunakan metode pembayaran transfer bank.",
+                                "code": "COD_NOT_SUPPORTED_FOR_COURIER",
+                                "courier": courier
+                            },
+                            "data": None
+                        }
+                    
                     # Handle service fee errors
-                    if 'service fee' in error_message:
+                    elif 'service fee' in error_message:
                         logger.error(f"Service fee error detected. Current service fee: {order_data.get('service_fee')}")
                         logger.error(f"Order grand total: {order_data.get('grand_total')}")
                         logger.error(f"COD value: {order_data.get('cod_value')}")
@@ -274,21 +349,32 @@ def create_store_order(order_data: Dict[str, Any]) -> Dict[str, Any]:
                         logger.error(f"Order grand total: {order_data.get('grand_total')}")
                         logger.error(f"Shipping courier: {order_data.get('shipping')}")
                         
-                        # Force insurance value to 0 due to error
-                        order_data["insurance_value"] = 0
-                        logger.warning("Forcing insurance_value to 0 because total product price is below minimum threshold (300,000)")
+                        # IMPORTANT: Remove insurance_value field completely instead of setting to 0
+                        if "insurance_value" in order_data:
+                            del order_data["insurance_value"]
+                            logger.warning("Removing insurance_value field completely from request")
                         
-                        # This is important - the API error is not recoverable without resubmitting
-                        # Consider retrying the API call with insurance_value set to 0
-                        # But for now, just return a clear error message
-                        return {
-                            "meta": {
-                                "status": "error", 
-                                "message": "Total product price must be more than IDR 300,000 to apply insurance. Please try again with insurance disabled.",
-                                "code": "INSURANCE_THRESHOLD_NOT_MET",
-                                "original_error": error_detail
+                        # Try to make the API call again without the insurance_value field
+                        try:
+                            logger.info("Retrying API call without insurance_value field")
+                            retry_response = requests.post(url, headers=headers, json=order_data)
+                            retry_response.raise_for_status()
+                            
+                            result = retry_response.json()
+                            logger.info(f"Retry successful! API Response: {result}")
+                            return result
+                        except requests.exceptions.RequestException as retry_err:
+                            logger.error(f"Retry failed: {str(retry_err)}")
+                            
+                            # If retry fails, return the original error
+                            return {
+                                "meta": {
+                                    "status": "error", 
+                                    "message": "Total product price must be more than IDR 300,000 to apply insurance. Please try again with insurance disabled.",
+                                    "code": "INSURANCE_THRESHOLD_NOT_MET",
+                                    "original_error": error_detail
+                                }
                             }
-                        }
                 
                 return {"meta": {"status": "error", "message": str(e), "details": error_detail}}
             except:

@@ -62,8 +62,8 @@ app.include_router(
 
 app.include_router(
     domesticCostRequest,
-    prefix="/api/v1/hitung-domestik",
-    tags=["Hitung Domestik"]
+    prefix="/api/v1/domestic",
+    tags=["Domestic Shipping API"]
 )
 
 app.include_router(
