@@ -20,20 +20,38 @@ import { API_BASE_URL } from './dataWilayah';
  * @returns {Array} Formatted array of shipping options 
  */
 export const formatShippingOptions = (shippingData) => {
-  console.log('Formatting shipping options from data:', shippingData);
-  
   // Handle empty or invalid data
   if (!shippingData) {
     return [];
   }
   
+  
+  // Keywords to identify regular shipping services
+  const regularKeywords = ['reguler', 'regular', 'reg', 'ez', 'standard', 'ekonomi', 'economy'];
+  
+  // Function to check if a service is a regular type
+  const isRegularService = (item) => {
+    const serviceNameLower = (item.service || '').toLowerCase();
+    const descriptionLower = (item.description || '').toLowerCase();
+    
+    // Check if service name or description contains regular keywords
+    return regularKeywords.some(keyword => 
+      serviceNameLower.includes(keyword) || 
+      descriptionLower.includes(keyword)
+    );
+  };
+  
   // Handle domestic API format with meta status and array data
   if (shippingData.meta && shippingData.meta.status === "success" && Array.isArray(shippingData.data)) {
-    console.log('Processing Domestic API format');
     const data = shippingData.data;
     
-    // Format shipping options from direct data array
-    return data.map(item => {
+    // Filter for regular services and reasonable costs
+    const filteredData = data.filter(item => 
+      isRegularService(item)
+    );
+    
+    // Format shipping options from filtered data array
+    return filteredData.map(item => {
       // Format ETD (Estimated Time of Delivery)
       let etd = item.etd || '1-3 hari';
       if (etd === '' || etd === '-') etd = '1-3 hari';
@@ -55,7 +73,12 @@ export const formatShippingOptions = (shippingData) => {
   
   // Direct array format
   if (Array.isArray(shippingData)) {
-    return shippingData.map(courier => {
+    // Filter for regular services and reasonable costs
+    const filteredData = shippingData.filter(courier => 
+      isRegularService(courier)
+    );
+    
+    return filteredData.map(courier => {
       let etd = courier.etd || '1-3 hari';
       if (etd === '' || etd === '-') etd = '1-3 hari';
       
@@ -74,7 +97,12 @@ export const formatShippingOptions = (shippingData) => {
   
   // Data property as array
   if (shippingData.data && Array.isArray(shippingData.data)) {
-    return shippingData.data.map(courier => {
+    // Filter for regular services and reasonable costs
+    const filteredData = shippingData.data.filter(courier => 
+      isRegularService(courier)
+    );
+    
+    return filteredData.map(courier => {
       let etd = courier.etd || '1-3 hari';
       
       return {
@@ -90,7 +118,6 @@ export const formatShippingOptions = (shippingData) => {
     });
   }
   
-  console.error('Unknown shipping data format:', shippingData);
   return [];
 };
 
@@ -109,9 +136,6 @@ export const calculateShippingCost = async ({ receiver_destination_id, weight })
     // Make sure weight is a number and at least 1 gram
     const validatedWeight = Math.max(1, Number(weight) || 1000);
     
-    console.log(`Calculating shipping cost to destination ID: ${destinationId}`);
-    console.log(`Package weight: ${validatedWeight}g`);
-    
     // Standard courier list for domestic shipping with colon separators as required by API
     const couriers = "jne:sicepat:ide:sap:jnt:ninja:tiki:lion:anteraja:pos:ncs:rex:rpx:sentral:star:wahana:dse";
     
@@ -123,13 +147,8 @@ export const calculateShippingCost = async ({ receiver_destination_id, weight })
       price: "lowest"
     };
     
-    // Log request details
-    console.log('Using API URL:', API_BASE_URL);
-    console.log('Request body:', JSON.stringify(requestBody));
-    
     // Make API request to domestic endpoint
     const endpoint = `${API_BASE_URL}/api/v1/domestic/domestic-cost`;
-    console.log(`Fetching shipping costs from: ${endpoint}`);
     const response = await fetch(endpoint, {
       method: 'POST',
       headers: {
@@ -141,18 +160,15 @@ export const calculateShippingCost = async ({ receiver_destination_id, weight })
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error(`HTTP error! Status: ${response.status}`, errorText);
       throw new Error(`Failed to calculate shipping costs (${response.status})`);
     }
 
     const data = await response.json();
-    console.log('Shipping cost calculation results:', data);
     
     // Handle API response format
     if (data.meta) {
       // Case 1: Domestic API response with meta object
       if (data.meta.status !== "success") {
-        console.error('API returned error:', data.meta.message || 'Unknown error');
         return {
           success: false,
           message: data.meta.message || 'Gagal menghitung ongkos kirim'
@@ -161,7 +177,6 @@ export const calculateShippingCost = async ({ receiver_destination_id, weight })
       
       // Case 2: Successful response with data array
       if (data.meta.status === "success" && Array.isArray(data.data)) {
-        console.log(`Successfully received shipping options: ${data.data.length} options`);
         
         if (data.data.length === 0) {
           return {
@@ -191,8 +206,6 @@ export const calculateShippingCost = async ({ receiver_destination_id, weight })
     // Return the original response for backward compatibility
     return data;
   } catch (error) {
-    console.error('Error calculating shipping costs:', error);
-    
     // Return a standardized error object that can be handled by the UI
     return {
       success: false,

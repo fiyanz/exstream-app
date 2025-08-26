@@ -140,22 +140,18 @@ const App = () => {
   const fetchProvinces = useCallback(async () => {
     try {
       setLoadingLocation(true);
-      console.log('Fetching provinces from API...');
       const response = await fetch('http://localhost:8000/api/v1/wilayah/provinsi', {
         method: 'GET',
         headers: {
           'Accept': 'application/json'
         }
       });
-      console.log('Province API response status:', response.status);
       
       if (!response.ok) {
         throw new Error(`Gagal memuat data provinsi: ${response.status} ${response.statusText}`);
       }
       
       const data = await response.json();
-      console.log('Province data received, count:', data.length);
-      console.log('Sample province data:', data.slice(0, 2));
       setProvinces(data);
       setLoadingLocation(false);
     } catch (error) {

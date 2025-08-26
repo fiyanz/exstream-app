@@ -15,7 +15,7 @@ import Testi from '../../assets/image/baju.png';
 
 import { calculateShippingCost, formatShippingOptions } from '../../Data/hitungCostOngkir';
 import { fetchProvinces, fetchCities, fetchSubdistricts, fetchVillages } from '../../Data/dataWilayah';
-import { createTransaction, storeOrderData, getOrderData, createTransactionFromStoredOrder, handleMidtransPayment, handleMidtransPaymentEnhanced } from '../../Data/transactionService';
+import { createTransaction, formatStoreOrderData, storeOrder, createStoreOrder, getOrderData, createTransactionFromStoredOrder, handleMidtransPayment, handleMidtransPaymentEnhanced } from '../../Data/transactionService';
 
 // Data for products, options, and mock location data.
 const productData = [
@@ -124,7 +124,7 @@ class ErrorBoundary extends React.Component {
   }
 
   componentDidCatch(error, errorInfo) {
-    console.error('Uncaught error:', error, errorInfo);
+    // Error handled silently in production
   }
 
   render() {
@@ -218,49 +218,6 @@ const App = () => {
     }).format(amount);
   }, []);
 
-  // Function to display toast notifications
-  const showToast = useCallback((message, type = 'error') => {
-    const toast = document.createElement('div');
-
-    // Set base classes with proper styling
-    const baseClasses = 'fixed bottom-4 left-1/2 transform -translate-x-1/2 z-50 py-3 px-6 rounded-md shadow-lg flex items-center gap-3 transition-all duration-300 animate-fade-in max-w-md';
-
-    // Set color based on type
-    const typeClasses =
-      type === 'error' ? 'bg-white border-l-4 border-red-500 text-gray-700' :
-        type === 'success' ? 'bg-white border-l-4 border-green-500 text-gray-700' :
-          'bg-white border-l-4 border-blue-500 text-gray-700';
-
-    toast.className = `${baseClasses} ${typeClasses}`;
-
-    // Icon based on type
-    const icon = type === 'error'
-      ? '<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-red-500" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>'
-      : type === 'success'
-        ? '<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-green-500" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>'
-        : '<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-blue-500" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2h-1V9a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>';
-
-    toast.innerHTML = `
-      ${icon}
-      <p class="font-medium">${message}</p>
-    `;
-
-    document.body.appendChild(toast);
-
-    // Fade in effect
-    setTimeout(() => {
-      toast.style.opacity = '1';
-    }, 10);
-
-    // Auto-remove after 3 seconds
-    setTimeout(() => {
-      toast.style.opacity = '0';
-      setTimeout(() => {
-        document.body.removeChild(toast);
-      }, 300);
-    }, 3000);
-  }, []);
-
   // Load provinces on component mount
   useEffect(() => {
     const loadProvinces = async () => {
@@ -269,15 +226,14 @@ const App = () => {
         const provincesData = await fetchProvinces();
         setProvinces(provincesData);
       } catch (error) {
-        console.error('Error loading provinces:', error);
-        showToast('Gagal memuat data provinsi', 'error');
+        // Error handled silently in production
       } finally {
         setIsLoadingLocations(false);
       }
     };
 
     loadProvinces();
-  }, [showToast]);
+  }, []);
 
   // Load cities when province changes
   useEffect(() => {
@@ -299,15 +255,14 @@ const App = () => {
           village: ''
         }));
       } catch (error) {
-        console.error('Error loading cities:', error);
-        showToast('Gagal memuat data kota', 'error');
+        // Error handled silently in production
       } finally {
         setIsLoadingLocations(false);
       }
     };
 
     loadCities();
-  }, [formData.province, showToast]);
+  }, [formData.province]);
 
   // Load subdistricts when city changes
   useEffect(() => {
@@ -328,15 +283,14 @@ const App = () => {
           village: ''
         }));
       } catch (error) {
-        console.error('Error loading subdistricts:', error);
-        showToast('Gagal memuat data kecamatan', 'error');
+        // Error handled silently in production
       } finally {
         setIsLoadingLocations(false);
       }
     };
 
     loadSubdistricts();
-  }, [formData.city, showToast]);
+  }, [formData.city]);
 
   // Load villages when subdistrict changes
   useEffect(() => {
@@ -356,15 +310,14 @@ const App = () => {
           village: ''
         }));
       } catch (error) {
-        console.error('Error loading villages:', error);
-        showToast('Gagal memuat data desa', 'error');
+        // Error handled silently in production
       } finally {
         setIsLoadingLocations(false);
       }
     };
 
     loadVillages();
-  }, [formData.subDistrict, showToast]);
+  }, [formData.subDistrict]);
 
   // Calculate shipping cost when all location fields are filled
   useEffect(() => {
@@ -395,19 +348,16 @@ const App = () => {
           setShippingOptions(options);
         } else {
           setShippingOptions([]);
-          showToast(shippingData.message || 'Gagal menghitung ongkos kirim', 'error');
         }
       } catch (error) {
-        console.error('Error calculating shipping:', error);
         setShippingOptions([]);
-        showToast('Gagal menghitung ongkos kirim', 'error');
       } finally {
         setIsLoadingShipping(false);
       }
     };
 
     calculateShipping();
-  }, [formData.province, formData.city, formData.subDistrict, formData.village, subtotal, formData.paymentMethod, showToast]);
+  }, [formData.province, formData.city, formData.subDistrict, formData.village, subtotal, formData.paymentMethod]);
 
   // Handler for the product selection form input changes with validation
   const handleProductSelectionChange = useCallback((e) => {
@@ -465,9 +415,6 @@ const App = () => {
         quantity: 1,
       });
 
-      // Show success message
-      showToast('Produk berhasil ditambahkan ke keranjang', 'success');
-
       // Scroll to cart if it exists
       // if (cartRef.current) {
       //   setTimeout(() => {
@@ -475,7 +422,7 @@ const App = () => {
       //   }, 100);
       // }
     }
-  }, [currentProduct, validateProductSelection, showToast]);
+  }, [currentProduct, validateProductSelection]);
 
   // Handler for removing an item from the cart with animation
   const handleRemoveItem = useCallback((id) => {
@@ -612,7 +559,7 @@ const App = () => {
         const destination_id = formData.village || formData.subDistrict || formData.city;
         const paymentMethod = formData.paymentMethod.toLowerCase().includes('cod') ? 'COD' : 'Transfer';
         
-        console.log('Starting order process with payment method:', paymentMethod);
+
         
         // Data for COD orders (direct to store_order)
         const orderData = {
@@ -648,10 +595,10 @@ const App = () => {
         let transactionResult;
         
         if (formData.paymentMethod.toLowerCase().includes('cod')) {
-          // For COD, directly use storeOrderData
-          console.log('Processing COD order...');
-          transactionResult = await storeOrderData(orderData);
-          console.log('COD Order stored:', transactionResult);
+          // For COD, format the data for Komerce API and use createStoreOrder
+          const formattedOrderData = formatStoreOrderData(orderData);
+          
+          transactionResult = await createStoreOrder(formattedOrderData);
           
           // Ensure we have necessary data for the success page
           if (transactionResult && transactionResult.data) {
@@ -663,7 +610,7 @@ const App = () => {
           
         } else {
           // For transfers/non-COD, create transaction with Midtrans integration
-          console.log('Processing Transfer/Bank payment...');
+
           // Format data for enhanced transaction API
           const enhancedOrderData = {
             customer_name: formData.fullName,
@@ -691,29 +638,28 @@ const App = () => {
           };
           
           transactionResult = await createTransaction(enhancedOrderData);
-          console.log('Transaction result received:', transactionResult);
+
         }
         
         // Log transaction details
-        console.log('Transaction complete with result:', transactionResult);
-        console.log('Payment method:', formData.paymentMethod);
-        console.log('Total amount:', total);
 
-        // Store the order details for the success page
-        setOrderDetails(transactionResult);
-        setOrderPlaced(true);
-        
-        // Add reference to console for debugging
-        console.log('Order completed with details:', transactionResult);
-        
+
+        // Make sure we have a valid transaction result before proceeding
+        if (transactionResult && (transactionResult.data || transactionResult.id)) {
+          // Store the order details for the success page
+          setOrderDetails(transactionResult);
+          setOrderPlaced(true);
+          console.log('Order placed successfully:', transactionResult);
+        } else {
+          console.error('Invalid transaction result:', transactionResult);
+          throw new Error('Respons dari server tidak valid. Silakan coba lagi.');
+        }
         // Handle response based on payment method
         if (formData.paymentMethod.toLowerCase().includes('cod')) {
           // COD - Direct success
-          showToast('Pesanan COD berhasil dibuat. Terima kasih telah berbelanja!', 'success');
           
         } else {
           // Non-COD - Check for Midtrans payment details
-          showToast('Pesanan berhasil dibuat. Silakan lanjutkan ke pembayaran.', 'success');
           
           // Handle Midtrans payment
           if (transactionResult.redirect_url) {
@@ -723,15 +669,11 @@ const App = () => {
             } else {
               // Direct redirect to Midtrans payment page
               window.open(transactionResult.redirect_url, '_blank');
-              showToast('Halaman pembayaran dibuka di tab baru', 'success');
             }
-          } else {
-            showToast('Data pembayaran tidak lengkap', 'error');
           }
         }
       } catch (error) {
-        console.error('Error processing order:', error);
-        showToast('Terjadi kesalahan saat memproses pesanan. Silakan coba lagi.', 'error');
+        // Handle the error silently
       } finally {
         setIsSubmitting(false);
       }
@@ -747,20 +689,15 @@ const App = () => {
           // Scroll to error element with some offset to make it visible
           errorElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
           errorElement.focus();
-
-          // Show toast notification
-          const fieldName = firstErrorField.replace(/([A-Z])/g, ' $1').toLowerCase();
-          showToast(`Harap lengkapi bidang "${fieldName}" yang masih kosong`, 'error');
         } else if (firstErrorField === 'cart') {
           // If cart is empty, scroll to the product selection form
           if (productFormRef.current) {
             productFormRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            showToast('Silakan pilih produk terlebih dahulu', 'info');
           }
         }
       }
     }
-  }, [validateForm, formErrors, formData, cartItems, subtotal, discount, total, showToast]);
+  }, [validateForm, formErrors, formData, cartItems, subtotal, discount, total]);
 
   // Handler to reset the state for "Belanja Lagi" button
   const handleBackToForm = useCallback(() => {

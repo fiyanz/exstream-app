@@ -158,13 +158,14 @@ const OrderForm = () => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    console.log('Data pesanan yang akan dikirim:', {
+    // Process order data
+    const orderData = {
       products,
       recipient,
       shipping,
       paymentMethod,
       totals,
-    });
+    };
 
     setTimeout(() => {
       setIsOrderSuccess(true);

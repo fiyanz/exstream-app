@@ -15,7 +15,6 @@ const getApiBaseUrl = () => {
   // Check if running locally at localhost
   const hostname = window.location.hostname;
   if (hostname === 'localhost' || hostname === '127.0.0.1') {
-    console.log('Detected localhost, using local API URL');
     return localApiUrl;
   }
   
@@ -29,17 +28,11 @@ const getApiBaseUrl = () => {
   }
   
   // Default fallback to production API
-  console.log('No specific match found, defaulting to production API URL');
   return productionApiUrl;
 };
 
 // API base URL to be used for all requests
 export const API_BASE_URL = getApiBaseUrl();
-
-// Log for debugging purposes
-console.log('Current hostname:', window.location.hostname);
-console.log('Current origin:', window.location.origin);
-console.log('API Base URL being used:', API_BASE_URL);
 
 /**
  * Fetches provinces from the API
@@ -47,8 +40,6 @@ console.log('API Base URL being used:', API_BASE_URL);
  */
 export const fetchProvinces = async () => {
   try {
-    console.log(`Fetching provinces from: ${API_BASE_URL}/api/v1/wilayah/provinsi`);
-    
     const response = await fetch(`${API_BASE_URL}/api/v1/wilayah/provinsi`, {
       // Add headers to help handle CORS
       headers: {
@@ -64,25 +55,13 @@ export const fetchProvinces = async () => {
     }
     
     const data = await response.json();
-    console.log('Provinces data received:', data.length, 'provinces');
     
     return data.map(province => ({
       id: province.id,
       name: province.name
     }));
   } catch (error) {
-    console.error('Error fetching provinces:', error);
-    
-    if (error.name === 'TypeError' && error.message.includes('NetworkError')) {
-      console.error('Network error - Possible CORS issue or server not accessible');
-      console.error('Current hostname:', window.location.hostname);
-      console.error('API Base URL being used:', API_BASE_URL);
-      
-      console.error('Network error - Cannot connect to API.');
-    } else {
-      console.error('API error:', error.message);
-    }
-    
+
     throw error; // Rethrow to handle in the component
   }
 };
@@ -96,8 +75,6 @@ export const fetchCities = async (provinsiId) => {
   if (!provinsiId) return [];
   
   try {
-    console.log(`Fetching cities for province ID: ${provinsiId} from: ${API_BASE_URL}/api/v1/wilayah/kota?provinsi_id=${provinsiId}`);
-    
     const response = await fetch(`${API_BASE_URL}/api/v1/wilayah/kota?provinsi_id=${provinsiId}`, {
       headers: {
         'Accept': 'application/json',
@@ -112,22 +89,13 @@ export const fetchCities = async (provinsiId) => {
     }
     
     const data = await response.json();
-    console.log('Cities data received:', data.length, 'cities for province ID', provinsiId);
     
     return data.map(city => ({
       id: city.id,
       name: city.name
     }));
   } catch (error) {
-    console.error('Error fetching cities:', error);
-    
-    if (error.name === 'TypeError' && error.message.includes('NetworkError')) {
-      console.error('Network error - Possible CORS issue or server not accessible');
-      console.error('Current hostname:', window.location.hostname);
-      console.error('API Base URL being used:', API_BASE_URL);
-      console.error('Province ID being used:', provinsiId);
-    }
-    
+
     throw error;
   }
 };
@@ -141,8 +109,6 @@ export const fetchSubdistricts = async (kotaId) => {
   if (!kotaId) return [];
   
   try {
-    console.log(`Fetching subdistricts for city ID: ${kotaId} from: ${API_BASE_URL}/api/v1/wilayah/kecamatan?kota_id=${kotaId}`);
-    
     const response = await fetch(`${API_BASE_URL}/api/v1/wilayah/kecamatan?kota_id=${kotaId}`, {
       headers: {
         'Accept': 'application/json',
@@ -157,22 +123,13 @@ export const fetchSubdistricts = async (kotaId) => {
     }
     
     const data = await response.json();
-    console.log('Subdistricts data received:', data.length, 'subdistricts for city ID', kotaId);
     
     return data.map(subdistrict => ({
       id: subdistrict.id,
       name: subdistrict.name
     }));
   } catch (error) {
-    console.error('Error fetching subdistricts:', error);
-    
-    if (error.name === 'TypeError' && error.message.includes('NetworkError')) {
-      console.error('Network error - Possible CORS issue or server not accessible');
-      console.error('Current hostname:', window.location.hostname);
-      console.error('API Base URL being used:', API_BASE_URL);
-      console.error('City ID being used:', kotaId);
-    }
-    
+
     throw error;
   }
 };
@@ -186,8 +143,6 @@ export const fetchVillages = async (kecamatanId) => {
   if (!kecamatanId) return [];
   
   try {
-    console.log(`Fetching villages for subdistrict ID: ${kecamatanId} from: ${API_BASE_URL}/api/v1/wilayah/desa?kecamatan_id=${kecamatanId}`);
-    
     const response = await fetch(`${API_BASE_URL}/api/v1/wilayah/desa?kecamatan_id=${kecamatanId}`, {
       headers: {
         'Accept': 'application/json',
@@ -202,22 +157,13 @@ export const fetchVillages = async (kecamatanId) => {
     }
     
     const data = await response.json();
-    console.log('Villages data received:', data.length, 'villages for subdistrict ID', kecamatanId);
     
     return data.map(village => ({
       id: village.id,
       name: village.name
     }));
   } catch (error) {
-    console.error('Error fetching villages:', error);
-    
-    if (error.name === 'TypeError' && error.message.includes('NetworkError')) {
-      console.error('Network error - Possible CORS issue or server not accessible');
-      console.error('Current hostname:', window.location.hostname);
-      console.error('API Base URL being used:', API_BASE_URL);
-      console.error('Subdistrict ID being used:', kecamatanId);
-    }
-    
+
     throw error;
   }
 };

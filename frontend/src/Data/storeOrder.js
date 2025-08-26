@@ -14,15 +14,6 @@ import { API_BASE_URL } from './apiConfig';
  */
 export const createStoreOrder = async (orderData) => {
   try {
-    console.log('Creating store order with data:', orderData);
-    console.log('Shipping courier:', orderData.shipping);
-    console.log('Shipping type:', orderData.shipping_type);
-    console.log('Payment method:', orderData.payment_method);
-    
-    // Calculate total product value for insurance validation debugging
-    const totalProductValue = orderData.order_details?.reduce((sum, item) => sum + item.subtotal, 0) || 0;
-    console.log(`Total product value: ${totalProductValue} (for insurance validation)`);
-    
     // Ensure required fields have proper values before sending
     const validatedData = validateOrderData(orderData);
     
@@ -40,12 +31,10 @@ export const createStoreOrder = async (orderData) => {
       responseData = await response.json();
     } catch (e) {
       const errorText = await response.text();
-      console.error('Store order API returned invalid JSON:', errorText);
       throw new Error(`Invalid API response: ${response.status} ${errorText}`);
     }
 
     if (!response.ok) {
-      console.error('Store order API error:', response.status, responseData);
       
       // Extract specific error message and check for special cases
       let errorMessage = responseData?.meta?.message || 
@@ -73,22 +62,11 @@ export const createStoreOrder = async (orderData) => {
                 errorMessage.includes('300,000') || 
                 errorMessage.includes('INSURANCE_THRESHOLD_NOT_MET')) {
         
-        console.warn('Insurance value error detected. Retrying without insurance value');
-        console.log('Original data:', validatedData);
-        
-        // Calculate total product value for validation
-        const totalProductValue = validatedData.order_details?.reduce((sum, item) => sum + item.subtotal, 0) || 0;
-        console.log(`Total product value: ${totalProductValue}`);
-        
         // Create a new object without insurance_value
         const newOrderData = {...validatedData};
         if ('insurance_value' in newOrderData) {
           delete newOrderData.insurance_value;
-          console.log('Removed insurance_value field from payload');
         }
-        
-        // Log the new data
-        console.log('Retrying with data:', newOrderData);
         
         // Recursively call createStoreOrder without insurance_value
         return createStoreOrder(newOrderData);
@@ -97,10 +75,9 @@ export const createStoreOrder = async (orderData) => {
       throw new Error(`Store order API error: ${errorMessage}`);
     }
 
-    console.log('Store order created successfully:', responseData);
+    // Order created successfully
     return responseData;
   } catch (error) {
-    console.error('Error creating store order:', error);
     throw error;
   }
 };
@@ -147,7 +124,6 @@ const validateOrderData = (orderData) => {
   const nonCodCouriers = ['lion', 'ncs', 'rex', 'rpx', 'sentral', 'star', 'wahana', 'dse'];
   
   if (data.payment_method === 'COD' && nonCodCouriers.includes(data.shipping.toLowerCase())) {
-    console.warn(`Courier ${data.shipping} doesn't support COD payments. Switching to BANK TRANSFER.`);
     data.payment_method = 'BANK TRANSFER';
     data.cod_value = 0;
   }
@@ -161,22 +137,13 @@ const validateOrderData = (orderData) => {
   // Handle insurance value
   // Calculate total product price to determine if insurance should be applied
   const totalProductPrice = data.order_details.reduce((sum, item) => sum + item.subtotal, 0);
-  console.log(`Total product price in validation: ${totalProductPrice} (threshold: 300,000 IDR)`);
   
   // Only include insurance if product price is above threshold
   // For products below 300,000 IDR, remove insurance_value completely from the payload
   if ('insurance_value' in data) {
-    if (totalProductPrice <= 300000) {
-      console.warn("Products total below 300,000 IDR - removing insurance_value from request");
-      delete data.insurance_value;
-    } else {
-      console.log(`Products total above 300,000 IDR - insurance eligible (${totalProductPrice} IDR)`);
-      // Insurance value should be calculated by backend
-      // Just ensure the field is not present to avoid validation issues
-      delete data.insurance_value;
-    }
-  } else {
-    console.log("No insurance_value field in request - good!");
+    // Insurance value should be calculated by backend
+    // Just ensure the field is not present to avoid validation issues
+    delete data.insurance_value;
   }
   
   return data;
@@ -220,7 +187,6 @@ export const formatOrderData = (checkoutData) => {
   
   // Force BANK TRANSFER for couriers that don't support COD
   if (mappedPaymentMethod === 'COD' && nonCodCouriers.includes(lowerCourier)) {
-    console.warn(`Courier ${courier} doesn't support COD payments. Switching to BANK TRANSFER.`);
     mappedPaymentMethod = 'BANK TRANSFER';
   }
   
@@ -248,7 +214,6 @@ export const formatOrderData = (checkoutData) => {
   
   // Calculate total product price to determine if insurance should be applied
   const totalProductPrice = orderDetails.reduce((sum, item) => sum + item.subtotal, 0);
-  console.log(`Total product price in formatOrderData: ${totalProductPrice} (threshold: 300,000 IDR)`);
 
   // Create final order object - NEVER include insurance_value field, let backend handle it
   return {
@@ -258,7 +223,7 @@ export const formatOrderData = (checkoutData) => {
     shipper_phone: shipper.phone || telephone.replace(/^0/, ""),  // Remove leading zero as per API format
     shipper_destination_id: parseInt(shipper.destination_id || destination_id),
     shipper_address: shipper.address || address,
-    shipper_email: shipper.email || "store@extreme.com",
+    shipper_email: shipper.email || "jashujanextremee@gmail.com",
     receiver_name: fullName,
     receiver_phone: telephone.replace(/^0/, ""),  // Remove leading zero as per API format
     receiver_destination_id: parseInt(destination_id),
@@ -328,7 +293,7 @@ const parseShippingMethod = (shippingMethod) => {
     
     return [shippingMethod.trim().toLowerCase(), 'reg'];
   } catch (error) {
-    console.error('Error parsing shipping method:', error);
+
     return ['jne', 'reg'];
   }
 };
@@ -354,7 +319,6 @@ export const getStoreOrder = async (orderId) => {
     const data = await response.json();
     return data;
   } catch (error) {
-    console.error('Error getting store order:', error);
     throw error;
   }
 };
