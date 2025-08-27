@@ -8,6 +8,144 @@
 
 import { API_BASE_URL } from './dataWilayah';
 
+// Admin WhatsApp number (will be used as primary destination)
+const ADMIN_WHATSAPP = '085702257423';
+
+// Normalize Indonesian phone number to start with 62
+const normalizePhoneTo62 = (phone) => {
+  if (!phone || typeof phone !== 'string') return '';
+  const digits = phone.replace(/[^0-9]/g, '');
+  if (digits.startsWith('62')) return digits;
+  if (digits.startsWith('0')) return `62${digits.substring(1)}`;
+  return `62${digits}`;
+};
+
+// Build and store WhatsApp redirect info for post-payment redirect
+const prepareWaRedirectInfo = (orderData) => {
+  try {
+    // Prioritaskan nomor admin sebagai tujuan utama
+    const candidatePhone = ADMIN_WHATSAPP
+      || orderData.storeWhatsapp
+      || orderData.whatsappPhone
+      || orderData.receiver_phone
+      || (orderData.shipper_info && orderData.shipper_info.phone)
+      || orderData.shipper_phone;
+
+    if (!candidatePhone) return;
+
+    const phone62 = normalizePhoneTo62(String(candidatePhone));
+    const customerName = orderData.fullName || orderData.customer_name || orderData.receiver_name || '-';
+    const receiverPhone = orderData.telephone || orderData.receiver_phone || orderData.customer_phone || '-';
+    const address = orderData.address || orderData.receiver_address || '-';
+    const payment = orderData.paymentMethod || orderData.payment_method || '-';
+    const shipping = orderData.shippingMethod || orderData.shipping || '-';
+    const shippingType = orderData.shipping_type || '-';
+    const shippingCost = orderData.shippingCost || orderData.shipping_cost || 0;
+    // Util: cek string numerik (ID mentah)
+    const isNumericString = (val) => typeof val === 'string' && /^\d+$/.test(val.trim());
+    // Util: ambil nama dari daftar key, abaikan angka
+    const getName = (obj, keys) => {
+      for (const k of keys) {
+        const v = obj[k];
+        if (typeof v === 'string' && v.trim() && !isNumericString(v)) return v.trim();
+      }
+      return '';
+    };
+    // Ambil nama daerah, hindari ID angka
+    const province = getName(orderData, [
+      'province_name','receiver_province_name','provinsi_name','province','receiver_province','provinsi'
+    ]);
+    const city = getName(orderData, [
+      'city_name','receiver_city_name','kota_name','city','receiver_city','kota','kabupaten','kabupaten_name'
+    ]);
+    const subdistrict = getName(orderData, [
+      'subdistrict_name','receiver_subdistrict_name','kecamatan_name','kecamatan','district_name','receiver_district_name'
+    ]);
+    const village = getName(orderData, [
+      'village_name','receiver_village_name','desa_name','desa','kelurahan','kelurahan_name'
+    ]);
+    const total = typeof orderData.total === 'number' ? orderData.total : (orderData.grand_total || orderData.totalAmount);
+    const discount = orderData.discount || orderData.discount_amount || 0;
+    const serviceFee = orderData.service_fee || 0;
+    const additionalCost = orderData.additional_cost || 0;
+    const insuranceValue = orderData.insurance_value || 0;
+    const codValue = orderData.cod_value || 0;
+    const orderId = orderData.order_id || orderData.orderId || orderData.invoice || '';
+
+    // Ambil produk dari items (checkout) atau order_details (store order)
+    const items = Array.isArray(orderData.items)
+      ? orderData.items
+      : (Array.isArray(orderData.order_details) ? orderData.order_details : []);
+    const itemsText = items.map((it, idx) => {
+      const name = it.name || it.product_name || `Item ${idx + 1}`;
+      const variant = it.variant || it.product_variant_name || [it.color, it.size].filter(Boolean).join(' ');
+      const sku = it.sku || it.product_sku || '';
+      const qty = parseInt(it.quantity || it.qty || 1);
+      const price = parseInt(it.price || it.product_price || 0);
+      const subtotal = parseInt(it.subtotal || (price * qty) || 0);
+      const variantText = variant ? ` | Varian: ${variant}` : '';
+      const skuText = sku ? ` | SKU: ${sku}` : '';
+      return `- ${name}${variantText}${skuText} | Qty: ${qty} | @ Rp ${Number(price).toLocaleString('id-ID')} | Subtotal: Rp ${Number(subtotal).toLocaleString('id-ID')}`;
+    }).join('\n');
+
+    const message = `Halo Admin, pesanan sudah dibuat/success. Berikut detail lengkap:\n\n`
+      + `Nama: ${customerName}\n`
+      + `No HP: ${receiverPhone}\n`
+      + `Alamat: ${address}`
+      + `${village ? `, ${village}` : ''}`
+      + `${subdistrict ? `, Kec. ${subdistrict}` : ''}`
+      + `${city ? `, ${city}` : ''}`
+      + `${province ? `, ${province}` : ''}\n`
+      + `Metode Bayar: ${payment}\n`
+      + `Pengiriman: ${shipping}${shippingType && shippingType !== '-' ? ` - ${shippingType}` : ''}\n`
+      + (orderId ? `Order/Invoice: ${orderId}\n` : '')
+      + (itemsText ? `\nProduk (${items.length} item):\n${itemsText}\n` : '')
+      + (discount ? `\nDiskon: Rp ${Number(discount).toLocaleString('id-ID')}` : '')
+      + (shippingCost ? `\nOngkir: Rp ${Number(shippingCost).toLocaleString('id-ID')}` : '')
+      + (serviceFee ? `\nBiaya Layanan: Rp ${Number(serviceFee).toLocaleString('id-ID')}` : '')
+      + (additionalCost ? `\nBiaya Tambahan: Rp ${Number(additionalCost).toLocaleString('id-ID')}` : '')
+      + (insuranceValue ? `\nAsuransi: Rp ${Number(insuranceValue).toLocaleString('id-ID')}` : '')
+      + (codValue ? `\nNilai COD: Rp ${Number(codValue).toLocaleString('id-ID')}` : '')
+      + (total ? `\nTotal Bayar: Rp ${Number(total).toLocaleString('id-ID')}` : '');
+
+    // Gunakan wa.me sebagai primary (resmi/lebih stabil), whatsapp.me sebagai secondary
+    const waPrimaryUrl = `https://wa.me/${phone62}?text=${encodeURIComponent(message)}`;
+    const waSecondaryUrl = `https://whatsapp.me/${phone62}?text=${encodeURIComponent(message)}`;
+    const waTertiaryUrl = `https://api.whatsapp.com/send?phone=${phone62}&text=${encodeURIComponent(message)}`;
+
+    if (typeof window !== 'undefined') {
+      window.__waRedirectInfo = { phone62, message, waPrimaryUrl, waSecondaryUrl, waTertiaryUrl };
+    }
+  } catch {}
+};
+
+// Trigger WA redirect if prepared
+const triggerWaRedirectIfPrepared = () => {
+  const info = typeof window !== 'undefined' ? window.__waRedirectInfo : null;
+  if (!info) {
+    console.warn('[WA] Redirect info not prepared');
+    return false;
+  }
+  // Prefer same-tab navigation to avoid popup blockers; do it asynchronously
+  try {
+    const targetUrl = info.waPrimaryUrl || info.waSecondaryUrl || info.waTertiaryUrl;
+    setTimeout(() => {
+      try {
+        window.location.href = targetUrl;
+      } catch {
+        try {
+          window.location.href = info.waSecondaryUrl || info.waTertiaryUrl || targetUrl;
+        } catch {
+          window.location.href = info.waTertiaryUrl || targetUrl;
+        }
+      }
+    }, 50);
+    return true;
+  } catch {
+    return false;
+  }
+};
+
 /**
  * Creates a transaction with enhanced order details
  * @param {Object} orderData - Complete order data
@@ -24,6 +162,10 @@ export const createTransaction = async (orderData) => {
     }
 
     console.log("Payload yang dikirim:", JSON.stringify(orderData, null, 2));
+    // Prepare WhatsApp redirect info; actual redirect will occur after payment success
+    if (typeof window !== 'undefined') {
+      prepareWaRedirectInfo(orderData);
+    }
 
     const response = await fetch(`${API_BASE_URL}/api/v1/transaksi/enhanced`, {
       method: 'POST',
@@ -94,6 +236,8 @@ export const handleMidtransPayment = (snapToken, redirectUrl) => {
           if (window.snapPopup && !window.snapPopup.closed) {
             window.snapPopup.close();
           }
+          // Auto redirect to WhatsApp after successful payment
+          triggerWaRedirectIfPrepared();
           alert('Pembayaran berhasil! Terima kasih telah berbelanja.');
           // Optionally redirect to success page
           window.location.href = '/success';
@@ -243,6 +387,8 @@ export const handleMidtransPaymentEnhanced = (snapToken, redirectUrl) => {
     try {
       window.snap.pay(snapToken, {
         onSuccess: function(result) {
+          // Auto redirect to WhatsApp after successful payment
+          triggerWaRedirectIfPrepared();
           alert('Pembayaran berhasil! Terima kasih telah berbelanja.');
           window.location.href = '/success';
         },
@@ -443,6 +589,17 @@ export const createStoreOrder = async (orderData) => {
       }
 
       const data = await response.json();
+      // Jika pembayaran COD, langsung redirect ke WhatsApp setelah order berhasil dibuat
+      try {
+        const payMethod = (orderData.payment_method || orderData.paymentMethod || '').toString();
+        if (payMethod.toUpperCase().includes('COD')) {
+          // Siapkan data WA jika belum
+          if (typeof window !== 'undefined' && !window.__waRedirectInfo) {
+            prepareWaRedirectInfo(orderData);
+          }
+          triggerWaRedirectIfPrepared();
+        }
+      } catch {}
       return data;
     } catch (fetchError) {
       clearTimeout(timeoutId);
