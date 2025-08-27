@@ -45,7 +45,7 @@ function WaktuL() {
               Harga Normal: Rp. {normalPrice.toLocaleString('id-ID')}
             </p>
             <div className="wak-3a">
-              <span className="bg-gradient-to-r from-cyan-500 to-blue-600 text-white 0
+              <span className="bg-gradient-to-r from-cyan-500 to-blue-600 text-white 
               rounded-full text-sm lg:text-3xl font-semibold wak-3">Diskon 55%</span>
             </div>
             {/* Ukuran teks dinamis: text-3xl di mobile, md:text-4xl di desktop */}

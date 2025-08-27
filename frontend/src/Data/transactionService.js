@@ -15,6 +15,16 @@ import { API_BASE_URL } from './dataWilayah';
  */
 export const createTransaction = async (orderData) => {
   try {
+    // pastikan discount & total integer
+    if (orderData.discount) {
+      orderData.discount = Math.round(orderData.discount);
+    }
+    if (orderData.total) {
+      orderData.total = Math.round(orderData.total);
+    }
+
+    console.log("Payload yang dikirim:", JSON.stringify(orderData, null, 2));
+
     const response = await fetch(`${API_BASE_URL}/api/v1/transaksi/enhanced`, {
       method: 'POST',
       headers: {
@@ -26,16 +36,20 @@ export const createTransaction = async (orderData) => {
 
     if (!response.ok) {
       const errorText = await response.text();
-      throw new Error(`Failed to create transaction (${response.status})`);
+      console.error("Error detail dari server:", errorText);
+      throw new Error(`Failed to create transaction (${response.status}): ${errorText}`);
     }
 
     const data = await response.json();
-    
     return data;
+
   } catch (error) {
+    console.error("Create transaction error:", error.message);
     throw error;
   }
 };
+
+
 
 /**
  * Gets order status by order ID
