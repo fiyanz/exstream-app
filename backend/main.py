@@ -54,11 +54,11 @@ app.include_router(
 #     tags=["Pengiriman API Raja Ongkir"]
 # )
 
-app.include_router(
-    cost_ongkir_lokal,
-    prefix="/api/v1/cost_ongkir_lokal",
-    tags=["Pengiriman dengan Data Lokal"]
-)
+# app.include_router(
+#     cost_ongkir_lokal,
+#     prefix="/api/v1/cost_ongkir_lokal",
+#     tags=["Pengiriman dengan Data Lokal"]
+# )
 
 app.include_router(
     domesticCostRequest,
