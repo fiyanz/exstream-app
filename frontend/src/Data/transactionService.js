@@ -6,9 +6,6 @@
  * as well as integration with Komerce Store Order API.
  */
 
-<<<<<<< HEAD
-import { API_BASE_URL } from "./dataWilayah";
-=======
 import { 
   API_BASE_URL, 
   fetchProvinces, 
@@ -16,7 +13,92 @@ import {
   fetchSubdistricts, 
   fetchVillages 
 } from './dataWilayah';
->>>>>>> 4ae5f5c74b15d594129ef46a767a8e1829a8cf0e
+import { formatOrderData } from './storeOrder';
+
+/**
+ * Fetches location names based on their IDs
+ * @param {number|string} provinceId - Province ID
+ * @param {number|string} cityId - City ID
+ * @param {number|string} districtId - District/Subdistrict ID
+ * @param {number|string} villageId - Village ID
+ * @returns {Promise<Object>} Object containing location names
+ */
+const fetchLocationNames = async (provinceId, cityId, districtId, villageId) => {
+  try {
+    const locationNames = {
+      provinceName: "",
+      cityName: "",
+      districtName: "",
+      villageName: ""
+    };
+
+    // Fetch province name if ID is provided
+    if (provinceId) {
+      try {
+        const provinces = await fetchProvinces();
+        const province = provinces.find(p => 
+          String(p.id) === String(provinceId));
+        if (province) {
+          locationNames.provinceName = province.name;
+        }
+      } catch (e) {
+        console.error("Error fetching province:", e);
+      }
+    }
+
+    // Fetch city name if ID is provided
+    if (cityId && provinceId) {
+      try {
+        const cities = await fetchCities(provinceId);
+        const city = cities.find(c => 
+          String(c.id) === String(cityId));
+        if (city) {
+          locationNames.cityName = city.name;
+        }
+      } catch (e) {
+        console.error("Error fetching city:", e);
+      }
+    }
+
+    // Fetch district/subdistrict name if ID is provided
+    if (districtId && cityId) {
+      try {
+        const districts = await fetchSubdistricts(cityId);
+        const district = districts.find(d => 
+          String(d.id) === String(districtId));
+        if (district) {
+          locationNames.districtName = district.name;
+        }
+      } catch (e) {
+        console.error("Error fetching district:", e);
+      }
+    }
+
+    // Fetch village name if ID is provided
+    if (villageId && districtId) {
+      try {
+        const villages = await fetchVillages(districtId);
+        const village = villages.find(v => 
+          String(v.id) === String(villageId));
+        if (village) {
+          locationNames.villageName = village.name;
+        }
+      } catch (e) {
+        console.error("Error fetching village:", e);
+      }
+    }
+
+    return locationNames;
+  } catch (error) {
+    console.error("Error fetching location names:", error);
+    return {
+      provinceName: "",
+      cityName: "",
+      districtName: "",
+      villageName: ""
+    };
+  }
+};
 
 // Admin WhatsApp number (will be used as primary destination)
 const ADMIN_WHATSAPP = "085702257423";
@@ -609,14 +691,20 @@ export const storeOrder = async (orderData) => {
     // Format data for the API
     const formattedData = formatOrderData(orderData);
 
+    // Get payment method from possible properties
+    const paymentMethod = orderData.paymentMethod || 
+                          orderData.payment_method || 
+                          (formattedData && formattedData.payment_method);
+    
     // Special case handling for COD orders
-    if (orderData.paymentMethod === "COD") {
+    if (paymentMethod && paymentMethod.toUpperCase().includes("COD")) {
       // Process COD order
     }
 
     // Rest of the implementation
     return {};
   } catch (error) {
+    console.error("Store order error:", error);
     throw error;
   }
 };
@@ -659,9 +747,6 @@ export const getOrderData = async (orderId) => {
  */
 export const createStoreOrder = async (checkoutData) => {
   try {
-<<<<<<< HEAD
-    // Validasi data order sebelum mengirim ke API
-=======
     if (!checkoutData) {
       throw new Error('Data checkout tidak tersedia');
     }
@@ -670,13 +755,9 @@ export const createStoreOrder = async (checkoutData) => {
     const orderData = await formatStoreOrderData(checkoutData);
     
     // Validate the formatted order data
->>>>>>> 4ae5f5c74b15d594129ef46a767a8e1829a8cf0e
     if (!orderData) {
       throw new Error("Data order tidak tersedia");
     }
-<<<<<<< HEAD
-
-=======
     
     // Enhanced logging with visual separation for easier debugging
     console.log('\n\n🔍 ========== STORE ORDER DEBUGGING INFO ==========');
@@ -709,7 +790,6 @@ export const createStoreOrder = async (checkoutData) => {
     };
     
     /* DISABLED API CALL - KEEP FOR REFERENCE
->>>>>>> 4ae5f5c74b15d594129ef46a767a8e1829a8cf0e
     // Validasi field yang diperlukan
     const requiredFields = [
       "order_date",
@@ -727,41 +807,15 @@ export const createStoreOrder = async (checkoutData) => {
     const missingFields = requiredFields.filter((field) => !orderData[field]);
 
     if (missingFields.length > 0) {
-<<<<<<< HEAD
-      throw new Error(`Data tidak lengkap: ${missingFields.join(", ")}`);
-    } // Kirim request ke API dengan timeout
-=======
       throw new Error(`Data tidak lengkap: ${missingFields.join(', ')}`);
     }
     
     // Kirim request ke API dengan timeout
->>>>>>> 4ae5f5c74b15d594129ef46a767a8e1829a8cf0e
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 detik timeout
 
     try {
       // Log the request payload for debugging
-<<<<<<< HEAD
-      console.log(
-        "Creating store order with data:",
-        JSON.stringify(orderData, null, 2)
-      );
-      // kirim wa
-
-      const response = await fetch(
-        `${API_BASE_URL}/api/v1/store_order/store_order`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Accept: "application/json",
-          },
-          body: JSON.stringify(orderData),
-          signal: controller.signal,
-        }
-      );
-
-=======
       console.log('Creating store order with data:', JSON.stringify(orderData, null, 2)); 
       
       const response = await fetch(`${API_BASE_URL}/api/v1/store_order/store_order`, {
@@ -774,7 +828,6 @@ export const createStoreOrder = async (checkoutData) => {
         signal: controller.signal
       });
       
->>>>>>> 4ae5f5c74b15d594129ef46a767a8e1829a8cf0e
       clearTimeout(timeoutId);
 
       if (!response.ok) {
@@ -856,8 +909,6 @@ export const createStoreOrder = async (checkoutData) => {
     }
     */
   } catch (error) {
-<<<<<<< HEAD
-=======
     console.error("❌ ERROR in createStoreOrder:", error);
     console.error("Error details:", error.message);
     
@@ -873,7 +924,6 @@ export const createStoreOrder = async (checkoutData) => {
     // Log the stack trace
     console.error("Stack trace:", error.stack);
     
->>>>>>> 4ae5f5c74b15d594129ef46a767a8e1829a8cf0e
     throw error;
   }
 };
@@ -912,16 +962,6 @@ export const formatStoreOrderData = async (checkoutData) => {
     totalAmount,
     destination_id,
     shipper_info,
-<<<<<<< HEAD
-  } = checkoutData;
-
-  if (!fullName || !telephone || !address || !destination_id) {
-    throw new Error("Data penerima tidak lengkap");
-  }
-
-  if (!items || !Array.isArray(items) || items.length === 0) {
-    throw new Error("Data produk tidak tersedia");
-=======
     // Get location IDs
     province_id,
     city_id,
@@ -1037,7 +1077,6 @@ export const formatStoreOrderData = async (checkoutData) => {
   // Use items if available or fallback to empty array
   if (!items || !Array.isArray(items)) {
     items = [];
->>>>>>> 4ae5f5c74b15d594129ef46a767a8e1829a8cf0e
   }
 
   // Map payment method to Komerce format
@@ -1049,69 +1088,6 @@ export const formatStoreOrderData = async (checkoutData) => {
   const [courier, serviceType] = parseShippingMethod(shippingMethod);
 
   // Calculate COD value
-<<<<<<< HEAD
-  const codValue = mappedPaymentMethod === "COD" ? totalAmount : 0;
-
-  // Format full address
-  const fullAddress = `${address}${city ? `, ${city}` : ""}${
-    province ? `, ${province}` : ""
-  }`;
-
-  // Format order details
-  const orderDetails = items.map((item) => {
-    if (!item.name || !item.price || !item.quantity) {
-      throw new Error(`Data produk tidak lengkap: ${JSON.stringify(item)}`);
-    }
-
-    return {
-      product_name: item.name,
-      product_variant_name:
-        item.color && item.size
-          ? `${item.color} - ${item.size}`
-          : item.variant || item.name,
-      product_price: parseInt(item.price),
-      product_width:
-        item.width || item.product_width || shipper_info?.product_width || 20,
-      product_height:
-        item.height || item.product_height || shipper_info?.product_height || 5,
-      product_weight:
-        item.weight ||
-        item.product_weight ||
-        shipper_info?.product_weight ||
-        300,
-      product_length:
-        item.length ||
-        item.product_length ||
-        shipper_info?.product_length ||
-        30,
-      qty: parseInt(item.quantity),
-      subtotal: parseInt(item.price * item.quantity),
-    };
-  });
-
-  // Get shipper info from checkout data or use store info from configuration
-  const shipper = shipper_info || checkoutData.shipper || {};
-
-  // Create store order object according to backend schema
-  const formattedOrder = {
-    order_date: orderDate,
-    brand_name:
-      shipper.brand_name || checkoutData.brand_name || "Extreme Store",
-    shipper_name:
-      shipper.name || checkoutData.shipper_name || "Extreme Store Official",
-    shipper_phone: shipper.phone || checkoutData.shipper_phone || telephone, // Fallback to customer phone
-    shipper_destination_id: parseInt(
-      shipper.destination_id ||
-        checkoutData.shipper_destination_id ||
-        destination_id
-    ), // Use origin from config
-    shipper_address: shipper.address || checkoutData.shipper_address || address, // Fallback to customer address
-    shipper_email:
-      shipper.email ||
-      checkoutData.shipper_email ||
-      checkoutData.email ||
-      "store@extreme.com",
-=======
   const codValue = mappedPaymentMethod === 'COD' ? totalAmount : 0;
   
   // Ensure we have the correct names for address formation
@@ -1221,7 +1197,6 @@ export const formatStoreOrderData = async (checkoutData) => {
     shipper_email: shipperInfo.email,
     
     // Receiver (customer/buyer) data
->>>>>>> 4ae5f5c74b15d594129ef46a767a8e1829a8cf0e
     receiver_name: fullName,
     receiver_phone: telephone,
     receiver_destination_id: parseInt(destination_id),
@@ -1235,19 +1210,11 @@ export const formatStoreOrderData = async (checkoutData) => {
     payment_method: mappedPaymentMethod,
     shipping_cost: parseInt(shippingCost),
     shipping_cashback: parseInt(checkoutData.shipping_cashback || 0),
-<<<<<<< HEAD
-    // Calculate service fee according to Komerce's requirements: 2.8% of COD value or grand total
-    service_fee:
-      mappedPaymentMethod === "COD"
-        ? Math.round(parseInt(codValue) * 0.028)
-        : Math.round(parseInt(totalAmount) * 0.028),
-=======
     
     // Financial calculations
     service_fee: mappedPaymentMethod === 'COD' 
       ? Math.round(parseInt(codValue) * 0.028) 
       : Math.round(parseInt(totalAmount) * 0.028),
->>>>>>> 4ae5f5c74b15d594129ef46a767a8e1829a8cf0e
     additional_cost: parseInt(checkoutData.additional_cost || 0),
     grand_total: parseInt(totalAmount),
     cod_value: parseInt(codValue),
@@ -1255,23 +1222,12 @@ export const formatStoreOrderData = async (checkoutData) => {
     // Insurance value - explicitly set to 0 to avoid issues with Komerce API
     // Per Komerce API, only products with total price > IDR 300,000 can be insured
     insurance_value: 0,
-<<<<<<< HEAD
-    order_details: orderDetails,
-=======
     
     // Order items
     order_details: orderDetails
->>>>>>> 4ae5f5c74b15d594129ef46a767a8e1829a8cf0e
   };
 
   // Calculate total product price to check insurance eligibility
-<<<<<<< HEAD
-  const totalProductPrice = formattedOrder.order_details.reduce(
-    (sum, item) => sum + item.subtotal,
-    0
-  );
-
-=======
   const totalProductPrice = formattedOrder.order_details.reduce((sum, item) => sum + item.subtotal, 0);
   
   // Log the formatted order for debugging
@@ -1285,7 +1241,6 @@ export const formatStoreOrderData = async (checkoutData) => {
   console.log('Receiver Province:', formattedOrder.receiver_province_name);
   console.log('=============================================\n\n');
   
->>>>>>> 4ae5f5c74b15d594129ef46a767a8e1829a8cf0e
   return formattedOrder;
 };
 
