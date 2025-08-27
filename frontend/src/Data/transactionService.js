@@ -376,7 +376,8 @@ export const createStoreOrder = async (orderData) => {
     
     try {
       // Log the request payload for debugging
-      // console.log('Creating store order with data:', JSON.stringify(orderData, null, 2));
+      console.log('Creating store order with data:', JSON.stringify(orderData, null, 2)); 
+      // kirim wa
       
       const response = await fetch(`${API_BASE_URL}/api/v1/store_order/store_order`, {
         method: 'POST',
