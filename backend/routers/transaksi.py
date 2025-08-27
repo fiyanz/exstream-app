@@ -152,11 +152,30 @@ def buat_transaksi_enhanced(order: TransaksiCreateEnhanced, db: Session = Depend
             # Non-COD - Use Midtrans
             try:
                 # Prepare customer data for Midtrans with complete details
-                # Get location names from database
-                location_names = get_location_names(db, order.province, order.city, order.subdistrict, order.village)
+                # Use location names from frontend if available, otherwise get from database
+                if hasattr(order, 'province_name') and order.province_name:
+                    # Use location names sent from frontend
+                    location_names = {
+                        'province_name': order.province_name,
+                        'city_name': getattr(order, 'city_name', ''),
+                        'subdistrict_name': getattr(order, 'subdistrict_name', ''),
+                        'village_name': getattr(order, 'village_name', '')
+                    }
+                else:
+                    # Fallback to database lookup
+                    location_names = get_location_names(db, order.province, order.city, order.subdistrict, order.village)
                 
                 # Build complete address with actual location names
-                complete_address = f"{order.customer_address}, {location_names['village_name']}, {location_names['subdistrict_name']}, {location_names['city_name']}, {location_names['province_name']}"
+                address_parts = [order.customer_address]
+                if location_names['village_name']:
+                    address_parts.append(location_names['village_name'])
+                if location_names['subdistrict_name']:
+                    address_parts.append(f"Kec. {location_names['subdistrict_name']}")
+                if location_names['city_name']:
+                    address_parts.append(location_names['city_name'])
+                if location_names['province_name']:
+                    address_parts.append(location_names['province_name'])
+                complete_address = ", ".join(address_parts)
                 
                 # Format phone number for Midtrans
                 formatted_phone = format_phone_number(order.customer_phone)

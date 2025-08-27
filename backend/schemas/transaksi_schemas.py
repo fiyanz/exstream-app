@@ -42,6 +42,12 @@ class TransaksiCreateEnhanced(BaseModel):
     subdistrict: str
     village: str
     
+    # Location names (optional, for better address display)
+    province_name: Optional[str] = None
+    city_name: Optional[str] = None
+    subdistrict_name: Optional[str] = None
+    village_name: Optional[str] = None
+    
     # Order details
     items: List[OrderItem]
     shipping_method: str
