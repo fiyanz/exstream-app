@@ -6,7 +6,13 @@
  * as well as integration with Komerce Store Order API.
  */
 
-import { API_BASE_URL } from './dataWilayah';
+import { 
+  API_BASE_URL, 
+  fetchProvinces, 
+  fetchCities, 
+  fetchSubdistricts, 
+  fetchVillages 
+} from './dataWilayah';
 
 /**
  * Creates a transaction with enhanced order details
@@ -363,17 +369,55 @@ export const getOrderData = async (orderId) => {
 
 /**
  * Creates a store order using Komerce API
- * @param {Object} orderData - Order data according to Komerce API format
+ * This function formats checkout data and sends it to the order API
+ * @param {Object} checkoutData - Raw checkout data from the frontend
  * @returns {Promise<Object>} Store order response
  */
-export const createStoreOrder = async (orderData) => {
+export const createStoreOrder = async (checkoutData) => {
   try {
+    if (!checkoutData) {
+      throw new Error('Data checkout tidak tersedia');
+    }
     
-    // Validasi data order sebelum mengirim ke API
+    // Format the checkout data into the order format with proper location names
+    const orderData = await formatStoreOrderData(checkoutData);
+    
+    // Validate the formatted order data
     if (!orderData) {
       throw new Error('Data order tidak tersedia');
     }
     
+    // Enhanced logging with visual separation for easier debugging
+    console.log('\n\n🔍 ========== STORE ORDER DEBUGGING INFO ==========');
+    console.log('📅 Timestamp:', new Date().toISOString());
+    console.log('📦 ORDER DATA (API CALL DISABLED):');
+    console.log(JSON.stringify(orderData, null, 2));
+    
+    // Log specific important fields
+    if (orderData.receiver_name) console.log('👤 Receiver:', orderData.receiver_name);
+    if (orderData.receiver_phone) console.log('📱 Phone:', orderData.receiver_phone);
+    if (orderData.payment_method) console.log('💰 Payment Method:', orderData.payment_method);
+    if (orderData.shipping) console.log('🚚 Courier:', orderData.shipping);
+    console.log('================================================\n\n');
+    
+    // DISABLED: API call temporarily disabled for debugging
+    // Instead, return a mock successful response
+    console.warn('⚠️ API CALL DISABLED: Store order API call has been temporarily disabled for debugging');
+    
+    // Generate a realistic looking order ID
+    const mockOrderId = `SIM-${Date.now().toString().slice(-8)}`;
+    
+    // Return mock successful response
+    return {
+      success: true,
+      message: "Order simulated successfully (API call disabled)",
+      order_id: mockOrderId,
+      status: "SIMULATION_MODE",
+      timestamp: new Date().toISOString(),
+      data: orderData
+    };
+    
+    /* DISABLED API CALL - KEEP FOR REFERENCE
     // Validasi field yang diperlukan
     const requiredFields = [
       'order_date', 'receiver_name', 'receiver_phone', 'receiver_address', 'receiver_destination_id',
@@ -384,14 +428,15 @@ export const createStoreOrder = async (orderData) => {
     
     if (missingFields.length > 0) {
       throw new Error(`Data tidak lengkap: ${missingFields.join(', ')}`);
-    }    // Kirim request ke API dengan timeout
+    }
+    
+    // Kirim request ke API dengan timeout
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 detik timeout
     
     try {
       // Log the request payload for debugging
       console.log('Creating store order with data:', JSON.stringify(orderData, null, 2)); 
-      // kirim wa
       
       const response = await fetch(`${API_BASE_URL}/api/v1/store_order/store_order`, {
         method: 'POST',
@@ -436,7 +481,6 @@ export const createStoreOrder = async (orderData) => {
           }
         } catch (e) {
           const errorText = await response.text();
-
           errorDetail = errorText;
         }
         throw new Error(`Gagal membuat store order (${response.status}): ${errorDetail}`);
@@ -453,8 +497,23 @@ export const createStoreOrder = async (orderData) => {
       
       throw fetchError;
     }
+    */
   } catch (error) {
-
+    console.error("❌ ERROR in createStoreOrder:", error);
+    console.error("Error details:", error.message);
+    
+    // Provide more context about the error for debugging
+    if (error.message.includes('tidak tersedia')) {
+      console.error("Cause: Missing order data");
+    } else if (error.message.includes('tidak lengkap')) {
+      console.error("Cause: Incomplete required fields");
+    } else if (error.message.includes('COD')) {
+      console.error("Cause: COD payment method issue");
+    }
+    
+    // Log the stack trace
+    console.error("Stack trace:", error.stack);
+    
     throw error;
   }
 };
@@ -462,9 +521,9 @@ export const createStoreOrder = async (orderData) => {
 /**
  * Format checkout data into Komerce store order format
  * @param {Object} checkoutData - Checkout data from frontend form
- * @returns {Object} Formatted store order data
+ * @returns {Promise<Object>} Formatted store order data with location names from API
  */
-export const formatStoreOrderData = (checkoutData) => {
+export const formatStoreOrderData = async (checkoutData) => {
   // Get the current date in Jakarta/Indonesia timezone (GMT+7) in YYYY-MM-DD HH:MM:SS format
   // This ensures the date is always current according to Indonesia time, regardless of client timezone
   const now = new Date();
@@ -490,20 +549,124 @@ export const formatStoreOrderData = (checkoutData) => {
     shippingMethod,
     paymentMethod,
     shippingCost,
-    items,
     totalAmount,
     destination_id,
-    shipper_info
+    shipper_info,
+    // Get location IDs
+    province_id,
+    city_id,
+    district_id,
+    village_id,
+    // Additional fields for location names - these might contain the actual region names
+    cityName: existingCityName,
+    provinceName: existingProvinceName,
+    districtName: existingDistrictName,
+    postalCode,
+    villageName: existingVillageName
   } = checkoutData;
   
-
+  // Extract items separately as a variable we can modify later
+  let items = checkoutData.items;
   
-  if (!fullName || !telephone || !address || !destination_id) {
-    throw new Error('Data penerima tidak lengkap');
+  // If we have IDs but not names, fetch the names from the wilayah API
+  let cityName = existingCityName;
+  let provinceName = existingProvinceName;
+  let districtName = existingDistrictName;
+  let villageName = existingVillageName;
+  
+  // Fetch location names if they're not already provided
+  if (province_id || city_id || district_id || village_id) {
+    try {
+      const locationNames = await fetchLocationNames(
+        province_id,
+        city_id,
+        district_id,
+        village_id || destination_id // destination_id might be the village ID
+      );
+      
+      // Use fetched names if they exist and we don't already have names
+      if (locationNames.provinceName && !provinceName) {
+        provinceName = locationNames.provinceName;
+      }
+      
+      if (locationNames.cityName && !cityName) {
+        cityName = locationNames.cityName;
+      }
+      
+      if (locationNames.districtName && !districtName) {
+        districtName = locationNames.districtName;
+      }
+      
+      if (locationNames.villageName && !villageName) {
+        villageName = locationNames.villageName;
+      }
+    } catch (error) {
+      console.error('Failed to fetch location names:', error);
+      // Continue with whatever names we have
+    }
   }
   
-  if (!items || !Array.isArray(items) || items.length === 0) {
-    throw new Error('Data produk tidak tersedia');
+  // Special handling for testing: if any location ID is present but the corresponding name is missing,
+  // try fetching them one more time with direct calls
+  if ((province_id && !provinceName) || 
+      (city_id && !cityName) || 
+      (district_id && !districtName) || 
+      (village_id && !villageName)) {
+    
+    console.log('🔄 Location names missing but IDs present - trying direct fetch...');
+    
+    try {
+      // Direct API calls to populate missing location names
+      if (province_id && !provinceName) {
+        const provinces = await fetchProvinces();
+        const province = provinces.find(p => p.id == province_id || String(p.id) === String(province_id));
+        if (province) {
+          provinceName = province.name;
+          console.log(`✅ Direct fetch - Found province: ${province.name}`);
+        }
+      }
+      
+      if (city_id && !cityName) {
+        const cities = await fetchCities(province_id);
+        const city = cities.find(c => c.id == city_id || String(c.id) === String(city_id));
+        if (city) {
+          cityName = city.name;
+          console.log(`✅ Direct fetch - Found city: ${city.name}`);
+        }
+      }
+      
+      if (district_id && !districtName) {
+        const districts = await fetchSubdistricts(city_id);
+        const district = districts.find(d => d.id == district_id || String(d.id) === String(district_id));
+        if (district) {
+          districtName = district.name;
+          console.log(`✅ Direct fetch - Found district: ${district.name}`);
+        }
+      }
+      
+      if (village_id && !villageName) {
+        const villages = await fetchVillages(district_id);
+        const village = villages.find(v => v.id == village_id || String(v.id) === String(village_id));
+        if (village) {
+          villageName = village.name;
+          console.log(`✅ Direct fetch - Found village: ${village.name}`);
+        }
+      }
+    } catch (error) {
+      console.error('Error in direct location fetch:', error);
+    }
+  }
+  
+  // Process checkout data
+  
+  // Validate phone number format
+  if (telephone && !/^(\+62|62|0)[0-9]{9,13}$/.test(telephone.replace(/[\s-]/g, ''))) {
+    throw new Error('Format nomor telepon tidak valid. Gunakan format: 08XXXXXXXXXX');
+  }
+  
+  // Use items if available or fallback to empty array
+  if (!items || !Array.isArray(items)) {
+    items = [];
   }
   
   // Map payment method to Komerce format
@@ -515,65 +678,156 @@ export const formatStoreOrderData = (checkoutData) => {
   // Calculate COD value
   const codValue = mappedPaymentMethod === 'COD' ? totalAmount : 0;
   
-  // Format full address
-  const fullAddress = `${address}${city ? `, ${city}` : ''}${province ? `, ${province}` : ''}`;
+  // Ensure we have the correct names for address formation
+  const villageString = villageName || "";
+  const districtString = districtName || "";
+  const cityString = cityName || city || "";
+  const provinceString = provinceName || province || "";
   
-  // Format order details
-  const orderDetails = items.map(item => {
-    if (!item.name || !item.price || !item.quantity) {
-      throw new Error(`Data produk tidak lengkap: ${JSON.stringify(item)}`);
+  // Debug log location data
+  console.log('📍 DEBUG LOCATION DATA:');
+  console.log('Province ID:', province_id, 'Name:', provinceName || 'MISSING');
+  console.log('City ID:', city_id, 'Name:', cityName || 'MISSING');
+  console.log('District ID:', district_id, 'Name:', districtName || 'MISSING');
+  console.log('Village ID:', village_id, 'Name:', villageName || 'MISSING');
+  
+  // Double check that we're not using IDs in the address
+  if (!villageString && village_id) console.warn('⚠️ Missing village name for ID:', village_id);
+  if (!districtString && district_id) console.warn('⚠️ Missing district name for ID:', district_id);
+  if (!cityString && city_id) console.warn('⚠️ Missing city name for ID:', city_id);
+  if (!provinceString && province_id) console.warn('⚠️ Missing province name for ID:', province_id);
+  
+  // Only use parts that are actual names, not numeric IDs
+  const fullAddress = [
+    address,
+    // Filter out any parts that look like numeric IDs
+    villageString && !/^\d+$/.test(villageString) ? villageString : "",
+    districtString && !/^\d+$/.test(districtString) ? districtString : "",
+    cityString && !/^\d+$/.test(cityString) ? cityString : "",
+    provinceString && !/^\d+$/.test(provinceString) ? provinceString : "",
+    postalCode ? `Kode Pos: ${postalCode}` : ""
+  ].filter(part => part && part.trim() !== "").join(", ");
+  
+  // Format order details with minimal error checking
+  const orderDetails = [];
+  
+  // Process each item if available
+  if (items && items.length > 0) {
+    for (const item of items) {
+      if (item) {
+        const productName = item.name || item.product_name || item.title || "Product";
+        const price = item.price || 0;
+        const quantity = item.quantity || 1;
+        
+        const formattedItem = {
+          product_name: productName,
+          product_variant_name: (item.color && item.size) ? `${item.color} - ${item.size}` : 
+                              item.variant || item.variant_name || productName,
+          product_price: parseInt(price),
+          product_width: parseInt(item.width || item.product_width || (shipper_info?.product_width || 20)),
+          product_height: parseInt(item.height || item.product_height || (shipper_info?.product_height || 5)),
+          product_weight: parseInt(item.weight || item.product_weight || (shipper_info?.product_weight || 300)),
+          product_length: parseInt(item.length || item.product_length || (shipper_info?.product_length || 30)),
+          qty: parseInt(quantity),
+          subtotal: parseInt(price * quantity)
+        };
+        
+        orderDetails.push(formattedItem);
+      }
     }
-    
-    return {
-      product_name: item.name,
-      product_variant_name: item.color && item.size ? `${item.color} - ${item.size}` : item.variant || item.name,
-      product_price: parseInt(item.price),
-      product_width: item.width || item.product_width || (shipper_info?.product_width || 20),
-      product_height: item.height || item.product_height || (shipper_info?.product_height || 5),
-      product_weight: item.weight || item.product_weight || (shipper_info?.product_weight || 300),
-      product_length: item.length || item.product_length || (shipper_info?.product_length || 30),
-      qty: parseInt(item.quantity),
-      subtotal: parseInt(item.price * item.quantity)
-    };
-  });
+  }
+  
+  // Default product if needed
+  if (orderDetails.length === 0) {
+    console.error('No valid items could be processed');
+    throw new Error('Tidak ada produk valid yang dapat diproses');
+  }
   
   // Get shipper info from checkout data or use store info from configuration
   const shipper = shipper_info || checkoutData.shipper || {};
   
-  // Create store order object according to backend schema
+  // Set official shipper (seller) information
+  const shipperInfo = {
+    name: "Extreme Store Official",
+    brand_name: "Extreme Store", 
+    email: "jashujanextrimee@gmail.com",
+    address: "Jl. Raya Kebumen, Kebumen, Jawa Tengah", 
+    destination_id: 3305 // Kebumen city ID
+  };
+  
+  // Create store order object according to backend schema with clear separation of seller/buyer data
+  // Log all checkout data for debugging
+  console.log('Raw checkout data:', checkoutData);
+  
+  // Make sure we have proper destination names for the API
+  const receiverDestName = districtName || cityName || city || "";
+  const receiverProvName = provinceName || province || "";
+  
+  // Log the final address components we're using
+  console.log('🏠 FINAL ADDRESS COMPONENTS:');
+  console.log('Street address:', address);
+  console.log('Village:', villageString);
+  console.log('District:', districtString);
+  console.log('City:', cityString);
+  console.log('Province:', provinceString);
+  console.log('Full address:', fullAddress);
+
   const formattedOrder = {
     order_date: orderDate,
-    brand_name: shipper.brand_name || checkoutData.brand_name || "Extreme Store",
-    shipper_name: shipper.name || checkoutData.shipper_name || "Extreme Store Official",
-    shipper_phone: shipper.phone || checkoutData.shipper_phone || telephone, // Fallback to customer phone
-    shipper_destination_id: parseInt(shipper.destination_id || checkoutData.shipper_destination_id || destination_id), // Use origin from config
-    shipper_address: shipper.address || checkoutData.shipper_address || address, // Fallback to customer address
-    shipper_email: shipper.email || checkoutData.shipper_email || checkoutData.email || "store@extreme.com",
+    // Shipper (seller) data - use official store information
+    brand_name: shipperInfo.brand_name,
+    shipper_name: shipperInfo.name,
+    shipper_phone: "081234567890", // Hardcoded for now - add actual phone via checkout data in production
+    shipper_destination_id: parseInt(shipperInfo.destination_id),
+    shipper_destination_name: "Kebumen",
+    shipper_province_name: "Jawa Tengah",
+    shipper_address: shipperInfo.address,
+    shipper_email: shipperInfo.email,
+    
+    // Receiver (customer/buyer) data
     receiver_name: fullName,
     receiver_phone: telephone,
     receiver_destination_id: parseInt(destination_id),
+    receiver_destination_name: receiverDestName, 
+    receiver_province_name: receiverProvName,
     receiver_address: fullAddress,
+    
+    // Shipping information
     shipping: courier,
     shipping_type: serviceType,
     payment_method: mappedPaymentMethod,
     shipping_cost: parseInt(shippingCost),
     shipping_cashback: parseInt(checkoutData.shipping_cashback || 0),
-    // Calculate service fee according to Komerce's requirements: 2.8% of COD value or grand total
+    
+    // Financial calculations
     service_fee: mappedPaymentMethod === 'COD' 
       ? Math.round(parseInt(codValue) * 0.028) 
       : Math.round(parseInt(totalAmount) * 0.028),
     additional_cost: parseInt(checkoutData.additional_cost || 0),
     grand_total: parseInt(totalAmount),
     cod_value: parseInt(codValue),
+    
     // Insurance value - explicitly set to 0 to avoid issues with Komerce API
     // Per Komerce API, only products with total price > IDR 300,000 can be insured
-    // The backend will calculate this if appropriate
     insurance_value: 0,
+    
+    // Order items
     order_details: orderDetails
   };
   
   // Calculate total product price to check insurance eligibility
   const totalProductPrice = formattedOrder.order_details.reduce((sum, item) => sum + item.subtotal, 0);
+  
+  // Log the formatted order for debugging
+  console.log('\n\n📋 ========== FORMATTED ORDER DATA ==========');
+  console.log(JSON.stringify(formattedOrder, null, 2));
+  
+  // Log specific location information for debugging
+  console.log('\n📍 Location Information:');
+  console.log('Shipper Location:', formattedOrder.shipper_destination_name, '(ID:', formattedOrder.shipper_destination_id, ')');
+  console.log('Receiver City/District:', formattedOrder.receiver_destination_name, '(ID:', formattedOrder.receiver_destination_id, ')');
+  console.log('Receiver Province:', formattedOrder.receiver_province_name);
+  console.log('=============================================\n\n');
   
   return formattedOrder;
 };

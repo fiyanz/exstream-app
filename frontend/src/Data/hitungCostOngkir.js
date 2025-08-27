@@ -195,7 +195,7 @@ export const calculateShippingCost = async ({ receiver_destination_id, weight })
           },
           destination: {
             province: null,
-            city: null
+            city: destinationId
           },
           weight: validatedWeight,
           data: data.data // Keep original data structure for formatting

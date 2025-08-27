@@ -14,14 +14,21 @@ domesticCostRequest = APIRouter()
 async def calculate_domestic_cost(request: DomesticCostRequest):
     """
     Hitung ongkos kirim domestik menggunakan Komerce RajaOngkir API.
+    
+    Parameters:
+    - destination: ID kota tujuan (format: 4 digit - kode kota)
+    - weight: Berat paket dalam gram
+    - courier: Daftar kurir dengan separator ':'
+    - price: Format sorting ('lowest' atau 'highest')
     """
+    # URL yang benar untuk RajaOngkir via Komerce
+    # Format: calculate/city/domestic-cost
+    url = f"{settings.RAJA_ONGKIR_BASE_URL}/calculate/domestic-cost"
 
-    url = f"{settings.RAJA_ONGKIR_BASE_URL}/calculate/district/domestic-cost"
     headers = {
         "key": settings.SHIPPING_COST_API_KEY,
         "Content-Type": "application/x-www-form-urlencoded"
     }
-
 
     origin = settings.MY_ORIGIN_DESTINATION_ID
     if not origin:
@@ -30,18 +37,22 @@ async def calculate_domestic_cost(request: DomesticCostRequest):
 
     # Extract city ID from the village/subdistrict ID
     destination_city_id = extract_city_id_from_village(request.destination)
-    # print(f"DEBUG: Converting destination ID {request.destination} to city ID {destination_city_id}")
+    print(f"DEBUG: Converting destination ID {request.destination} to city ID {destination_city_id}")
 
-    # payload sesuai dokumentasi
+    # Sesuaikan courier parameter untuk hanya menanyakan kurir yang diinginkan
+    allowed_couriers = "jne:sicepat:ninja:ide:anteraja:jnt"
+    
+    # payload sesuai dokumentasi Raja Ongkir
     payload = {
         "origin": settings.MY_ORIGIN_DESTINATION_ID,
         "destination": destination_city_id,
         "weight": request.weight,
-        "courier": request.courier,
+        "courier": allowed_couriers,  # Gunakan daftar kurir yang diizinkan saja
         "price": request.price
     }
 
     try:
+        # Make the API request
         response = requests.post(url, headers=headers, data=payload)
         print("DEBUG STATUS:", response.status_code)
         print("DEBUG BODY:", response.text)
@@ -59,6 +70,26 @@ async def calculate_domestic_cost(request: DomesticCostRequest):
                 },
                 "data": []
             }
+        
+        # Filter untuk hanya menampilkan kurir yang diinginkan
+        if 'data' in result and result['data']:
+            # Daftar kurir yang diinginkan (lowercase untuk perbandingan case-insensitive)
+            allowed_couriers = ['jne', 'sicepat', 'ninja', 'ide', 'anteraja', 'jnt']
+            
+            # Filter data berdasarkan kode kurir
+            filtered_data = [
+                item for item in result['data'] 
+                if item.get('code', '').lower() in allowed_couriers
+            ]
+            
+            # Jika tidak ada hasil yang tersisa setelah filter
+            if not filtered_data:
+                print("WARNING: No couriers remained after filtering")
+            else:
+                print(f"INFO: Filtered from {len(result['data'])} couriers to {len(filtered_data)} allowed couriers")
+            
+            # Update data dalam hasil dengan data yang sudah difilter
+            result['data'] = filtered_data
             
         return result
     except requests.exceptions.RequestException as e:
