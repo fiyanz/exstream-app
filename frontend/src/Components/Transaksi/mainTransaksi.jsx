@@ -33,7 +33,7 @@ const productData = [
 const sizeOptions = ['L', 'XL', 'XXL', 'XXXL'];
 
 const paymentMethods = [
-  { name: 'transfer', label: 'Transfer Bank, E-Wallet, Virtual Account' },
+  { name: 'transfer', label: 'Transfer Bank, Virtual Account' },
   { name: 'cod', label: 'COD (Bayar Di Tempat)' },
 ];
 
@@ -743,10 +743,10 @@ const App = () => {
     <ErrorBoundary>
       <div className="rounded-xl font-sans on-a">
         {orderPlaced ? (
-          <div ref={successRef} className="success-message-container animate__animated animate__fadeIn w-full max-w-4xl mx-auto">
-            <div className="p-6 md:p-10 flex flex-col lg:flex-row items-center justify-center bg-white rounded-2xl shadow-xl">
-              <div className="flex flex-col items-center lg:items-start text-center lg:text-left lg:w-1/2 gap-4">
-                <div className="bg-green-100 p-4 rounded-full w-20 h-20 flex items-center justify-center mb-2 animate__animated animate__pulse">
+          <div ref={successRef} className="success-message-container animate__animated animate__fadeIn suces">
+            <div className="flex flex-col lg:flex-row items-center justify-center ">
+              <div className="flex flex-col items-center text-center lg:text-left lg:w-1/2 gap-7">
+                <div className="bg-green-100 p-4 rounded-full w-20 h-20 flex items-center justify-center mb-2 animate__animated animate__pulse ">
                   <CheckCircle size={50} className="text-green-600" />
                 </div>
 
@@ -754,11 +754,11 @@ const App = () => {
                   <span>Order #{orderDetails?.id || `ES${Math.floor(Math.random() * 100000)}`}</span>
                 </div>
 
-                <h1 className="text-4xl md:text-5xl font-bold text-gray-800 leading-tight">
+                <h1 className="text-4xl md:text-5xl font-bold text-gray-800 leading-tight ">
                   Pembelian Berhasil!
                 </h1>
 
-                <p className="text-gray-600 text-lg">
+                <p className="text-gray-600 text-lg ">
                   {formData.paymentMethod.toLowerCase().includes('cod') ? (
                     <>
                       Terima kasih telah memilih Jas Hujan Extrime!<br />
@@ -772,9 +772,9 @@ const App = () => {
                   )}
                 </p>
 
-                <div className="mt-2 bg-gray-50 p-6 rounded-lg w-full shadow-sm">
-                  <h3 className="font-semibold text-gray-800 mb-4 text-lg border-b pb-2">Informasi Pesanan</h3>
-                  <ul className="space-y-3">
+                <div className="w-full">
+                  <h3 className="font-semibold text-gray-800 mb-4 text-lg inf-1">Informasi Pesanan</h3>
+                  <ul className="border-t flex flex-col gap-3 ul-su">
                     <li className="flex justify-between items-center">
                       <span className="text-gray-600">Nama:</span>
                       <span className="font-medium text-gray-900">{formData.fullName}</span>
@@ -793,11 +793,11 @@ const App = () => {
                     </li>
                     <li className="flex justify-between items-center">
                       <span className="text-gray-600">Total Bayar:</span>
-                      <span className="font-medium text-gray-900">{formatRupiah(orderDetails?.total || orderDetails?.grand_total || total)}</span>
+                      <span className="font-bold text-2xl text-green-500">{formatRupiah(orderDetails?.total || orderDetails?.grand_total || total)}</span>
                     </li>
                     <li className="flex justify-between items-center">
-                      <span className="text-gray-600">Metode Pembayaran:</span>
-                      <span className="font-medium text-gray-900">{formData.paymentMethod}</span>
+                      <span className="text-gray-600">Metode:</span>
+                      <span className="font-semibold text-gray-900">{formData.paymentMethod}</span>
                     </li>
                     <li className="flex justify-between items-center">
                       <span className="text-gray-600">Pengiriman:</span>
@@ -814,7 +814,7 @@ const App = () => {
 
                 <button
                   onClick={handleBackToForm}
-                  className="mt-6 bg-orange-500 hover:bg-orange-600 text-white font-bold py-3 px-8 rounded-xl shadow-lg transition-all duration-300 transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-orange-300 but-text flex items-center justify-center"
+                  className="mt-6 bg-gradient-to-r from-purple-500 to-indigo-600  text-white font-bold rounded-xl shadow-lg transition-all duration-300 transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-orange-300 but-text flex items-center justify-center buu-su"
                 >
                   <div className="flex items-center justify-center gap-3">
                     <RefreshCcw size={20} />
@@ -822,30 +822,29 @@ const App = () => {
                   </div>
                 </button>
               </div>
-              <div className="relative lg:w-1/2 flex justify-center items-center mt-10 lg:mt-0">
-                <div className="absolute -top-5 -left-5 z-10 bg-yellow-400 rounded-full w-16 h-16 flex items-center justify-center rotate-12 shadow-lg">
-                  <span className="font-bold text-white text-lg">New!</span>
+                <div className="relative lg:w-1/2 flex flex-col justify-center items-center mt-10 lg:mt-0">
+                  <div className='bg-gradient-to-br from-green-100 to-blue-100 p-1 rounded-2xl shadow-lg'>
+                    <div className="absolute -top-5 -left-5 z-10 bg-yellow-400 rounded-full w-16 h-16 flex items-center justify-center rotate-12 shadow-lg">
+                      <span className="font-bold text-white text-lg">New!</span>
+                    </div>
+                    <img
+                      src={Testi}
+                      alt="Successful purchase confirmation"
+                      className="img-test rounded-xl shadow-md border-2 border-white transform transition-transform duration-300 hover:scale-110 object-cover w-full h-full max-w-xs"
+                    />
+                  </div>
+                  <div className="flex justify-center w-full mt-6">
+                    <a
+                      href="#"
+                      className="text-sm bg-gradient-to-r from-purple-500 to-indigo-600 text-white font-bold rounded-xl shadow-lg transition-all duration-300 transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-orange-300 flex items-center gap-1 cek-sta"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                      </svg>
+                      Cek status pesanan
+                    </a>
+                  </div>
                 </div>
-                <div className="bg-gradient-to-br from-green-100 to-blue-100 p-1 rounded-2xl shadow-lg">
-                  <img
-                    src={Testi}
-                    alt="Successful purchase confirmation"
-                    className="img-test rounded-xl shadow-md border-2 border-white transform transition-transform duration-300 hover:scale-105 object-cover w-full h-full max-w-xs"
-                  />
-                </div>
-              </div>
-            </div>
-
-            <div className="flex justify-center w-full mt-6">
-              <a
-                href="#"
-                className="text-sm text-blue-600 hover:underline flex items-center gap-1"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                </svg>
-                Cek status pesanan
-              </a>
             </div>
           </div>
         ) : (
