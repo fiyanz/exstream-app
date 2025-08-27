@@ -1,40 +1,72 @@
-import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
-import { CheckCircle, ShoppingBag, Plus, Minus, Trash2, AlertCircle, RefreshCcw, Loader2 } from 'lucide-react';
-import Hijau from '../../assets/Extrime/Cewek/HijauSage/Cewe4.jpeg';
-import Ungu from '../../assets/Extrime/Cewek/Violet/Cewe3.jpeg';
-import Dusty from '../../assets/Extrime/Cewek/DustyPink/Cewe3.jpeg';
-import './toast-animation.css';
-import Pink from '../../assets/Extrime/Cewek/PInkMuda/Cewe3.jpeg';
-import Bei from '../../assets/Extrime/Cowok/One3.jpeg';
-import Nav from '../../assets/Extrime/Cowok/One1.jpeg';
-import Blac from '../../assets/Extrime/Cowok/One.jpeg';
-import arm from '../../assets/Extrime/Cowok/One2.jpeg';
-import red from '../../assets/Extrime/Cowok/One4.jpeg';
-import './Cont.css';
-import Testi from '../../assets/image/baju.png';
+import React, {
+  useState,
+  useEffect,
+  useRef,
+  useMemo,
+  useCallback,
+} from "react";
+import {
+  CheckCircle,
+  ShoppingBag,
+  Plus,
+  Minus,
+  Trash2,
+  AlertCircle,
+  RefreshCcw,
+  Loader2,
+} from "lucide-react";
+import Hijau from "../../assets/Extrime/Cewek/HijauSage/Cewe4.jpeg";
+import Ungu from "../../assets/Extrime/Cewek/Violet/Cewe3.jpeg";
+import Dusty from "../../assets/Extrime/Cewek/DustyPink/Cewe3.jpeg";
+import "./toast-animation.css";
+import Pink from "../../assets/Extrime/Cewek/PInkMuda/Cewe3.jpeg";
+import Bei from "../../assets/Extrime/Cowok/One3.jpeg";
+import Nav from "../../assets/Extrime/Cowok/One1.jpeg";
+import Blac from "../../assets/Extrime/Cowok/One.jpeg";
+import arm from "../../assets/Extrime/Cowok/One2.jpeg";
+import red from "../../assets/Extrime/Cowok/One4.jpeg";
+import "./Cont.css";
+import Testi from "../../assets/image/baju.png";
 
-import { calculateShippingCost, formatShippingOptions } from '../../Data/hitungCostOngkir';
-import { fetchProvinces, fetchCities, fetchSubdistricts, fetchVillages } from '../../Data/dataWilayah';
-import { createTransaction, formatStoreOrderData, storeOrder, createStoreOrder, getOrderData, createTransactionFromStoredOrder, handleMidtransPayment, handleMidtransPaymentEnhanced } from '../../Data/transactionService';
+import {
+  calculateShippingCost,
+  formatShippingOptions,
+} from "../../Data/hitungCostOngkir";
+import {
+  fetchProvinces,
+  fetchCities,
+  fetchSubdistricts,
+  fetchVillages,
+} from "../../Data/dataWilayah";
+import {
+  createTransaction,
+  formatStoreOrderData,
+  storeOrder,
+  createStoreOrder,
+  getOrderData,
+  createTransactionFromStoredOrder,
+  handleMidtransPayment,
+  handleMidtransPaymentEnhanced,
+} from "../../Data/transactionService";
 
 // Data for products, options, and mock location data.
 const productData = [
-  { color: 'Hijau Sage', image: Hijau },
-  { color: 'Ungu Violet', image: Ungu },
-  { color: 'Dusty Pink', image: Dusty },
-  { color: 'Pink Muda', image: Pink },
-  { color: 'Beige / Khaki', image: Bei },
-  { color: 'Navy Blue', image: Nav },
-  { color: 'Black', image: Blac },
-  { color: 'Army Green', image: arm },
-  { color: 'Red', image: red },
+  { color: "Hijau Sage", image: Hijau },
+  { color: "Ungu Violet", image: Ungu },
+  { color: "Dusty Pink", image: Dusty },
+  { color: "Pink Muda", image: Pink },
+  { color: "Beige / Khaki", image: Bei },
+  { color: "Navy Blue", image: Nav },
+  { color: "Black", image: Blac },
+  { color: "Army Green", image: arm },
+  { color: "Red", image: red },
 ];
 
-const sizeOptions = ['L', 'XL', 'XXL', 'XXXL'];
+const sizeOptions = ["L", "XL", "XXL", "XXXL"];
 
 const paymentMethods = [
-  { name: 'transfer', label: 'Transfer Bank, Virtual Account' },
-  { name: 'cod', label: 'COD (Bayar Di Tempat)' },
+  { name: "transfer", label: "Transfer Bank, Virtual Account" },
+  { name: "cod", label: "COD (Bayar Di Tempat)" },
 ];
 
 // Product price configuration
@@ -43,9 +75,22 @@ const DISCOUNT_RATE = 0.5484; // 54.85% discount
 const PRODUCT_WEIGHT = 1000;
 
 // Reusable component for a Select dropdown.
-const SelectInput = ({ label, name, value, options, onChange, placeholder, required, disabled = false, error }) => (
+const SelectInput = ({
+  label,
+  name,
+  value,
+  options,
+  onChange,
+  placeholder,
+  required,
+  disabled = false,
+  error,
+}) => (
   <div className="flex flex-col">
-    <label htmlFor={name} className="block text-sm font-medium text-black on-1 mb-1.5">
+    <label
+      htmlFor={name}
+      className="block text-sm font-medium text-black on-1 mb-1.5"
+    >
       {label} {required && <span className="text-red-500">*</span>}
     </label>
     <div className="relative">
@@ -60,24 +105,49 @@ const SelectInput = ({ label, name, value, options, onChange, placeholder, requi
         aria-invalid={error ? "true" : "false"}
         aria-describedby={error ? `${name}-error` : undefined}
       >
-        <option value="" disabled>{placeholder}</option>
-        {Array.isArray(options) && options.map((option) => (
-          <option
-            key={typeof option === 'object' ? option.id || JSON.stringify(option) : option}
-            value={typeof option === 'object' ? option.id || option.value || option.name : option}
-          >
-            {typeof option === 'object' ? option.name || option.label : option}
-          </option>
-        ))}
+        <option value="" disabled>
+          {placeholder}
+        </option>
+        {Array.isArray(options) &&
+          options.map((option) => (
+            <option
+              key={
+                typeof option === "object"
+                  ? option.id || JSON.stringify(option)
+                  : option
+              }
+              value={
+                typeof option === "object"
+                  ? option.id || option.value || option.name
+                  : option
+              }
+            >
+              {typeof option === "object"
+                ? option.name || option.label
+                : option}
+            </option>
+          ))}
       </select>
       <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-        <svg className="h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-          <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
+        <svg
+          className="h-5 w-5 text-gray-400"
+          xmlns="http://www.w3.org/2000/svg"
+          viewBox="0 0 20 20"
+          fill="currentColor"
+          aria-hidden="true"
+        >
+          <path
+            fillRule="evenodd"
+            d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
+            clipRule="evenodd"
+          />
         </svg>
       </div>
       {error && (
         <div className="flex items-center mt-1">
-          <p className="text-xs text-gray-500" id={`${name}-error`}>{error}</p>
+          <p className="text-xs text-gray-500" id={`${name}-error`}>
+            {error}
+          </p>
         </div>
       )}
     </div>
@@ -85,9 +155,21 @@ const SelectInput = ({ label, name, value, options, onChange, placeholder, requi
 );
 
 // Reusable component for a Text input field.
-const TextInput = ({ label, name, value, onChange, placeholder, type = 'text', required, error }) => (
+const TextInput = ({
+  label,
+  name,
+  value,
+  onChange,
+  placeholder,
+  type = "text",
+  required,
+  error,
+}) => (
   <div className="flex flex-col">
-    <label htmlFor={name} className="block text-sm font-medium text-black on-1 mb-1.5">
+    <label
+      htmlFor={name}
+      className="block text-sm font-medium text-black on-1 mb-1.5"
+    >
       {label} {required && <span className="text-red-500">*</span>}
     </label>
     <div className="relative">
@@ -105,7 +187,9 @@ const TextInput = ({ label, name, value, onChange, placeholder, type = 'text', r
       />
       {error && (
         <div className="flex items-center mt-1">
-          <p className="text-xs text-gray-500" id={`${name}-error`}>{error}</p>
+          <p className="text-xs text-gray-500" id={`${name}-error`}>
+            {error}
+          </p>
         </div>
       )}
     </div>
@@ -132,7 +216,10 @@ class ErrorBoundary extends React.Component {
       return (
         <div className="p-8 text-center text-red-500 bg-red-100 border border-red-300 rounded-xl m-8">
           <h2 className="text-2xl font-bold mb-2">Something went wrong!</h2>
-          <p>We're sorry, but there was an error loading this component. Please try again later.</p>
+          <p>
+            We're sorry, but there was an error loading this component. Please
+            try again later.
+          </p>
         </div>
       );
     }
@@ -144,8 +231,8 @@ class ErrorBoundary extends React.Component {
 const App = () => {
   // State for the product selection form (to add to cart)
   const [currentProduct, setCurrentProduct] = useState({
-    size: '',
-    color: '',
+    size: "",
+    color: "",
     quantity: 1,
   });
 
@@ -154,15 +241,15 @@ const App = () => {
 
   // State for the main checkout form
   const [formData, setFormData] = useState({
-    fullName: '',
-    telephone: '',
-    province: '',
-    city: '',
-    subDistrict: '',
-    village: '',
-    completeAddress: '',
-    shippingMethod: '',
-    paymentMethod: '',
+    fullName: "",
+    telephone: "",
+    province: "",
+    city: "",
+    subDistrict: "",
+    village: "",
+    completeAddress: "",
+    shippingMethod: "",
+    paymentMethod: "",
     shippingCost: 0,
     taxCost: 0,
   });
@@ -195,24 +282,32 @@ const App = () => {
 
   // Calculate prices dynamically based on state with useMemo for better performance.
   const { subtotal, discount, handlingFee, total } = useMemo(() => {
-    const subtotalValue = cartItems.reduce((acc, item) => acc + PRODUCT_PRICE * item.quantity, 0);
+    const subtotalValue = cartItems.reduce(
+      (acc, item) => acc + PRODUCT_PRICE * item.quantity,
+      0
+    );
     const discountValue = subtotalValue * DISCOUNT_RATE;
     const handlingFeeValue = 0; // Assuming no handling fee for now
-    const totalValue = subtotalValue - discountValue + formData.shippingCost + formData.taxCost + handlingFeeValue;
+    const totalValue =
+      subtotalValue -
+      discountValue +
+      formData.shippingCost +
+      formData.taxCost +
+      handlingFeeValue;
 
     return {
       subtotal: subtotalValue,
       discount: discountValue,
       handlingFee: handlingFeeValue,
-      total: totalValue
+      total: totalValue,
     };
   }, [cartItems, formData.shippingCost, formData.taxCost]);
 
   // Function to format currency to IDR.
   const formatRupiah = useCallback((amount) => {
-    return new Intl.NumberFormat('id-ID', {
-      style: 'currency',
-      currency: 'IDR',
+    return new Intl.NumberFormat("id-ID", {
+      style: "currency",
+      currency: "IDR",
       minimumFractionDigits: 0,
       maximumFractionDigits: 0,
     }).format(amount);
@@ -248,11 +343,11 @@ const App = () => {
         const citiesData = await fetchCities(formData.province);
         setCities(citiesData);
         // Reset dependent fields
-        setFormData(prev => ({
+        setFormData((prev) => ({
           ...prev,
-          city: '',
-          subDistrict: '',
-          village: ''
+          city: "",
+          subDistrict: "",
+          village: "",
         }));
       } catch (error) {
         // Error handled silently in production
@@ -277,10 +372,10 @@ const App = () => {
         const subdistrictsData = await fetchSubdistricts(formData.city);
         setSubdistricts(subdistrictsData);
         // Reset dependent fields
-        setFormData(prev => ({
+        setFormData((prev) => ({
           ...prev,
-          subDistrict: '',
-          village: ''
+          subDistrict: "",
+          village: "",
         }));
       } catch (error) {
         // Error handled silently in production
@@ -305,9 +400,9 @@ const App = () => {
         const villagesData = await fetchVillages(formData.subDistrict);
         setVillages(villagesData);
         // Reset dependent fields
-        setFormData(prev => ({
+        setFormData((prev) => ({
           ...prev,
-          village: ''
+          village: "",
         }));
       } catch (error) {
         // Error handled silently in production
@@ -323,13 +418,18 @@ const App = () => {
   useEffect(() => {
     const calculateShipping = async () => {
       // Check if all location fields are filled
-      if (!formData.province || !formData.city || !formData.subDistrict || !formData.village) {
+      if (
+        !formData.province ||
+        !formData.city ||
+        !formData.subDistrict ||
+        !formData.village
+      ) {
         setShippingOptions([]);
-        setFormData(prev => ({
+        setFormData((prev) => ({
           ...prev,
-          shippingMethod: '',
+          shippingMethod: "",
           shippingCost: 0,
-          taxCost: 0
+          taxCost: 0,
         }));
         return;
       }
@@ -340,7 +440,7 @@ const App = () => {
         // Use the actual village ID for shipping calculation
         const shippingData = await calculateShippingCost({
           receiver_destination_id: formData.village,
-          weight: PRODUCT_WEIGHT
+          weight: PRODUCT_WEIGHT,
         });
 
         if (shippingData.success) {
@@ -357,22 +457,32 @@ const App = () => {
     };
 
     calculateShipping();
-  }, [formData.province, formData.city, formData.subDistrict, formData.village, subtotal, formData.paymentMethod]);
+  }, [
+    formData.province,
+    formData.city,
+    formData.subDistrict,
+    formData.village,
+    subtotal,
+    formData.paymentMethod,
+  ]);
 
   // Handler for the product selection form input changes with validation
-  const handleProductSelectionChange = useCallback((e) => {
-    const { name, value } = e.target;
-    setCurrentProduct((prev) => ({ ...prev, [name]: value }));
+  const handleProductSelectionChange = useCallback(
+    (e) => {
+      const { name, value } = e.target;
+      setCurrentProduct((prev) => ({ ...prev, [name]: value }));
 
-    // Clear error for this field when it's being edited
-    if (productErrors[name]) {
-      setProductErrors(prev => {
-        const newErrors = { ...prev };
-        delete newErrors[name];
-        return newErrors;
-      });
-    }
-  }, [productErrors]);
+      // Clear error for this field when it's being edited
+      if (productErrors[name]) {
+        setProductErrors((prev) => {
+          const newErrors = { ...prev };
+          delete newErrors[name];
+          return newErrors;
+        });
+      }
+    },
+    [productErrors]
+  );
 
   // Handler for the quantity change on the current product
   const handleQuantityChange = useCallback((change) => {
@@ -387,15 +497,15 @@ const App = () => {
     const errors = {};
 
     if (!currentProduct.size) {
-      errors.size = 'Ukuran wajib dipilih';
+      errors.size = "Ukuran wajib dipilih";
     }
 
     if (!currentProduct.color) {
-      errors.color = 'Warna wajib dipilih';
+      errors.color = "Warna wajib dipilih";
     }
 
     if (currentProduct.quantity < 1) {
-      errors.quantity = 'Jumlah minimal 1';
+      errors.quantity = "Jumlah minimal 1";
     }
 
     setProductErrors(errors);
@@ -407,11 +517,14 @@ const App = () => {
     const isValid = validateProductSelection();
 
     if (isValid) {
-      setCartItems((prevItems) => [...prevItems, { ...currentProduct, id: Date.now() }]);
+      setCartItems((prevItems) => [
+        ...prevItems,
+        { ...currentProduct, id: Date.now() },
+      ]);
       // Reset the product selection form
       setCurrentProduct({
-        size: '',
-        color: '',
+        size: "",
+        color: "",
         quantity: 1,
       });
 
@@ -430,87 +543,99 @@ const App = () => {
   }, []);
 
   // Handler for main checkout form input changes with improved validation.
-  const handleInputChange = useCallback((e) => {
-    const { name, value } = e.target;
+  const handleInputChange = useCallback(
+    (e) => {
+      const { name, value } = e.target;
 
-    // Handle special case for telephone: ensure it starts with 8 and contains only numbers
-    if (name === 'telephone') {
-      // Remove non-numeric characters
-      const numericValue = value.replace(/\D/g, '');
+      // Handle special case for telephone: ensure it starts with 8 and contains only numbers
+      if (name === "telephone") {
+        // Remove non-numeric characters
+        const numericValue = value.replace(/\D/g, "");
 
-      // Ensure it starts with 8
-      const formattedValue = numericValue.startsWith('0') || numericValue.startsWith('62')
-        ? numericValue.replace(/^(0|62)/, '0')  // Replace leading 0 or 62 with 8
-        : numericValue.startsWith('0')
-          ? numericValue
-          : numericValue ? `0${numericValue}` : '';
+        // Ensure it starts with 8
+        const formattedValue =
+          numericValue.startsWith("0") || numericValue.startsWith("62")
+            ? numericValue.replace(/^(0|62)/, "0") // Replace leading 0 or 62 with 8
+            : numericValue.startsWith("0")
+            ? numericValue
+            : numericValue
+            ? `0${numericValue}`
+            : "";
 
-      setFormData((prevData) => ({
-        ...prevData,
-        [name]: formattedValue
-      }));
+        setFormData((prevData) => ({
+          ...prevData,
+          [name]: formattedValue,
+        }));
 
-      return;
-    }
-
-    // Handle all other fields
-    setFormData((prevData) => {
-      let newFormData = { ...prevData, [name]: value };
-
-      // Clear dependent location fields when a higher-level field changes.
-      if (name === 'province') {
-        newFormData = { ...newFormData, city: '', subDistrict: '', village: '' };
-      } else if (name === 'city') {
-        newFormData = { ...newFormData, subDistrict: '', village: '' };
-      } else if (name === 'subDistrict') {
-        newFormData = { ...newFormData, village: '' };
+        return;
       }
 
-      // Logic to set shipping and tax costs based on the selected shipping method.
-      if (name === 'shippingMethod') {
-        const selectedShipping = shippingOptions.find(option => option.id === value);
-        if (selectedShipping) {
-          newFormData.shippingCost = selectedShipping.cost;
-          newFormData.taxCost = 0; // Tax is included in shipping cost from API
-        } else {
-          newFormData.shippingCost = 0;
-          newFormData.taxCost = 0;
+      // Handle all other fields
+      setFormData((prevData) => {
+        let newFormData = { ...prevData, [name]: value };
+
+        // Clear dependent location fields when a higher-level field changes.
+        if (name === "province") {
+          newFormData = {
+            ...newFormData,
+            city: "",
+            subDistrict: "",
+            village: "",
+          };
+        } else if (name === "city") {
+          newFormData = { ...newFormData, subDistrict: "", village: "" };
+        } else if (name === "subDistrict") {
+          newFormData = { ...newFormData, village: "" };
         }
-      }
 
+        // Logic to set shipping and tax costs based on the selected shipping method.
+        if (name === "shippingMethod") {
+          const selectedShipping = shippingOptions.find(
+            (option) => option.id === value
+          );
+          if (selectedShipping) {
+            newFormData.shippingCost = selectedShipping.cost;
+            newFormData.taxCost = 0; // Tax is included in shipping cost from API
+          } else {
+            newFormData.shippingCost = 0;
+            newFormData.taxCost = 0;
+          }
+        }
 
-      // Clear error for this field when it's being edited
-      if (formErrors[name]) {
-        setFormErrors(prev => {
-          const newErrors = { ...prev };
-          delete newErrors[name];
-          return newErrors;
-        });
-      }
+        // Clear error for this field when it's being edited
+        if (formErrors[name]) {
+          setFormErrors((prev) => {
+            const newErrors = { ...prev };
+            delete newErrors[name];
+            return newErrors;
+          });
+        }
 
-      return newFormData;
-    });
-  }, [formErrors, shippingOptions]);
+        return newFormData;
+      });
+    },
+    [formErrors, shippingOptions]
+  );
 
   // Function to validate form with specific error messages
   const validateForm = useCallback(() => {
     const errors = {};
     const requiredFields = [
-      'fullName',
-      'telephone',
-      'province',
-      'city',
-      'subDistrict',
-      'village',
-      'completeAddress',
-      'shippingMethod',
-      'paymentMethod',
+      "fullName",
+      "telephone",
+      "province",
+      "city",
+      "subDistrict",
+      "village",
+      "completeAddress",
+      "shippingMethod",
+      "paymentMethod",
     ];
 
     // Check for empty required fields
-    requiredFields.forEach(field => {
+    requiredFields.forEach((field) => {
       if (!formData[field]) {
-        errors[field] = 'Bidang ini wajib diisi';
+        errors[field] = "Bidang ini wajib diisi";
       }
     });
 
@@ -518,7 +643,7 @@ const App = () => {
 
     // Validate cart has items
     if (cartItems.length === 0) {
-      errors.cart = 'Keranjang belanja tidak boleh kosong';
+      errors.cart = "Keranjang belanja tidak boleh kosong";
     }
 
     setFormErrors(errors);
@@ -534,7 +659,7 @@ const App = () => {
   // Effect to scroll to the success message after the order is placed.
   useEffect(() => {
     if (orderPlaced && successRef.current) {
-      successRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      successRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
     }
   }, [orderPlaced]);
 
@@ -554,13 +679,35 @@ const App = () => {
       try {
         setIsSubmitting(true);
 
-        // Common data preparation
-        const address = `${formData.completeAddress}, ${formData.village}, ${formData.subDistrict}, ${formData.city}, ${formData.province}`;
-        const destination_id = formData.village || formData.subDistrict || formData.city;
-        const paymentMethod = formData.paymentMethod.toLowerCase().includes('cod') ? 'COD' : 'Transfer';
-        
+        // Helper function to get location name by ID
+        const getLocationNameById = (id, locationList) => {
+          const location = locationList.find((loc) => loc.id === id);
+          return location ? location.name : "";
+        };
 
-        
+        // Get location names
+        const provinceName = getLocationNameById(formData.province, provinces);
+        const cityName = getLocationNameById(formData.city, cities);
+        const subdistrictName = getLocationNameById(
+          formData.subDistrict,
+          subdistricts
+        );
+        const villageName = getLocationNameById(formData.village, villages);
+
+        // Common data preparation with proper location names
+        const address = `${formData.completeAddress}${
+          villageName ? `, ${villageName}` : ""
+        }${subdistrictName ? `, Kec. ${subdistrictName}` : ""}${
+          cityName ? `, ${cityName}` : ""
+        }${provinceName ? `, ${provinceName}` : ""}`;
+        const destination_id =
+          formData.village || formData.subDistrict || formData.city;
+        const paymentMethod = formData.paymentMethod
+          .toLowerCase()
+          .includes("cod")
+          ? "COD"
+          : "Transfer";
+
         // Data for COD orders (direct to store_order)
         const orderData = {
           // Customer information
@@ -570,16 +717,28 @@ const App = () => {
           destination_id: destination_id,
           province: formData.province,
           city: formData.city,
-          
+          // Add location names for better address display
+          province_name: provinceName,
+          city_name: cityName,
+          subdistrict_name: subdistrictName,
+          village_name: villageName,
+          // Add resolved locations object for transaction service
+          resolved_locations: {
+            province_name: provinceName,
+            city_name: cityName,
+            subdistrict_name: subdistrictName,
+            village_name: villageName,
+          },
+
           // Order items
-          items: cartItems.map(item => ({
+          items: cartItems.map((item) => ({
             name: "Jas Hujan Extrime",
             color: item.color,
             size: item.size,
             quantity: item.quantity,
             price: PRODUCT_PRICE,
             product_weight: PRODUCT_WEIGHT, // Berat dalam gram
-            variant: `${item.color} - ${item.size}`
+            variant: `${item.color} - ${item.size}`,
           })),
 
           // Shipping and payment
@@ -588,26 +747,28 @@ const App = () => {
           paymentMethod: paymentMethod,
 
           // Pricing
-          totalAmount: total
+          totalAmount: total,
         };
 
         // Handle different paths based on payment method
         let transactionResult;
-        
-        if (formData.paymentMethod.toLowerCase().includes('cod')) {
+
+        if (formData.paymentMethod.toLowerCase().includes("cod")) {
           // For COD, format the data for Komerce API and use createStoreOrder
           const formattedOrderData = formatStoreOrderData(orderData);
-          
+
           transactionResult = await createStoreOrder(formattedOrderData);
-          
+
           // Ensure we have necessary data for the success page
           if (transactionResult && transactionResult.data) {
             // Add direct access to common fields from the Komerce response
-            transactionResult.id = transactionResult.data.order_id || transactionResult.id || "COD-" + Date.now();
+            transactionResult.id =
+              transactionResult.data.order_id ||
+              transactionResult.id ||
+              "COD-" + Date.now();
             transactionResult.total = total;
             transactionResult.grand_total = total;
           }
-          
         } else {
           // For transfers/non-COD, create transaction with Midtrans integration
 
@@ -620,55 +781,72 @@ const App = () => {
             city: formData.city,
             subdistrict: formData.subDistrict,
             village: formData.village,
-            items: cartItems.map(item => ({
+            // Add location names for better address display
+            province_name: provinceName,
+            city_name: cityName,
+            subdistrict_name: subdistrictName,
+            village_name: villageName,
+            // Add resolved locations object for transaction service
+            resolved_locations: {
+              province_name: provinceName,
+              city_name: cityName,
+              subdistrict_name: subdistrictName,
+              village_name: villageName,
+            },
+            items: cartItems.map((item) => ({
               name: "Jas Hujan Extrime",
               color: item.color,
               size: item.size,
               quantity: item.quantity,
               price: PRODUCT_PRICE,
               variant: `${item.color} - ${item.size}`,
-              product_weight: PRODUCT_WEIGHT
+              product_weight: PRODUCT_WEIGHT,
             })),
             shipping_method: formData.shippingMethod,
-            payment_method: 'Transfer', // Explicitly set as Transfer
+            payment_method: "Transfer", // Explicitly set as Transfer
             shipping_cost: formData.shippingCost,
             subtotal: subtotal,
             discount: discount,
-            total: total
+            total: total,
           };
-          
-          transactionResult = await createTransaction(enhancedOrderData);
 
+          transactionResult = await createTransaction(enhancedOrderData);
         }
-        
+
         // Log transaction details
 
-
         // Make sure we have a valid transaction result before proceeding
-        if (transactionResult && (transactionResult.data || transactionResult.id)) {
+        if (
+          transactionResult &&
+          (transactionResult.data || transactionResult.id)
+        ) {
           // Store the order details for the success page
           setOrderDetails(transactionResult);
           setOrderPlaced(true);
           // console.log('Order placed successfully:', transactionResult);
         } else {
-          console.error('Invalid transaction result:', transactionResult);
-          throw new Error('Respons dari server tidak valid. Silakan coba lagi.');
+          console.error("Invalid transaction result:", transactionResult);
+          throw new Error(
+            "Respons dari server tidak valid. Silakan coba lagi."
+          );
         }
         // Handle response based on payment method
-        if (formData.paymentMethod.toLowerCase().includes('cod')) {
+        if (formData.paymentMethod.toLowerCase().includes("cod")) {
           // COD - Direct success
-          
         } else {
           // Non-COD - Check for Midtrans payment details
-          
+
           // Handle Midtrans payment
           if (transactionResult.redirect_url) {
             // If we have redirect_url but no token, use redirect directly
             if (transactionResult.token) {
-              handleMidtransPaymentEnhanced(transactionResult.token, transactionResult.redirect_url);
+              handleMidtransPaymentEnhanced(
+                transactionResult.token,
+                transactionResult.redirect_url
+              );
             } else {
               // Direct redirect to Midtrans payment page
-              window.open(transactionResult.redirect_url, '_blank');
+              window.open(transactionResult.redirect_url, "_blank");
             }
           }
         }
@@ -684,20 +862,33 @@ const App = () => {
         const firstErrorField = errorFieldNames[0];
 
         // Find element by ID or name attribute
-        const errorElement = document.querySelector(`[name="${firstErrorField}"], #${firstErrorField}`);
+        const errorElement = document.querySelector(
+          `[name="${firstErrorField}"], #${firstErrorField}`
+        );
         if (errorElement) {
           // Scroll to error element with some offset to make it visible
-          errorElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          errorElement.scrollIntoView({ behavior: "smooth", block: "center" });
           errorElement.focus();
-        } else if (firstErrorField === 'cart') {
+        } else if (firstErrorField === "cart") {
           // If cart is empty, scroll to the product selection form
           if (productFormRef.current) {
-            productFormRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            productFormRef.current.scrollIntoView({
+              behavior: "smooth",
+              block: "start",
+            });
           }
         }
       }
     }
-  }, [validateForm, formErrors, formData, cartItems, subtotal, discount, total]);
+  }, [
+    validateForm,
+    formErrors,
+    formData,
+    cartItems,
+    subtotal,
+    discount,
+    total,
+  ]);
 
   // Handler to reset the state for "Belanja Lagi" button
   const handleBackToForm = useCallback(() => {
@@ -709,33 +900,37 @@ const App = () => {
     setProductErrors({});
 
     setFormData({
-      fullName: '',
-      telephone: '',
-      province: '',
-      city: '',
-      subDistrict: '',
-      village: '',
-      completeAddress: '',
-      shippingMethod: '',
-      paymentMethod: '',
+      fullName: "",
+      telephone: "",
+      province: "",
+      city: "",
+      subDistrict: "",
+      village: "",
+      completeAddress: "",
+      shippingMethod: "",
+      paymentMethod: "",
       shippingCost: 0,
       taxCost: 0,
     });
 
     setCurrentProduct({
-      size: '',
-      color: '',
+      size: "",
+      color: "",
       quantity: 1,
     });
 
     // Scroll back to the top of the form
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    window.scrollTo({ top: 0, behavior: "smooth" });
   }, []);
 
   // Get the image URL for the currently selected product, memoized for performance
   const getProductImage = useMemo(() => {
-    const selectedProduct = productData.find((p) => p.color === currentProduct.color);
-    return selectedProduct ? selectedProduct.image : 'https://placehold.co/220x250/D2E1C9/4A5746?text=Pilih+Warna';
+    const selectedProduct = productData.find(
+      (p) => p.color === currentProduct.color
+    );
+    return selectedProduct
+      ? selectedProduct.image
+      : "https://placehold.co/220x250/D2E1C9/4A5746?text=Pilih+Warna";
   }, [currentProduct.color]);
 
   // Render the main form and the optional success message.
@@ -743,7 +938,10 @@ const App = () => {
     <ErrorBoundary>
       <div className="rounded-xl font-sans on-a">
         {orderPlaced ? (
-          <div ref={successRef} className="success-message-container animate__animated animate__fadeIn suces">
+          <div
+            ref={successRef}
+            className="success-message-container animate__animated animate__fadeIn suces"
+          >
             <div className="flex flex-col lg:flex-row items-center justify-center ">
               <div className="flex flex-col items-center text-center lg:text-left lg:w-1/2 gap-7">
                 <div className="bg-green-100 p-4 rounded-full w-20 h-20 flex items-center justify-center mb-2 animate__animated animate__pulse ">
@@ -751,7 +949,11 @@ const App = () => {
                 </div>
 
                 <div className="bg-green-50 text-green-800 px-4 py-1 rounded-full text-sm font-medium inline-flex items-center">
-                  <span>Order #{orderDetails?.id || `ES${Math.floor(Math.random() * 100000)}`}</span>
+                  <span>
+                    Order #
+                    {orderDetails?.id ||
+                      `ES${Math.floor(Math.random() * 100000)}`}
+                  </span>
                 </div>
 
                 <h1 className="text-4xl md:text-5xl font-bold text-gray-800 leading-tight ">
@@ -759,54 +961,80 @@ const App = () => {
                 </h1>
 
                 <p className="text-gray-600 text-lg ">
-                  {formData.paymentMethod.toLowerCase().includes('cod') ? (
+                  {formData.paymentMethod.toLowerCase().includes("cod") ? (
                     <>
-                      Terima kasih telah memilih Jas Hujan Extrime!<br />
-                      Pesanan COD Anda telah dibuat. Pembayaran dilakukan saat barang diterima.
+                      Terima kasih telah memilih Jas Hujan Extrime!
+                      <br />
+                      Pesanan COD Anda telah dibuat. Pembayaran dilakukan saat
+                      barang diterima.
                     </>
                   ) : (
                     <>
-                      Terima kasih telah memilih Jas Hujan Extrime!<br />
-                      Silakan lakukan pembayaran untuk menyelesaikan pesanan Anda.
+                      Terima kasih telah memilih Jas Hujan Extrime!
+                      <br />
+                      Silakan lakukan pembayaran untuk menyelesaikan pesanan
+                      Anda.
                     </>
                   )}
                 </p>
 
                 <div className="w-full">
-                  <h3 className="font-semibold text-gray-800 mb-4 text-lg inf-1">Informasi Pesanan</h3>
+                  <h3 className="font-semibold text-gray-800 mb-4 text-lg inf-1">
+                    Informasi Pesanan
+                  </h3>
                   <ul className="border-t flex flex-col gap-3 ul-su">
                     <li className="flex justify-between items-center">
                       <span className="text-gray-600">Nama:</span>
-                      <span className="font-medium text-gray-900">{formData.fullName}</span>
+                      <span className="font-medium text-gray-900">
+                        {formData.fullName}
+                      </span>
                     </li>
                     <li className="flex justify-between items-center">
                       <span className="text-gray-600">Subtotal:</span>
-                      <span className="font-medium text-gray-900">{formatRupiah(subtotal)}</span>
+                      <span className="font-medium text-gray-900">
+                        {formatRupiah(subtotal)}
+                      </span>
                     </li>
                     <li className="flex justify-between items-center">
                       <span className="text-gray-600">Diskon:</span>
-                      <span className="font-medium text-gray-900">-{formatRupiah(discount)}</span>
+                      <span className="font-medium text-gray-900">
+                        -{formatRupiah(discount)}
+                      </span>
                     </li>
                     <li className="flex justify-between items-center">
                       <span className="text-gray-600">Ongkir:</span>
-                      <span className="font-medium text-gray-900">{formatRupiah(formData.shippingCost)}</span>
+                      <span className="font-medium text-gray-900">
+                        {formatRupiah(formData.shippingCost)}
+                      </span>
                     </li>
                     <li className="flex justify-between items-center">
                       <span className="text-gray-600">Total Bayar:</span>
-                      <span className="font-bold text-2xl text-green-500">{formatRupiah(orderDetails?.total || orderDetails?.grand_total || total)}</span>
+                      <span className="font-bold text-2xl text-green-500">
+                        {formatRupiah(
+                          orderDetails?.total ||
+                            orderDetails?.grand_total ||
+                            total
+                        )}
+                      </span>
                     </li>
                     <li className="flex justify-between items-center">
                       <span className="text-gray-600">Metode:</span>
-                      <span className="font-semibold text-gray-900">{formData.paymentMethod}</span>
+                      <span className="font-semibold text-gray-900">
+                        {formData.paymentMethod}
+                      </span>
                     </li>
                     <li className="flex justify-between items-center">
                       <span className="text-gray-600">Pengiriman:</span>
-                      <span className="font-medium text-gray-900">{formData.shippingMethod}</span>
+                      <span className="font-medium text-gray-900">
+                        {formData.shippingMethod}
+                      </span>
                     </li>
                     <li className="flex justify-between items-center">
                       <span className="text-gray-600">Status:</span>
                       <span className="font-medium text-gray-900">
-                        {formData.paymentMethod.toLowerCase().includes('cod') ? 'Menunggu Pengiriman (COD)' : 'Menunggu Pembayaran'}
+                        {formData.paymentMethod.toLowerCase().includes("cod")
+                          ? "Menunggu Pengiriman (COD)"
+                          : "Menunggu Pembayaran"}
                       </span>
                     </li>
                   </ul>
@@ -822,29 +1050,41 @@ const App = () => {
                   </div>
                 </button>
               </div>
-                <div className="relative lg:w-1/2 flex flex-col justify-center items-center mt-10 lg:mt-0">
-                  <div className='bg-gradient-to-br from-green-100 to-blue-100 p-1 rounded-2xl shadow-lg'>
-                    <div className="absolute -top-5 -left-5 z-10 bg-yellow-400 rounded-full w-16 h-16 flex items-center justify-center rotate-12 shadow-lg">
-                      <span className="font-bold text-white text-lg">New!</span>
-                    </div>
-                    <img
-                      src={Testi}
-                      alt="Successful purchase confirmation"
-                      className="img-test rounded-xl shadow-md border-2 border-white transform transition-transform duration-300 hover:scale-110 object-cover w-full h-full max-w-xs"
-                    />
+              <div className="relative lg:w-1/2 flex flex-col justify-center items-center mt-10 lg:mt-0">
+                <div className="bg-gradient-to-br from-green-100 to-blue-100 p-1 rounded-2xl shadow-lg">
+                  <div className="absolute -top-5 -left-5 z-10 bg-yellow-400 rounded-full w-16 h-16 flex items-center justify-center rotate-12 shadow-lg">
+                    <span className="font-bold text-white text-lg">New!</span>
                   </div>
-                  <div className="flex justify-center w-full mt-6">
-                    <a
-                      href="#"
-                      className="text-sm bg-gradient-to-r from-purple-500 to-indigo-600 text-white font-bold rounded-xl shadow-lg transition-all duration-300 transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-orange-300 flex items-center gap-1 cek-sta"
-                    >
-                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                      </svg>
-                      Cek status pesanan
-                    </a>
-                  </div>
+                  <img
+                    src={Testi}
+                    alt="Successful purchase confirmation"
+                    className="img-test rounded-xl shadow-md border-2 border-white transform transition-transform duration-300 hover:scale-110 object-cover w-full h-full max-w-xs"
+                  />
                 </div>
+                <div className="flex justify-center w-full mt-6">
+                  <a
+                    href="#"
+                    className="text-sm bg-gradient-to-r from-purple-500 to-indigo-600 text-white font-bold rounded-xl shadow-lg transition-all duration-300 transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-orange-300 flex items-center gap-1 cek-sta"
+                  >
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="16"
+                      height="16"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M9 5l7 7-7 7"
+                      />
+                    </svg>
+                    Cek status pesanan
+                  </a>
+                </div>
+              </div>
             </div>
           </div>
         ) : (
@@ -853,16 +1093,23 @@ const App = () => {
             <div className="space-y-10">
               {/* Product Selection Card */}
               <div className="Pil-Ap" ref={productFormRef}>
-                <h2 className="text-2xl font-bold mb-6 text-black li-on text-center">Pilih Produk</h2>
+                <h2 className="text-2xl font-bold mb-6 text-black li-on text-center">
+                  Pilih Produk
+                </h2>
                 <div className="flex flex-col md:flex-row gap-6 md:gap-8 items-start mb-8 on-a1">
                   <div className="w-full md:w-auto flex justify-center md:justify-start">
                     <img
                       src={getProductImage}
-                      alt={currentProduct.color ? `Jas Hujan ${currentProduct.color}` : "Pilih Warna Jas Hujan"}
+                      alt={
+                        currentProduct.color
+                          ? `Jas Hujan ${currentProduct.color}`
+                          : "Pilih Warna Jas Hujan"
+                      }
                       className="w-[220px] h-[250px] rounded-lg object-cover shadow-md flex-shrink-0 ig-1 transition-all duration-300"
                       onError={(e) => {
-                        e.target.src = 'https://placehold.co/150x200/A0D8B3/333?text=Product+Image';
-                        e.target.alt = 'Placeholder Image';
+                        e.target.src =
+                          "https://placehold.co/150x200/A0D8B3/333?text=Product+Image";
+                        e.target.alt = "Placeholder Image";
                       }}
                     />
                   </div>
@@ -916,19 +1163,25 @@ const App = () => {
                         </button>
                       </div>
                       {productErrors.quantity && (
-                        <p className="mt-1 text-xs text-gray-500">{productErrors.quantity}</p>
+                        <p className="mt-1 text-xs text-gray-500">
+                          {productErrors.quantity}
+                        </p>
                       )}
                     </div>
                     <button
                       onClick={handleAddProduct}
                       type="button"
                       className={`w-full h-12 py-4 px-6 font-bold rounded-lg shadow-md transition-all duration-300 flex items-center justify-center text-lg
-                                  ${currentProduct.size && currentProduct.color
-                          ? 'bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white'
-                          : 'bg-gray-200 text-gray-400 cursor-not-allowed'
-                        }`}
+                                  ${
+                                    currentProduct.size && currentProduct.color
+                                      ? "bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white"
+                                      : "bg-gray-200 text-gray-400 cursor-not-allowed"
+                                  }`}
                       style={{
-                        boxShadow: currentProduct.size && currentProduct.color ? '0 4px 14px rgba(79, 70, 229, 0.3)' : 'none'
+                        boxShadow:
+                          currentProduct.size && currentProduct.color
+                            ? "0 4px 14px rgba(79, 70, 229, 0.3)"
+                            : "none",
                       }}
                     >
                       <div className="flex items-center justify-center gap-3">
@@ -936,7 +1189,7 @@ const App = () => {
                         <span>TambahKan Pesanan</span>
                       </div>
                     </button>
-                    <p className='text-center text-sm '>
+                    <p className="text-center text-sm ">
                       Pastikan Klik Dulu sebelum Pemesanan
                     </p>
                   </div>
@@ -945,9 +1198,12 @@ const App = () => {
 
               {/* Shipping Details Form Card */}
               <div className="mt-8 det-ap">
-                <h2 className="text-2xl font-bold text-black on-a4 text-center">Detail Pengiriman</h2>
+                <h2 className="text-2xl font-bold text-black on-a4 text-center">
+                  Detail Pengiriman
+                </h2>
                 <p className="text-sm text-gray-600 text-center mb-6">
-                  Pilih lokasi dari dropdown untuk menghitung ongkos kirim secara otomatis
+                  Pilih lokasi dari dropdown untuk menghitung ongkos kirim
+                  secara otomatis
                 </p>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 on-10">
                   <TextInput
@@ -970,16 +1226,20 @@ const App = () => {
                       error={formErrors.telephone}
                     />
                     {!formErrors.telephone && (
-                      <p className="text-xs text-gray-500 mt-1">Contoh: 081234567890 (tanpa awalan 0 atau +62)</p>
+                      <p className="text-xs text-gray-500 mt-1">
+                        Contoh: 081234567890 (tanpa awalan 0 atau +62)
+                      </p>
                     )}
                   </div>
                   <SelectInput
                     label="Provinsi"
                     name="province"
                     value={formData.province}
-                    options={provinces.map(p => ({ id: p.id, name: p.name }))}
+                    options={provinces.map((p) => ({ id: p.id, name: p.name }))}
                     onChange={handleInputChange}
-                    placeholder={isLoadingLocations ? "Memuat..." : "Pilih Provinsi"}
+                    placeholder={
+                      isLoadingLocations ? "Memuat..." : "Pilih Provinsi"
+                    }
                     required
                     disabled={isLoadingLocations}
                     error={formErrors.province}
@@ -988,9 +1248,15 @@ const App = () => {
                     label="Kota/Kabupaten"
                     name="city"
                     value={formData.city}
-                    options={cities.map(c => ({ id: c.id, name: c.name }))}
+                    options={cities.map((c) => ({ id: c.id, name: c.name }))}
                     onChange={handleInputChange}
-                    placeholder={!formData.province ? "Pilih provinsi dulu" : isLoadingLocations ? "Memuat..." : "Pilih Kota/Kabupaten"}
+                    placeholder={
+                      !formData.province
+                        ? "Pilih provinsi dulu"
+                        : isLoadingLocations
+                        ? "Memuat..."
+                        : "Pilih Kota/Kabupaten"
+                    }
                     required
                     disabled={!formData.province || isLoadingLocations}
                     error={formErrors.city}
@@ -999,9 +1265,18 @@ const App = () => {
                     label="Kecamatan"
                     name="subDistrict"
                     value={formData.subDistrict}
-                    options={subdistricts.map(s => ({ id: s.id, name: s.name }))}
+                    options={subdistricts.map((s) => ({
+                      id: s.id,
+                      name: s.name,
+                    }))}
                     onChange={handleInputChange}
-                    placeholder={!formData.city ? "Pilih kota dulu" : isLoadingLocations ? "Memuat..." : "Pilih Kecamatan"}
+                    placeholder={
+                      !formData.city
+                        ? "Pilih kota dulu"
+                        : isLoadingLocations
+                        ? "Memuat..."
+                        : "Pilih Kecamatan"
+                    }
                     required
                     disabled={!formData.city || isLoadingLocations}
                     error={formErrors.subDistrict}
@@ -1010,9 +1285,15 @@ const App = () => {
                     label="Desa"
                     name="village"
                     value={formData.village}
-                    options={villages.map(v => ({ id: v.id, name: v.name }))}
+                    options={villages.map((v) => ({ id: v.id, name: v.name }))}
                     onChange={handleInputChange}
-                    placeholder={!formData.subDistrict ? "Pilih kecamatan dulu" : isLoadingLocations ? "Memuat..." : "Pilih Desa"}
+                    placeholder={
+                      !formData.subDistrict
+                        ? "Pilih kecamatan dulu"
+                        : isLoadingLocations
+                        ? "Memuat..."
+                        : "Pilih Desa"
+                    }
                     required
                     disabled={!formData.subDistrict || isLoadingLocations}
                     error={formErrors.village}
@@ -1020,8 +1301,14 @@ const App = () => {
                 </div>
                 <div className="mt-6 on-10">
                   <div className="flex flex-col">
-                    <label htmlFor="completeAddress" className="block text-sm font-medium text-black al-1 mb-1.5">
-                      Alamat Lengkap {formErrors.completeAddress && <span className="text-red-500">*</span>}
+                    <label
+                      htmlFor="completeAddress"
+                      className="block text-sm font-medium text-black al-1 mb-1.5"
+                    >
+                      Alamat Lengkap{" "}
+                      {formErrors.completeAddress && (
+                        <span className="text-red-500">*</span>
+                      )}
                     </label>
                     <textarea
                       id="completeAddress"
@@ -1030,13 +1317,28 @@ const App = () => {
                       value={formData.completeAddress}
                       onChange={handleInputChange}
                       placeholder="Jl. Kenanga No. 23 RT 02 RW 05, (Depan Toko Sembako Makmur, Belakang Klinik Sehat Sentosa)"
-                      className={`w-full h-[160px] p-3 border ${formErrors.completeAddress ? 'border-red-500' : 'border-gray-300'} rounded-lg shadow-sm focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 text-sm md:text-base text-black al-11`}
+                      className={`w-full h-[160px] p-3 border ${
+                        formErrors.completeAddress
+                          ? "border-red-500"
+                          : "border-gray-300"
+                      } rounded-lg shadow-sm focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 text-sm md:text-base text-black al-11`}
                       required
-                      aria-invalid={formErrors.completeAddress ? "true" : "false"}
-                      aria-describedby={formErrors.completeAddress ? "completeAddress-error" : undefined}
+                      aria-invalid={
+                        formErrors.completeAddress ? "true" : "false"
+                      }
+                      aria-describedby={
+                        formErrors.completeAddress
+                          ? "completeAddress-error"
+                          : undefined
+                      }
                     ></textarea>
                     {formErrors.completeAddress && (
-                      <p id="completeAddress-error" className="mt-1 text-xs text-red-500">{formErrors.completeAddress}</p>
+                      <p
+                        id="completeAddress-error"
+                        className="mt-1 text-xs text-red-500"
+                      >
+                        {formErrors.completeAddress}
+                      </p>
                     )}
                   </div>
                 </div>
@@ -1045,26 +1347,43 @@ const App = () => {
               {/* Shipping and Payment Methods Cards */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 met-ap on-10">
                 <div>
-                  <h2 className="text-2xl font-bold mb-6 text-black">Metode Pengiriman</h2>
+                  <h2 className="text-2xl font-bold mb-6 text-black">
+                    Metode Pengiriman
+                  </h2>
                   <SelectInput
                     label=""
                     name="shippingMethod"
                     value={formData.shippingMethod}
-                    options={shippingOptions.map(option => ({
+                    options={shippingOptions.map((option) => ({
                       id: option.id,
-                      name: option.label
+                      name: option.label,
                     }))}
                     onChange={handleInputChange}
-                    placeholder={isLoadingShipping ? "Menghitung ongkir..." : "Pilih Metode Pengiriman"}
+                    placeholder={
+                      isLoadingShipping
+                        ? "Menghitung ongkir..."
+                        : "Pilih Metode Pengiriman"
+                    }
                     required
                     disabled={isLoadingShipping || shippingOptions.length === 0}
                     error={formErrors.shippingMethod}
                   />
                   {formData.shippingMethod && (
                     <div className="mt-3 text-sm">
-                      <p className="text-gray-600">Biaya: {formatRupiah(formData.shippingCost)}</p>
-                      {shippingOptions.find(opt => opt.id === formData.shippingMethod)?.etd && (
-                        <p className="text-gray-600">Estimasi: {shippingOptions.find(opt => opt.id === formData.shippingMethod)?.etd}</p>
+                      <p className="text-gray-600">
+                        Biaya: {formatRupiah(formData.shippingCost)}
+                      </p>
+                      {shippingOptions.find(
+                        (opt) => opt.id === formData.shippingMethod
+                      )?.etd && (
+                        <p className="text-gray-600">
+                          Estimasi:{" "}
+                          {
+                            shippingOptions.find(
+                              (opt) => opt.id === formData.shippingMethod
+                            )?.etd
+                          }
+                        </p>
                       )}
                     </div>
                   )}
@@ -1074,14 +1393,24 @@ const App = () => {
                       <span>Menghitung ongkos kirim...</span>
                     </div>
                   )}
-                  {!isLoadingShipping && shippingOptions.length === 0 && formData.province && formData.city && formData.subDistrict && formData.village && (
-                    <div className="mt-3 text-sm text-gray-500">
-                      <p>Menunggu pemilihan lokasi lengkap untuk menghitung ongkos kirim</p>
-                    </div>
-                  )}
+                  {!isLoadingShipping &&
+                    shippingOptions.length === 0 &&
+                    formData.province &&
+                    formData.city &&
+                    formData.subDistrict &&
+                    formData.village && (
+                      <div className="mt-3 text-sm text-gray-500">
+                        <p>
+                          Menunggu pemilihan lokasi lengkap untuk menghitung
+                          ongkos kirim
+                        </p>
+                      </div>
+                    )}
                 </div>
                 <div>
-                  <h2 className="text-2xl font-bold mb-6 text-black">Metode Pembayaran</h2>
+                  <h2 className="text-2xl font-bold mb-6 text-black">
+                    Metode Pembayaran
+                  </h2>
                   <SelectInput
                     label=""
                     name="paymentMethod"
@@ -1094,11 +1423,11 @@ const App = () => {
                   />
                   {formData.paymentMethod && (
                     <div className="mt-3 text-sm">
-                      <p className="text-gray-600">{
-                        formData.paymentMethod.includes('COD') ?
-                          'Pembayaran dilakukan saat barang diterima' :
-                          'Lakukan pembayaran setelah checkout'
-                      }</p>
+                      <p className="text-gray-600">
+                        {formData.paymentMethod.includes("COD")
+                          ? "Pembayaran dilakukan saat barang diterima"
+                          : "Lakukan pembayaran setelah checkout"}
+                      </p>
                     </div>
                   )}
                 </div>
@@ -1107,31 +1436,46 @@ const App = () => {
 
             {/* Right Section: Order Summary Card */}
             <div className="lg:self-start lg:sticky lg:top-8">
-              <h2 className="text-2xl font-bold text-black text-center mb-6 on-bo">Ringkasan Pesanan</h2>
+              <h2 className="text-2xl font-bold text-black text-center mb-6 on-bo">
+                Ringkasan Pesanan
+              </h2>
               <div className="rounded-xl shadow-lg on-b">
                 {/* Cart Items List */}
                 <div className="pb-10 border-b on-b1" ref={cartRef}>
                   {cartItems.length > 0 ? (
                     <div className="space-y-3">
                       {cartItems.map((item) => (
-                        <div key={item.id} className="flex flex-row items-center gap-4 p-4 rounded-lg shadow-sm on-b2 transition-all duration-200 hover:shadow-md">
+                        <div
+                          key={item.id}
+                          className="flex flex-row items-center gap-4 p-4 rounded-lg shadow-sm on-b2 transition-all duration-200 hover:shadow-md"
+                        >
                           <img
                             src={
-                              productData.find((p) => p.color === item.color)?.image ||
-                              'https://placehold.co/100x120/A0D8B3/333?text=Item'
+                              productData.find((p) => p.color === item.color)
+                                ?.image ||
+                              "https://placehold.co/100x120/A0D8B3/333?text=Item"
                             }
                             alt={`Jas Hujan ${item.color}`}
                             className="w-24 h-auto rounded-lg object-cover on-b21"
                             onError={(e) => {
-                              e.target.src = 'https://placehold.co/100x120/A0D8B3/333?text=Item';
-                              e.target.alt = 'Placeholder Image';
+                              e.target.src =
+                                "https://placehold.co/100x120/A0D8B3/333?text=Item";
+                              e.target.alt = "Placeholder Image";
                             }}
                           />
                           <div className="flex-1 on-b22 text-left">
-                            <h4 className="font-semibold text-white text-lg h4">Jas Hujan</h4>
-                            <p className="text-white text-sm p">Warna: {item.color}</p>
-                            <p className="text-white text-sm p">Ukuran: {item.size}</p>
-                            <p className="text-white text-sm p">Jumlah: {item.quantity}</p>
+                            <h4 className="font-semibold text-white text-lg h4">
+                              Jas Hujan
+                            </h4>
+                            <p className="text-white text-sm p">
+                              Warna: {item.color}
+                            </p>
+                            <p className="text-white text-sm p">
+                              Ukuran: {item.size}
+                            </p>
+                            <p className="text-white text-sm p">
+                              Jumlah: {item.quantity}
+                            </p>
                           </div>
                           <div className="flex sm:flex-col items-center sm:items-end">
                             <span className="font-bold text-white pu">
@@ -1160,13 +1504,30 @@ const App = () => {
                             <p>{formErrors.cart}</p>
                           </div>
                           <button
-                            onClick={() => productFormRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })}
+                            onClick={() =>
+                              productFormRef.current?.scrollIntoView({
+                                behavior: "smooth",
+                                block: "center",
+                              })
+                            }
                             className="w-full h-12 mt-3 px-5 py-2.5 bg-gradient-to-r from-purple-500 to-indigo-600 text-white font-medium text-sm rounded-lg shadow-md hover:shadow-lg transform hover:-translate-y-0.5 transition-all duration-200 flex items-center justify-center"
                             type="button"
                           >
                             <div className="flex items-center justify-center gap-2">
-                              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                              <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                width="16"
+                                height="16"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                                stroke="currentColor"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+                                />
                               </svg>
                               <span>Pilih Produk</span>
                             </div>
@@ -1185,7 +1546,9 @@ const App = () => {
                   </div>
                   <div className="flex justify-between items-center text-lg text-red-500 on-b3">
                     <span className="text-1xl">Diskon</span>
-                    <span className="line-through">{formatRupiah(discount)}</span>
+                    <span className="line-through">
+                      {formatRupiah(discount)}
+                    </span>
                   </div>
                   <div className="flex justify-between text-lg text-black on-b3">
                     <span className="text-1xl">Biaya Pengiriman</span>
@@ -1197,7 +1560,11 @@ const App = () => {
                   </div>
                   <div className="flex justify-between text-lg text-black on-b3">
                     <span className="text-1xl">Pajak</span>
-                    <span>{formData.taxCost > 0 ? formatRupiah(formData.taxCost) : 'N/A'}</span>
+                    <span>
+                      {formData.taxCost > 0
+                        ? formatRupiah(formData.taxCost)
+                        : "N/A"}
+                    </span>
                   </div>
                 </div>
 
@@ -1214,10 +1581,11 @@ const App = () => {
                   onClick={handleBuy}
                   disabled={!isFormValid || isSubmitting}
                   className={`mt-6 w-full py-4 font-bold text-lg md:text-xl rounded-xl shadow-lg transition-all duration-300 flex items-center justify-center gap-2 on-b5 focus:outline-none focus:ring-2 focus:ring-emerald-400
-                                  ${isFormValid && !isSubmitting
-                      ? 'bg-emerald-500 hover:bg-emerald-600 text-white'
-                      : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                    }`}
+                                  ${
+                                    isFormValid && !isSubmitting
+                                      ? "bg-emerald-500 hover:bg-emerald-600 text-white"
+                                      : "bg-gray-300 text-gray-500 cursor-not-allowed"
+                                  }`}
                 >
                   {isSubmitting ? (
                     <div className="flex items-center justify-center gap-2">

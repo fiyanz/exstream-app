@@ -1,22 +1,22 @@
 /**
  * transactionService.js
- * 
+ *
  * This module provides functions to handle transaction creation
  * with support for both COD and non-COD (Midtrans) payments,
  * as well as integration with Komerce Store Order API.
  */
 
-import { API_BASE_URL } from './dataWilayah';
+import { API_BASE_URL } from "./dataWilayah";
 
 // Admin WhatsApp number (will be used as primary destination)
-const ADMIN_WHATSAPP = '085702257423';
+const ADMIN_WHATSAPP = "085702257423";
 
 // Normalize Indonesian phone number to start with 62
 const normalizePhoneTo62 = (phone) => {
-  if (!phone || typeof phone !== 'string') return '';
-  const digits = phone.replace(/[^0-9]/g, '');
-  if (digits.startsWith('62')) return digits;
-  if (digits.startsWith('0')) return `62${digits.substring(1)}`;
+  if (!phone || typeof phone !== "string") return "";
+  const digits = phone.replace(/[^0-9]/g, "");
+  if (digits.startsWith("62")) return digits;
+  if (digits.startsWith("0")) return `62${digits.substring(1)}`;
   return `62${digits}`;
 };
 
@@ -24,117 +24,238 @@ const normalizePhoneTo62 = (phone) => {
 const prepareWaRedirectInfo = (orderData) => {
   try {
     // Prioritaskan nomor admin sebagai tujuan utama
-    const candidatePhone = ADMIN_WHATSAPP
-      || orderData.storeWhatsapp
-      || orderData.whatsappPhone
-      || orderData.receiver_phone
-      || (orderData.shipper_info && orderData.shipper_info.phone)
-      || orderData.shipper_phone;
+    const candidatePhone =
+      ADMIN_WHATSAPP ||
+      orderData.storeWhatsapp ||
+      orderData.whatsappPhone ||
+      orderData.receiver_phone ||
+      (orderData.shipper_info && orderData.shipper_info.phone) ||
+      orderData.shipper_phone;
 
     if (!candidatePhone) return;
 
     const phone62 = normalizePhoneTo62(String(candidatePhone));
-    const customerName = orderData.fullName || orderData.customer_name || orderData.receiver_name || '-';
-    const receiverPhone = orderData.telephone || orderData.receiver_phone || orderData.customer_phone || '-';
-    const address = orderData.address || orderData.receiver_address || '-';
-    const payment = orderData.paymentMethod || orderData.payment_method || '-';
-    const shipping = orderData.shippingMethod || orderData.shipping || '-';
-    const shippingType = orderData.shipping_type || '-';
+    const customerName =
+      orderData.fullName ||
+      orderData.customer_name ||
+      orderData.receiver_name ||
+      "-";
+    const receiverPhone =
+      orderData.telephone ||
+      orderData.receiver_phone ||
+      orderData.customer_phone ||
+      "-";
+    const address = orderData.address || orderData.receiver_address || "-";
+    const payment = orderData.paymentMethod || orderData.payment_method || "-";
+    const shipping = orderData.shippingMethod || orderData.shipping || "-";
+    const shippingType = orderData.shipping_type || "-";
     const shippingCost = orderData.shippingCost || orderData.shipping_cost || 0;
     // Util: cek string numerik (ID mentah)
-    const isNumericString = (val) => typeof val === 'string' && /^\d+$/.test(val.trim());
+    const isNumericString = (val) =>
+      typeof val === "string" && /^\d+$/.test(val.trim());
     // Util: ambil nama dari daftar key, abaikan angka
     const getName = (obj, keys) => {
       for (const k of keys) {
         const v = obj[k];
-        if (typeof v === 'string' && v.trim() && !isNumericString(v)) return v.trim();
+        if (typeof v === "string" && v.trim() && !isNumericString(v))
+          return v.trim();
       }
-      return '';
+      return "";
     };
     // Ambil nama daerah, hindari ID angka
     const province = getName(orderData, [
-      'province_name','receiver_province_name','provinsi_name','province','receiver_province','provinsi'
+      "province_name",
+      "receiver_province_name",
+      "provinsi_name",
+      "province",
+      "receiver_province",
+      "provinsi",
     ]);
     const city = getName(orderData, [
-      'city_name','receiver_city_name','kota_name','city','receiver_city','kota','kabupaten','kabupaten_name'
+      "city_name",
+      "receiver_city_name",
+      "kota_name",
+      "city",
+      "receiver_city",
+      "kota",
+      "kabupaten",
+      "kabupaten_name",
     ]);
     const subdistrict = getName(orderData, [
-      'subdistrict_name','receiver_subdistrict_name','kecamatan_name','kecamatan','district_name','receiver_district_name'
+      "subdistrict_name",
+      "receiver_subdistrict_name",
+      "kecamatan_name",
+      "kecamatan",
+      "district_name",
+      "receiver_district_name",
     ]);
     const village = getName(orderData, [
-      'village_name','receiver_village_name','desa_name','desa','kelurahan','kelurahan_name'
+      "village_name",
+      "receiver_village_name",
+      "desa_name",
+      "desa",
+      "kelurahan",
+      "kelurahan_name",
     ]);
-    const total = typeof orderData.total === 'number' ? orderData.total : (orderData.grand_total || orderData.totalAmount);
+
+    // Jika masih berupa ID, coba ambil dari data yang sudah di-resolve
+    const getLocationName = (orderData, type) => {
+      const nameKeys = {
+        province: ["province_name", "receiver_province_name", "provinsi_name"],
+        city: [
+          "city_name",
+          "receiver_city_name",
+          "kota_name",
+          "kabupaten_name",
+        ],
+        subdistrict: [
+          "subdistrict_name",
+          "receiver_subdistrict_name",
+          "kecamatan_name",
+        ],
+        village: [
+          "village_name",
+          "receiver_village_name",
+          "desa_name",
+          "kelurahan_name",
+        ],
+      };
+
+      // Coba ambil dari resolved location data
+      const resolvedData =
+        orderData.resolved_locations || orderData.location_names || {};
+      if (resolvedData[`${type}_name`]) {
+        return resolvedData[`${type}_name`];
+      }
+
+      // Fallback ke method getName yang sudah ada
+      return getName(orderData, nameKeys[type]);
+    };
+
+    // Gunakan fungsi baru untuk mendapatkan nama lokasi
+    const provinceName = getLocationName(orderData, "province");
+    const cityName = getLocationName(orderData, "city");
+    const subdistrictName = getLocationName(orderData, "subdistrict");
+    const villageName = getLocationName(orderData, "village");
+    const total =
+      typeof orderData.total === "number"
+        ? orderData.total
+        : orderData.grand_total || orderData.totalAmount;
     const discount = orderData.discount || orderData.discount_amount || 0;
     const serviceFee = orderData.service_fee || 0;
     const additionalCost = orderData.additional_cost || 0;
     const insuranceValue = orderData.insurance_value || 0;
     const codValue = orderData.cod_value || 0;
-    const orderId = orderData.order_id || orderData.orderId || orderData.invoice || '';
+    const orderId =
+      orderData.order_id || orderData.orderId || orderData.invoice || "";
 
     // Ambil produk dari items (checkout) atau order_details (store order)
     const items = Array.isArray(orderData.items)
       ? orderData.items
-      : (Array.isArray(orderData.order_details) ? orderData.order_details : []);
-    const itemsText = items.map((it, idx) => {
-      const name = it.name || it.product_name || `Item ${idx + 1}`;
-      const variant = it.variant || it.product_variant_name || [it.color, it.size].filter(Boolean).join(' ');
-      const sku = it.sku || it.product_sku || '';
-      const qty = parseInt(it.quantity || it.qty || 1);
-      const price = parseInt(it.price || it.product_price || 0);
-      const subtotal = parseInt(it.subtotal || (price * qty) || 0);
-      const variantText = variant ? ` | Varian: ${variant}` : '';
-      const skuText = sku ? ` | SKU: ${sku}` : '';
-      return `- ${name}${variantText}${skuText} | Qty: ${qty} | @ Rp ${Number(price).toLocaleString('id-ID')} | Subtotal: Rp ${Number(subtotal).toLocaleString('id-ID')}`;
-    }).join('\n');
+      : Array.isArray(orderData.order_details)
+      ? orderData.order_details
+      : [];
+    const itemsText = items
+      .map((it, idx) => {
+        const name = it.name || it.product_name || `Item ${idx + 1}`;
+        const variant =
+          it.variant ||
+          it.product_variant_name ||
+          [it.color, it.size].filter(Boolean).join(" ");
+        const sku = it.sku || it.product_sku || "";
+        const qty = parseInt(it.quantity || it.qty || 1);
+        const price = parseInt(it.price || it.product_price || 0);
+        const subtotal = parseInt(it.subtotal || price * qty || 0);
+        const variantText = variant ? ` | Varian: ${variant}` : "";
+        const skuText = sku ? ` | SKU: ${sku}` : "";
+        return `- ${name}${variantText}${skuText} | Qty: ${qty} | @ Rp ${Number(
+          price
+        ).toLocaleString("id-ID")} | Subtotal: Rp ${Number(
+          subtotal
+        ).toLocaleString("id-ID")}`;
+      })
+      .join("\n");
 
-    const message = `Halo Admin, pesanan sudah dibuat/success. Berikut detail lengkap:\n\n`
-      + `Nama: ${customerName}\n`
-      + `No HP: ${receiverPhone}\n`
-      + `Alamat: ${address}`
-      + `${village ? `, ${village}` : ''}`
-      + `${subdistrict ? `, Kec. ${subdistrict}` : ''}`
-      + `${city ? `, ${city}` : ''}`
-      + `${province ? `, ${province}` : ''}\n`
-      + `Metode Bayar: ${payment}\n`
-      + `Pengiriman: ${shipping}${shippingType && shippingType !== '-' ? ` - ${shippingType}` : ''}\n`
-      + (orderId ? `Order/Invoice: ${orderId}\n` : '')
-      + (itemsText ? `\nProduk (${items.length} item):\n${itemsText}\n` : '')
-      + (discount ? `\nDiskon: Rp ${Number(discount).toLocaleString('id-ID')}` : '')
-      + (shippingCost ? `\nOngkir: Rp ${Number(shippingCost).toLocaleString('id-ID')}` : '')
-      + (serviceFee ? `\nBiaya Layanan: Rp ${Number(serviceFee).toLocaleString('id-ID')}` : '')
-      + (additionalCost ? `\nBiaya Tambahan: Rp ${Number(additionalCost).toLocaleString('id-ID')}` : '')
-      + (insuranceValue ? `\nAsuransi: Rp ${Number(insuranceValue).toLocaleString('id-ID')}` : '')
-      + (codValue ? `\nNilai COD: Rp ${Number(codValue).toLocaleString('id-ID')}` : '')
-      + (total ? `\nTotal Bayar: Rp ${Number(total).toLocaleString('id-ID')}` : '');
+    const message =
+      `Halo Admin, pesanan sudah dibuat/success. Berikut detail lengkap:\n\n` +
+      `Nama: ${customerName}\n` +
+      `No HP: ${receiverPhone}\n` +
+      `Alamat: ${address}` +
+      `${villageName ? `, ${villageName}` : ""}` +
+      `${subdistrictName ? `, Kec. ${subdistrictName}` : ""}` +
+      `${cityName ? `, ${cityName}` : ""}` +
+      `${provinceName ? `, ${provinceName}` : ""}\n` +
+      `Metode Bayar: ${payment}\n` +
+      `Pengiriman: ${shipping}${
+        shippingType && shippingType !== "-" ? ` - ${shippingType}` : ""
+      }\n` +
+      (orderId ? `Order/Invoice: ${orderId}\n` : "") +
+      (itemsText ? `\nProduk (${items.length} item):\n${itemsText}\n` : "") +
+      (discount
+        ? `\nDiskon: Rp ${Number(discount).toLocaleString("id-ID")}`
+        : "") +
+      (shippingCost
+        ? `\nOngkir: Rp ${Number(shippingCost).toLocaleString("id-ID")}`
+        : "") +
+      (serviceFee
+        ? `\nBiaya Layanan: Rp ${Number(serviceFee).toLocaleString("id-ID")}`
+        : "") +
+      (additionalCost
+        ? `\nBiaya Tambahan: Rp ${Number(additionalCost).toLocaleString(
+            "id-ID"
+          )}`
+        : "") +
+      (insuranceValue
+        ? `\nAsuransi: Rp ${Number(insuranceValue).toLocaleString("id-ID")}`
+        : "") +
+      (codValue
+        ? `\nNilai COD: Rp ${Number(codValue).toLocaleString("id-ID")}`
+        : "") +
+      (total
+        ? `\nTotal Bayar: Rp ${Number(total).toLocaleString("id-ID")}`
+        : "");
 
     // Gunakan wa.me sebagai primary (resmi/lebih stabil), whatsapp.me sebagai secondary
-    const waPrimaryUrl = `https://wa.me/${phone62}?text=${encodeURIComponent(message)}`;
-    const waSecondaryUrl = `https://whatsapp.me/${phone62}?text=${encodeURIComponent(message)}`;
-    const waTertiaryUrl = `https://api.whatsapp.com/send?phone=${phone62}&text=${encodeURIComponent(message)}`;
+    const waPrimaryUrl = `https://wa.me/${phone62}?text=${encodeURIComponent(
+      message
+    )}`;
+    const waSecondaryUrl = `https://whatsapp.me/${phone62}?text=${encodeURIComponent(
+      message
+    )}`;
+    const waTertiaryUrl = `https://api.whatsapp.com/send?phone=${phone62}&text=${encodeURIComponent(
+      message
+    )}`;
 
-    if (typeof window !== 'undefined') {
-      window.__waRedirectInfo = { phone62, message, waPrimaryUrl, waSecondaryUrl, waTertiaryUrl };
+    if (typeof window !== "undefined") {
+      window.__waRedirectInfo = {
+        phone62,
+        message,
+        waPrimaryUrl,
+        waSecondaryUrl,
+        waTertiaryUrl,
+      };
     }
   } catch {}
 };
 
 // Trigger WA redirect if prepared
 const triggerWaRedirectIfPrepared = () => {
-  const info = typeof window !== 'undefined' ? window.__waRedirectInfo : null;
+  const info = typeof window !== "undefined" ? window.__waRedirectInfo : null;
   if (!info) {
-    console.warn('[WA] Redirect info not prepared');
+    console.warn("[WA] Redirect info not prepared");
     return false;
   }
   // Prefer same-tab navigation to avoid popup blockers; do it asynchronously
   try {
-    const targetUrl = info.waPrimaryUrl || info.waSecondaryUrl || info.waTertiaryUrl;
+    const targetUrl =
+      info.waPrimaryUrl || info.waSecondaryUrl || info.waTertiaryUrl;
     setTimeout(() => {
       try {
         window.location.href = targetUrl;
       } catch {
         try {
-          window.location.href = info.waSecondaryUrl || info.waTertiaryUrl || targetUrl;
+          window.location.href =
+            info.waSecondaryUrl || info.waTertiaryUrl || targetUrl;
         } catch {
           window.location.href = info.waTertiaryUrl || targetUrl;
         }
@@ -163,35 +284,34 @@ export const createTransaction = async (orderData) => {
 
     console.log("Payload yang dikirim:", JSON.stringify(orderData, null, 2));
     // Prepare WhatsApp redirect info; actual redirect will occur after payment success
-    if (typeof window !== 'undefined') {
+    if (typeof window !== "undefined") {
       prepareWaRedirectInfo(orderData);
     }
 
     const response = await fetch(`${API_BASE_URL}/api/v1/transaksi/enhanced`, {
-      method: 'POST',
+      method: "POST",
       headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
+        "Content-Type": "application/json",
+        Accept: "application/json",
       },
-      body: JSON.stringify(orderData)
+      body: JSON.stringify(orderData),
     });
 
     if (!response.ok) {
       const errorText = await response.text();
       console.error("Error detail dari server:", errorText);
-      throw new Error(`Failed to create transaction (${response.status}): ${errorText}`);
+      throw new Error(
+        `Failed to create transaction (${response.status}): ${errorText}`
+      );
     }
 
     const data = await response.json();
     return data;
-
   } catch (error) {
     console.error("Create transaction error:", error.message);
     throw error;
   }
 };
-
-
 
 /**
  * Gets order status by order ID
@@ -200,12 +320,15 @@ export const createTransaction = async (orderData) => {
  */
 export const getOrderStatus = async (orderId) => {
   try {
-    const response = await fetch(`${API_BASE_URL}/api/v1/transaksi/${orderId}/status`, {
-      method: 'GET',
-      headers: {
-        'Accept': 'application/json',
+    const response = await fetch(
+      `${API_BASE_URL}/api/v1/transaksi/${orderId}/status`,
+      {
+        method: "GET",
+        headers: {
+          Accept: "application/json",
+        },
       }
-    });
+    );
 
     if (!response.ok) {
       throw new Error(`Failed to get order status (${response.status})`);
@@ -226,57 +349,58 @@ export const getOrderStatus = async (orderId) => {
  */
 export const handleMidtransPayment = (snapToken, redirectUrl) => {
   // Method 1: Try popup mode first (if Snap.js is available)
-  if (window.snap && typeof window.snap.pay === 'function') {
+  if (window.snap && typeof window.snap.pay === "function") {
     try {
-      
       // Create a more robust popup configuration
       const popupConfig = {
-        onSuccess: function(result) {
+        onSuccess: function (result) {
           // Close popup and show success message
           if (window.snapPopup && !window.snapPopup.closed) {
             window.snapPopup.close();
           }
           // Auto redirect to WhatsApp after successful payment
           triggerWaRedirectIfPrepared();
-          alert('Pembayaran berhasil! Terima kasih telah berbelanja.');
+          alert("Pembayaran berhasil! Terima kasih telah berbelanja.");
           // Optionally redirect to success page
-          window.location.href = '/success';
+          window.location.href = "/success";
         },
-        onPending: function(result) {
-          alert('Pembayaran pending, silakan selesaikan pembayaran Anda.');
+        onPending: function (result) {
+          alert("Pembayaran pending, silakan selesaikan pembayaran Anda.");
         },
-        onError: function(result) {
+        onError: function (result) {
           // Close popup if open
           if (window.snapPopup && !window.snapPopup.closed) {
             window.snapPopup.close();
           }
-          alert('Pembayaran gagal. Silakan coba lagi.');
+          alert("Pembayaran gagal. Silakan coba lagi.");
         },
-        onClose: function() {
+        onClose: function () {
           // Don't show alert here as user might have intentionally closed it
-        }
+        },
       };
-      
+
       // Try to open popup
       window.snap.pay(snapToken, popupConfig);
       return;
-      
     } catch (err) {
       // Trying alternative methods
     }
   }
-  
+
   // Method 2: Try opening in new window/tab
   if (redirectUrl) {
     try {
-      const popup = window.open(redirectUrl, 'midtrans_payment', 
-        'width=800,height=600,scrollbars=yes,resizable=yes,status=yes,location=yes,toolbar=no,menubar=no');
-      
+      const popup = window.open(
+        redirectUrl,
+        "midtrans_payment",
+        "width=800,height=600,scrollbars=yes,resizable=yes,status=yes,location=yes,toolbar=no,menubar=no"
+      );
+
       if (popup) {
         window.snapPopup = popup;
-        
+
         // Check if popup was blocked
-        if (popup.closed || typeof popup.closed === 'undefined') {
+        if (popup.closed || typeof popup.closed === "undefined") {
           window.location.href = redirectUrl;
         } else {
           // Monitor popup
@@ -294,7 +418,7 @@ export const handleMidtransPayment = (snapToken, redirectUrl) => {
       window.location.href = redirectUrl;
     }
   } else {
-    alert('Terjadi kesalahan dalam memproses pembayaran. Silakan coba lagi.');
+    alert("Terjadi kesalahan dalam memproses pembayaran. Silakan coba lagi.");
   }
 };
 
@@ -303,50 +427,52 @@ export const handleMidtransPayment = (snapToken, redirectUrl) => {
  * @param {string} snapToken - Midtrans snap token
  * @param {string} containerId - ID of the container element
  */
-export const embedMidtransSnap = (snapToken, containerId = 'snap-container') => {
-  if (window.snap && typeof window.snap.embed === 'function') {
+export const embedMidtransSnap = (
+  snapToken,
+  containerId = "snap-container"
+) => {
+  if (window.snap && typeof window.snap.embed === "function") {
     try {
-      
       // Show the container
       const container = document.getElementById(containerId);
-      const embedContent = document.getElementById('snap-embed-content');
+      const embedContent = document.getElementById("snap-embed-content");
       if (container) {
-        container.style.display = 'block';
+        container.style.display = "block";
       }
-      
+
       window.snap.embed(snapToken, {
         embedId: containerId,
-        onSuccess: function(result) {
+        onSuccess: function (result) {
           // Hide container
           if (container) {
-            container.style.display = 'none';
+            container.style.display = "none";
           }
-          alert('Pembayaran berhasil! Terima kasih telah berbelanja.');
+          alert("Pembayaran berhasil! Terima kasih telah berbelanja.");
           // Optionally redirect to success page
-          window.location.href = '/success';
+          window.location.href = "/success";
         },
-        onPending: function(result) {
-          alert('Pembayaran pending, silakan selesaikan pembayaran Anda.');
+        onPending: function (result) {
+          alert("Pembayaran pending, silakan selesaikan pembayaran Anda.");
         },
-        onError: function(result) {
+        onError: function (result) {
           // Hide container
           if (container) {
-            container.style.display = 'none';
+            container.style.display = "none";
           }
-          alert('Pembayaran gagal. Silakan coba lagi.');
+          alert("Pembayaran gagal. Silakan coba lagi.");
         },
-        onClose: function() {
+        onClose: function () {
           // Hide container
           if (container) {
-            container.style.display = 'none';
+            container.style.display = "none";
           }
-        }
+        },
       });
     } catch (err) {
-      alert('Terjadi kesalahan dalam menampilkan halaman pembayaran.');
+      alert("Terjadi kesalahan dalam menampilkan halaman pembayaran.");
     }
   } else {
-    alert('Halaman pembayaran tidak dapat ditampilkan.');
+    alert("Halaman pembayaran tidak dapat ditampilkan.");
   }
 };
 
@@ -360,9 +486,12 @@ export const handleMidtransPaymentEnhanced = (snapToken, redirectUrl) => {
   if (redirectUrl) {
     try {
       // Try to open in new window/tab
-      const popup = window.open(redirectUrl, 'midtrans_payment', 
-        'width=800,height=600,scrollbars=yes,resizable=yes,status=yes,location=yes,toolbar=no,menubar=no');
-      
+      const popup = window.open(
+        redirectUrl,
+        "midtrans_payment",
+        "width=800,height=600,scrollbars=yes,resizable=yes,status=yes,location=yes,toolbar=no,menubar=no"
+      );
+
       if (popup && !popup.closed) {
         // Check if popup was blocked
         setTimeout(() => {
@@ -370,7 +499,7 @@ export const handleMidtransPaymentEnhanced = (snapToken, redirectUrl) => {
             window.location.href = redirectUrl;
           }
         }, 1000);
-        
+
         return;
       } else {
         window.location.href = redirectUrl;
@@ -381,35 +510,35 @@ export const handleMidtransPaymentEnhanced = (snapToken, redirectUrl) => {
       return;
     }
   }
-  
+
   // Method 2: Try Snap.js if available
-  if (window.snap && typeof window.snap.pay === 'function' && snapToken) {
+  if (window.snap && typeof window.snap.pay === "function" && snapToken) {
     try {
       window.snap.pay(snapToken, {
-        onSuccess: function(result) {
+        onSuccess: function (result) {
           // Auto redirect to WhatsApp after successful payment
           triggerWaRedirectIfPrepared();
-          alert('Pembayaran berhasil! Terima kasih telah berbelanja.');
-          window.location.href = '/success';
+          alert("Pembayaran berhasil! Terima kasih telah berbelanja.");
+          window.location.href = "/success";
         },
-        onPending: function(result) {
-          alert('Pembayaran pending, silakan selesaikan pembayaran Anda.');
+        onPending: function (result) {
+          alert("Pembayaran pending, silakan selesaikan pembayaran Anda.");
         },
-        onError: function(result) {
-          alert('Pembayaran gagal. Silakan coba lagi.');
+        onError: function (result) {
+          alert("Pembayaran gagal. Silakan coba lagi.");
         },
-        onClose: function() {
+        onClose: function () {
           // Payment popup closed
-        }
+        },
       });
       return;
     } catch (err) {
       // Snap popup failed
     }
   }
-  
+
   // Method 2: Try embedded mode with token
-  if (window.snap && typeof window.snap.embed === 'function' && snapToken) {
+  if (window.snap && typeof window.snap.embed === "function" && snapToken) {
     try {
       embedMidtransSnap(snapToken);
       return;
@@ -417,14 +546,14 @@ export const handleMidtransPaymentEnhanced = (snapToken, redirectUrl) => {
       // Embedded mode failed
     }
   }
-  
+
   // Method 3: Try Snap embed with redirect URL (extract token from URL)
-  if (window.snap && typeof window.snap.embed === 'function' && redirectUrl) {
+  if (window.snap && typeof window.snap.embed === "function" && redirectUrl) {
     try {
       // Extract token from redirect URL if possible
-      const urlParts = redirectUrl.split('/');
+      const urlParts = redirectUrl.split("/");
       const extractedToken = urlParts[urlParts.length - 1];
-      
+
       if (extractedToken && extractedToken.length > 10) {
         embedMidtransSnap(extractedToken);
         return;
@@ -433,13 +562,16 @@ export const handleMidtransPaymentEnhanced = (snapToken, redirectUrl) => {
       // Snap embed with redirect URL failed
     }
   }
-  
+
   // Method 4: Try new window popup
   if (redirectUrl) {
     try {
-      const popup = window.open(redirectUrl, 'midtrans_payment', 
-        'width=800,height=600,scrollbars=yes,resizable=yes,status=yes,location=yes,toolbar=no,menubar=no');
-      
+      const popup = window.open(
+        redirectUrl,
+        "midtrans_payment",
+        "width=800,height=600,scrollbars=yes,resizable=yes,status=yes,location=yes,toolbar=no,menubar=no"
+      );
+
       if (popup && !popup.closed) {
         return;
       }
@@ -447,12 +579,12 @@ export const handleMidtransPaymentEnhanced = (snapToken, redirectUrl) => {
       // New window popup failed
     }
   }
-  
+
   // Method 5: Fallback to redirect
   if (redirectUrl) {
     window.location.href = redirectUrl;
   } else {
-    alert('Terjadi kesalahan dalam memproses pembayaran. Silakan coba lagi.');
+    alert("Terjadi kesalahan dalam memproses pembayaran. Silakan coba lagi.");
   }
 };
 
@@ -466,9 +598,9 @@ export const storeOrder = async (orderData) => {
   try {
     // Format data for the API
     const formattedData = formatOrderData(orderData);
-    
+
     // Special case handling for COD orders
-    if (orderData.paymentMethod === 'COD') {
+    if (orderData.paymentMethod === "COD") {
       // Process COD order
     }
 
@@ -486,13 +618,15 @@ export const storeOrder = async (orderData) => {
  */
 export const getOrderData = async (orderId) => {
   try {
-    
-    const response = await fetch(`${API_BASE_URL}/api/v1/transaksi/order/${orderId}`, {
-      method: 'GET',
-      headers: {
-        'Accept': 'application/json',
+    const response = await fetch(
+      `${API_BASE_URL}/api/v1/transaksi/order/${orderId}`,
+      {
+        method: "GET",
+        headers: {
+          Accept: "application/json",
+        },
       }
-    });
+    );
 
     if (!response.ok) {
       const errorText = await response.text();
@@ -500,7 +634,7 @@ export const getOrderData = async (orderId) => {
     }
 
     const data = await response.json();
-    
+
     return data;
   } catch (error) {
     throw error;
@@ -514,56 +648,78 @@ export const getOrderData = async (orderId) => {
  */
 export const createStoreOrder = async (orderData) => {
   try {
-    
     // Validasi data order sebelum mengirim ke API
     if (!orderData) {
-      throw new Error('Data order tidak tersedia');
+      throw new Error("Data order tidak tersedia");
     }
-    
+
     // Validasi field yang diperlukan
     const requiredFields = [
-      'order_date', 'receiver_name', 'receiver_phone', 'receiver_address', 'receiver_destination_id',
-      'shipping', 'shipping_type', 'payment_method', 'shipping_cost', 'grand_total'
+      "order_date",
+      "receiver_name",
+      "receiver_phone",
+      "receiver_address",
+      "receiver_destination_id",
+      "shipping",
+      "shipping_type",
+      "payment_method",
+      "shipping_cost",
+      "grand_total",
     ];
-    
-    const missingFields = requiredFields.filter(field => !orderData[field]);
-    
+
+    const missingFields = requiredFields.filter((field) => !orderData[field]);
+
     if (missingFields.length > 0) {
-      throw new Error(`Data tidak lengkap: ${missingFields.join(', ')}`);
-    }    // Kirim request ke API dengan timeout
+      throw new Error(`Data tidak lengkap: ${missingFields.join(", ")}`);
+    } // Kirim request ke API dengan timeout
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 detik timeout
-    
+
     try {
       // Log the request payload for debugging
-      console.log('Creating store order with data:', JSON.stringify(orderData, null, 2)); 
+      console.log(
+        "Creating store order with data:",
+        JSON.stringify(orderData, null, 2)
+      );
       // kirim wa
-      
-      const response = await fetch(`${API_BASE_URL}/api/v1/store_order/store_order`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
-        body: JSON.stringify(orderData),
-        signal: controller.signal
-      });
-      
+
+      const response = await fetch(
+        `${API_BASE_URL}/api/v1/store_order/store_order`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Accept: "application/json",
+          },
+          body: JSON.stringify(orderData),
+          signal: controller.signal,
+        }
+      );
+
       clearTimeout(timeoutId);
-      
+
       if (!response.ok) {
-        let errorDetail = '';
+        let errorDetail = "";
         try {
           const errorResponse = await response.json();
 
           // Check for specific error messages about service fee or insurance
-          if (errorResponse.detail && typeof errorResponse.detail === 'string') {
+          if (
+            errorResponse.detail &&
+            typeof errorResponse.detail === "string"
+          ) {
             // Check for COD not supported by courier error
-            if (errorResponse.detail.includes('Kurir') && errorResponse.detail.includes('tidak mendukung pembayaran COD')) {
+            if (
+              errorResponse.detail.includes("Kurir") &&
+              errorResponse.detail.includes("tidak mendukung pembayaran COD")
+            ) {
               // Show alert for courier not supporting COD
               alert(errorResponse.detail);
               errorDetail = errorResponse.detail;
-            } else if (errorResponse.detail.includes('service fee') || errorResponse.detail.includes('insurance')) {
+            } else if (
+              errorResponse.detail.includes("service fee") ||
+              errorResponse.detail.includes("insurance")
+            ) {
               errorDetail = errorResponse.detail;
             } else {
               errorDetail = `Error from server: ${errorResponse.detail}`;
@@ -571,11 +727,15 @@ export const createStoreOrder = async (orderData) => {
           } else if (errorResponse.meta && errorResponse.meta.message) {
             // Handle errors that come in the meta.message format
             errorDetail = errorResponse.meta.message;
-            
+
             // Special handling for date order error
             if (errorDetail.includes("date order can't before today")) {
-              console.error("Date error detected! Current date used:", orderData.order_date);
-              errorDetail = "Terjadi kesalahan pada tanggal order. Silakan coba lagi.";
+              console.error(
+                "Date error detected! Current date used:",
+                orderData.order_date
+              );
+              errorDetail =
+                "Terjadi kesalahan pada tanggal order. Silakan coba lagi.";
             }
           } else {
             errorDetail = JSON.stringify(errorResponse);
@@ -585,16 +745,22 @@ export const createStoreOrder = async (orderData) => {
 
           errorDetail = errorText;
         }
-        throw new Error(`Gagal membuat store order (${response.status}): ${errorDetail}`);
+        throw new Error(
+          `Gagal membuat store order (${response.status}): ${errorDetail}`
+        );
       }
 
       const data = await response.json();
       // Jika pembayaran COD, langsung redirect ke WhatsApp setelah order berhasil dibuat
       try {
-        const payMethod = (orderData.payment_method || orderData.paymentMethod || '').toString();
-        if (payMethod.toUpperCase().includes('COD')) {
+        const payMethod = (
+          orderData.payment_method ||
+          orderData.paymentMethod ||
+          ""
+        ).toString();
+        if (payMethod.toUpperCase().includes("COD")) {
           // Siapkan data WA jika belum
-          if (typeof window !== 'undefined' && !window.__waRedirectInfo) {
+          if (typeof window !== "undefined" && !window.__waRedirectInfo) {
             prepareWaRedirectInfo(orderData);
           }
           triggerWaRedirectIfPrepared();
@@ -603,15 +769,14 @@ export const createStoreOrder = async (orderData) => {
       return data;
     } catch (fetchError) {
       clearTimeout(timeoutId);
-      
-      if (fetchError.name === 'AbortError') {
-        throw new Error('Koneksi timeout, silakan coba lagi');
+
+      if (fetchError.name === "AbortError") {
+        throw new Error("Koneksi timeout, silakan coba lagi");
       }
-      
+
       throw fetchError;
     }
   } catch (error) {
-
     throw error;
   }
 };
@@ -625,18 +790,18 @@ export const formatStoreOrderData = (checkoutData) => {
   // Get the current date in Jakarta/Indonesia timezone (GMT+7) in YYYY-MM-DD HH:MM:SS format
   // This ensures the date is always current according to Indonesia time, regardless of client timezone
   const now = new Date();
-  const jakartaTime = new Date(now.getTime() + (7 * 60 * 60 * 1000)); // Add 7 hours for GMT+7
-  
+  const jakartaTime = new Date(now.getTime() + 7 * 60 * 60 * 1000); // Add 7 hours for GMT+7
+
   // Format as YYYY-MM-DD HH:MM:SS
   const year = jakartaTime.getUTCFullYear();
-  const month = String(jakartaTime.getUTCMonth() + 1).padStart(2, '0');
-  const day = String(jakartaTime.getUTCDate()).padStart(2, '0');
-  const hours = String(jakartaTime.getUTCHours()).padStart(2, '0');
-  const minutes = String(jakartaTime.getUTCMinutes()).padStart(2, '0');
-  const seconds = String(jakartaTime.getUTCSeconds()).padStart(2, '0');
-  
+  const month = String(jakartaTime.getUTCMonth() + 1).padStart(2, "0");
+  const day = String(jakartaTime.getUTCDate()).padStart(2, "0");
+  const hours = String(jakartaTime.getUTCHours()).padStart(2, "0");
+  const minutes = String(jakartaTime.getUTCMinutes()).padStart(2, "0");
+  const seconds = String(jakartaTime.getUTCSeconds()).padStart(2, "0");
+
   const orderDate = `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
-  
+
   // Extract customer and shipping information
   const {
     fullName,
@@ -650,62 +815,87 @@ export const formatStoreOrderData = (checkoutData) => {
     items,
     totalAmount,
     destination_id,
-    shipper_info
+    shipper_info,
   } = checkoutData;
-  
 
-  
   if (!fullName || !telephone || !address || !destination_id) {
-    throw new Error('Data penerima tidak lengkap');
+    throw new Error("Data penerima tidak lengkap");
   }
-  
+
   if (!items || !Array.isArray(items) || items.length === 0) {
-    throw new Error('Data produk tidak tersedia');
+    throw new Error("Data produk tidak tersedia");
   }
-  
+
   // Map payment method to Komerce format
-  const mappedPaymentMethod = paymentMethod.includes('COD') ? 'COD' : 'Transfer';
-  
+  const mappedPaymentMethod = paymentMethod.includes("COD")
+    ? "COD"
+    : "Transfer";
+
   // Parse shipping method to get courier and service type
   const [courier, serviceType] = parseShippingMethod(shippingMethod);
-  
+
   // Calculate COD value
-  const codValue = mappedPaymentMethod === 'COD' ? totalAmount : 0;
-  
+  const codValue = mappedPaymentMethod === "COD" ? totalAmount : 0;
+
   // Format full address
-  const fullAddress = `${address}${city ? `, ${city}` : ''}${province ? `, ${province}` : ''}`;
-  
+  const fullAddress = `${address}${city ? `, ${city}` : ""}${
+    province ? `, ${province}` : ""
+  }`;
+
   // Format order details
-  const orderDetails = items.map(item => {
+  const orderDetails = items.map((item) => {
     if (!item.name || !item.price || !item.quantity) {
       throw new Error(`Data produk tidak lengkap: ${JSON.stringify(item)}`);
     }
-    
+
     return {
       product_name: item.name,
-      product_variant_name: item.color && item.size ? `${item.color} - ${item.size}` : item.variant || item.name,
+      product_variant_name:
+        item.color && item.size
+          ? `${item.color} - ${item.size}`
+          : item.variant || item.name,
       product_price: parseInt(item.price),
-      product_width: item.width || item.product_width || (shipper_info?.product_width || 20),
-      product_height: item.height || item.product_height || (shipper_info?.product_height || 5),
-      product_weight: item.weight || item.product_weight || (shipper_info?.product_weight || 300),
-      product_length: item.length || item.product_length || (shipper_info?.product_length || 30),
+      product_width:
+        item.width || item.product_width || shipper_info?.product_width || 20,
+      product_height:
+        item.height || item.product_height || shipper_info?.product_height || 5,
+      product_weight:
+        item.weight ||
+        item.product_weight ||
+        shipper_info?.product_weight ||
+        300,
+      product_length:
+        item.length ||
+        item.product_length ||
+        shipper_info?.product_length ||
+        30,
       qty: parseInt(item.quantity),
-      subtotal: parseInt(item.price * item.quantity)
+      subtotal: parseInt(item.price * item.quantity),
     };
   });
-  
+
   // Get shipper info from checkout data or use store info from configuration
   const shipper = shipper_info || checkoutData.shipper || {};
-  
+
   // Create store order object according to backend schema
   const formattedOrder = {
     order_date: orderDate,
-    brand_name: shipper.brand_name || checkoutData.brand_name || "Extreme Store",
-    shipper_name: shipper.name || checkoutData.shipper_name || "Extreme Store Official",
+    brand_name:
+      shipper.brand_name || checkoutData.brand_name || "Extreme Store",
+    shipper_name:
+      shipper.name || checkoutData.shipper_name || "Extreme Store Official",
     shipper_phone: shipper.phone || checkoutData.shipper_phone || telephone, // Fallback to customer phone
-    shipper_destination_id: parseInt(shipper.destination_id || checkoutData.shipper_destination_id || destination_id), // Use origin from config
+    shipper_destination_id: parseInt(
+      shipper.destination_id ||
+        checkoutData.shipper_destination_id ||
+        destination_id
+    ), // Use origin from config
     shipper_address: shipper.address || checkoutData.shipper_address || address, // Fallback to customer address
-    shipper_email: shipper.email || checkoutData.shipper_email || checkoutData.email || "store@extreme.com",
+    shipper_email:
+      shipper.email ||
+      checkoutData.shipper_email ||
+      checkoutData.email ||
+      "store@extreme.com",
     receiver_name: fullName,
     receiver_phone: telephone,
     receiver_destination_id: parseInt(destination_id),
@@ -716,9 +906,10 @@ export const formatStoreOrderData = (checkoutData) => {
     shipping_cost: parseInt(shippingCost),
     shipping_cashback: parseInt(checkoutData.shipping_cashback || 0),
     // Calculate service fee according to Komerce's requirements: 2.8% of COD value or grand total
-    service_fee: mappedPaymentMethod === 'COD' 
-      ? Math.round(parseInt(codValue) * 0.028) 
-      : Math.round(parseInt(totalAmount) * 0.028),
+    service_fee:
+      mappedPaymentMethod === "COD"
+        ? Math.round(parseInt(codValue) * 0.028)
+        : Math.round(parseInt(totalAmount) * 0.028),
     additional_cost: parseInt(checkoutData.additional_cost || 0),
     grand_total: parseInt(totalAmount),
     cod_value: parseInt(codValue),
@@ -726,12 +917,15 @@ export const formatStoreOrderData = (checkoutData) => {
     // Per Komerce API, only products with total price > IDR 300,000 can be insured
     // The backend will calculate this if appropriate
     insurance_value: 0,
-    order_details: orderDetails
+    order_details: orderDetails,
   };
-  
+
   // Calculate total product price to check insurance eligibility
-  const totalProductPrice = formattedOrder.order_details.reduce((sum, item) => sum + item.subtotal, 0);
-  
+  const totalProductPrice = formattedOrder.order_details.reduce(
+    (sum, item) => sum + item.subtotal,
+    0
+  );
+
   return formattedOrder;
 };
 
@@ -744,16 +938,16 @@ export const formatStoreOrderData = (checkoutData) => {
  * Mapper untuk kode kurir ke format yang dikenali oleh API Komerce
  */
 const courierCodeMapper = {
-  'jne': 'JNE',
-  'jnt': 'JNT',
-  'j&t': 'JNT',
-  'ninja': 'NINJA',
-  'anteraja': 'ANTERAJA',
-  'sicepat': 'SICEPAT',
-  'sap': 'SAP',
-  'pos': 'POS',
-  'idexpress': 'IDEXPRESS',
-  'lion': 'LION',
+  jne: "JNE",
+  jnt: "JNT",
+  "j&t": "JNT",
+  ninja: "NINJA",
+  anteraja: "ANTERAJA",
+  sicepat: "SICEPAT",
+  sap: "SAP",
+  pos: "POS",
+  idexpress: "IDEXPRESS",
+  lion: "LION",
   // tambahkan mapper lain jika diperlukan
 };
 
@@ -761,108 +955,115 @@ const courierCodeMapper = {
  * Mapper untuk tipe layanan ke format yang dikenali oleh API Komerce
  */
 const serviceTypeMapper = {
-  'reg': 'REG',
-  'regular': 'REG',
-  'ctc23': 'CTC23',
-  'ez': 'EZ',
-  'udrreg': 'UDRREG',
-  'standard': 'Standard',
-  'siunt': 'SIUNT',
-  'idlite': 'IDlite',
-  'regpack': 'REGPACK',
+  reg: "REG",
+  regular: "REG",
+  ctc23: "CTC23",
+  ez: "EZ",
+  udrreg: "UDRREG",
+  standard: "Standard",
+  siunt: "SIUNT",
+  idlite: "IDlite",
+  regpack: "REGPACK",
   // tambahkan mapper lain jika diperlukan
 };
 
 const parseShippingMethod = (shippingMethod) => {
-  
-  if (!shippingMethod || typeof shippingMethod !== 'string') {
-    throw new Error('Metode pengiriman tidak valid');
+  if (!shippingMethod || typeof shippingMethod !== "string") {
+    throw new Error("Metode pengiriman tidak valid");
   }
-  
+
   try {
     // Format yang mungkin:
     // 1. ID dari shippingOptions: "jne-REG23"
     // 2. Label: "JNE - REG - Rp 10.000 (2-3 hari)"
     // 3. Nama: "JNE - REG (2-3 hari)"
-    
+
     let courier, serviceType;
-    
+
     // Prioritaskan format ID dari shippingOptions (format langsung)
-    if (shippingMethod.includes('-') && !shippingMethod.includes(' - ')) {
-      const parts = shippingMethod.split('-');
-      
+    if (shippingMethod.includes("-") && !shippingMethod.includes(" - ")) {
+      const parts = shippingMethod.split("-");
+
       if (parts.length >= 2) {
         courier = parts[0].trim().toLowerCase(); // Extract courier code
         // Combine all the remaining parts as the service type
-        serviceType = parts.slice(1).join('-').trim();
-        
+        serviceType = parts.slice(1).join("-").trim();
+
         // Map courier and service type to standardized format
-        const mappedCourier = courierCodeMapper[courier] || courier.toUpperCase();
-        const mappedServiceType = serviceTypeMapper[serviceType.toLowerCase()] || serviceType.toUpperCase();
+        const mappedCourier =
+          courierCodeMapper[courier] || courier.toUpperCase();
+        const mappedServiceType =
+          serviceTypeMapper[serviceType.toLowerCase()] ||
+          serviceType.toUpperCase();
         return [mappedCourier, mappedServiceType];
       }
     }
-    
+
     // Coba format label: "JNE - REG - Rp 10.000 (2-3 hari)"
-    if (shippingMethod.includes(' - Rp ')) {
-      const splitByPrice = shippingMethod.split(' - Rp ');
-      
-      const firstParts = splitByPrice[0].split(' - ');
-      
+    if (shippingMethod.includes(" - Rp ")) {
+      const splitByPrice = shippingMethod.split(" - Rp ");
+
+      const firstParts = splitByPrice[0].split(" - ");
+
       if (firstParts.length >= 2) {
         courier = firstParts[0].trim().toLowerCase();
         serviceType = firstParts[1].trim();
-        
+
         // Map courier and service type to standardized format
-        const mappedCourier = courierCodeMapper[courier] || courier.toUpperCase();
-        const mappedServiceType = serviceTypeMapper[serviceType.toLowerCase()] || serviceType.toUpperCase();
+        const mappedCourier =
+          courierCodeMapper[courier] || courier.toUpperCase();
+        const mappedServiceType =
+          serviceTypeMapper[serviceType.toLowerCase()] ||
+          serviceType.toUpperCase();
         return [mappedCourier, mappedServiceType];
       }
     }
-    
+
     // Format nama: "JNE - REG (2-3 hari)" atau "J&T - EKONOMI"
-    const parts = shippingMethod.split(' - ');
-    
+    const parts = shippingMethod.split(" - ");
+
     if (parts.length >= 2) {
       courier = parts[0].trim().toLowerCase();
-      
+
       // Extract service type without the ETD part
       const servicePart = parts[1];
-      
-      if (servicePart.includes('(')) {
-        serviceType = servicePart.split('(')[0].trim();
+
+      if (servicePart.includes("(")) {
+        serviceType = servicePart.split("(")[0].trim();
       } else {
         serviceType = servicePart.trim();
       }
-      
+
       // Map courier and service type to standardized format
       const mappedCourier = courierCodeMapper[courier] || courier.toUpperCase();
-      const mappedServiceType = serviceTypeMapper[serviceType.toLowerCase()] || serviceType.toUpperCase();
+      const mappedServiceType =
+        serviceTypeMapper[serviceType.toLowerCase()] ||
+        serviceType.toUpperCase();
       return [mappedCourier, mappedServiceType];
     }
-    
+
     // Fallback - jika tidak ada format yang cocok, coba ekstrak dengan regex
     const courierMatch = /^([a-zA-Z&]+)/.exec(shippingMethod);
     const serviceMatch = /-\s*([a-zA-Z0-9]+)/.exec(shippingMethod);
-    
+
     if (courierMatch && serviceMatch) {
       courier = courierMatch[1].trim().toLowerCase();
       serviceType = serviceMatch[1].trim();
-      
+
       // Map courier and service type to standardized format
       const mappedCourier = courierCodeMapper[courier] || courier.toUpperCase();
-      const mappedServiceType = serviceTypeMapper[serviceType.toLowerCase()] || serviceType.toUpperCase();
+      const mappedServiceType =
+        serviceTypeMapper[serviceType.toLowerCase()] ||
+        serviceType.toUpperCase();
       return [mappedCourier, mappedServiceType];
     }
-    
+
     throw new Error(`Format metode pengiriman tidak valid: ${shippingMethod}`);
   } catch (error) {
     // Fallback ke nilai default untuk mencegah aplikasi crash
     return ["JNE", "REG"]; // Menggunakan kode kurir dalam huruf besar yang didukung oleh API Komerce
   }
 };
-
-
 
 /**
  * Create a new transaction with stored order data
@@ -873,30 +1074,28 @@ export const createTransactionFromStoredOrder = async (orderId) => {
   try {
     // First get the stored order data
     const orderData = await getOrderData(orderId);
-    
+
     // Convert items back to the format expected by the API
     const formattedOrderData = {
       ...orderData,
-      items: orderData.items.map(item => ({
+      items: orderData.items.map((item) => ({
         name: item.name,
         color: item.color,
         size: item.size,
         quantity: item.quantity,
         price: item.price,
-        image: item.image
-      }))
+        image: item.image,
+      })),
     };
-    
 
-    
     // Then create transaction
     const response = await fetch(`${API_BASE_URL}/api/v1/transaksi/enhanced`, {
-      method: 'POST',
+      method: "POST",
       headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
+        "Content-Type": "application/json",
+        Accept: "application/json",
       },
-      body: JSON.stringify(formattedOrderData)
+      body: JSON.stringify(formattedOrderData),
     });
 
     if (!response.ok) {
@@ -907,10 +1106,8 @@ export const createTransactionFromStoredOrder = async (orderId) => {
 
     const data = await response.json();
 
-    
     return data;
   } catch (error) {
     throw error;
   }
 };
-
