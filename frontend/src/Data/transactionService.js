@@ -6,14 +6,14 @@
  * as well as integration with Komerce Store Order API.
  */
 
-import { 
-  API_BASE_URL, 
-  fetchProvinces, 
-  fetchCities, 
-  fetchSubdistricts, 
-  fetchVillages 
-} from './dataWilayah';
-import { formatOrderData } from './storeOrder';
+import {
+  API_BASE_URL,
+  fetchProvinces,
+  fetchCities,
+  fetchSubdistricts,
+  fetchVillages,
+} from "./dataWilayah";
+import { formatOrderData } from "./storeOrder";
 
 /**
  * Fetches location names based on their IDs
@@ -23,21 +23,27 @@ import { formatOrderData } from './storeOrder';
  * @param {number|string} villageId - Village ID
  * @returns {Promise<Object>} Object containing location names
  */
-const fetchLocationNames = async (provinceId, cityId, districtId, villageId) => {
+const fetchLocationNames = async (
+  provinceId,
+  cityId,
+  districtId,
+  villageId
+) => {
   try {
     const locationNames = {
       provinceName: "",
       cityName: "",
       districtName: "",
-      villageName: ""
+      villageName: "",
     };
 
     // Fetch province name if ID is provided
     if (provinceId) {
       try {
         const provinces = await fetchProvinces();
-        const province = provinces.find(p => 
-          String(p.id) === String(provinceId));
+        const province = provinces.find(
+          (p) => String(p.id) === String(provinceId)
+        );
         if (province) {
           locationNames.provinceName = province.name;
         }
@@ -50,8 +56,7 @@ const fetchLocationNames = async (provinceId, cityId, districtId, villageId) => 
     if (cityId && provinceId) {
       try {
         const cities = await fetchCities(provinceId);
-        const city = cities.find(c => 
-          String(c.id) === String(cityId));
+        const city = cities.find((c) => String(c.id) === String(cityId));
         if (city) {
           locationNames.cityName = city.name;
         }
@@ -64,8 +69,9 @@ const fetchLocationNames = async (provinceId, cityId, districtId, villageId) => 
     if (districtId && cityId) {
       try {
         const districts = await fetchSubdistricts(cityId);
-        const district = districts.find(d => 
-          String(d.id) === String(districtId));
+        const district = districts.find(
+          (d) => String(d.id) === String(districtId)
+        );
         if (district) {
           locationNames.districtName = district.name;
         }
@@ -78,8 +84,9 @@ const fetchLocationNames = async (provinceId, cityId, districtId, villageId) => 
     if (villageId && districtId) {
       try {
         const villages = await fetchVillages(districtId);
-        const village = villages.find(v => 
-          String(v.id) === String(villageId));
+        const village = villages.find(
+          (v) => String(v.id) === String(villageId)
+        );
         if (village) {
           locationNames.villageName = village.name;
         }
@@ -95,13 +102,13 @@ const fetchLocationNames = async (provinceId, cityId, districtId, villageId) => 
       provinceName: "",
       cityName: "",
       districtName: "",
-      villageName: ""
+      villageName: "",
     };
   }
 };
 
 // Admin WhatsApp number (will be used as primary destination)
-const ADMIN_WHATSAPP = "085702257423";
+const ADMIN_WHATSAPP = "6285702257423";
 
 // Normalize Indonesian phone number to start with 62
 const normalizePhoneTo62 = (phone) => {
@@ -154,41 +161,7 @@ const prepareWaRedirectInfo = (orderData) => {
       }
       return "";
     };
-    // Ambil nama daerah, hindari ID angka
-    const province = getName(orderData, [
-      "province_name",
-      "receiver_province_name",
-      "provinsi_name",
-      "province",
-      "receiver_province",
-      "provinsi",
-    ]);
-    const city = getName(orderData, [
-      "city_name",
-      "receiver_city_name",
-      "kota_name",
-      "city",
-      "receiver_city",
-      "kota",
-      "kabupaten",
-      "kabupaten_name",
-    ]);
-    const subdistrict = getName(orderData, [
-      "subdistrict_name",
-      "receiver_subdistrict_name",
-      "kecamatan_name",
-      "kecamatan",
-      "district_name",
-      "receiver_district_name",
-    ]);
-    const village = getName(orderData, [
-      "village_name",
-      "receiver_village_name",
-      "desa_name",
-      "desa",
-      "kelurahan",
-      "kelurahan_name",
-    ]);
+    // Ambil nama daerah, hindari ID angka (lookup performed below with getLocationName)
 
     // Jika masih berupa ID, coba ambil dari data yang sudah di-resolve
     const getLocationName = (orderData, type) => {
@@ -268,66 +241,139 @@ const prepareWaRedirectInfo = (orderData) => {
       })
       .join("\n");
 
-    const message =
-      `Halo Admin, pesanan sudah dibuat/success. Berikut detail lengkap:\n\n` +
-      `Nama: ${customerName}\n` +
-      `No HP: ${receiverPhone}\n` +
-      `Alamat: ${address}` +
+    // Build receipt-style messages (Jakarta time)
+    const now = new Date();
+    const jkt = new Date(now.getTime() + 7 * 60 * 60 * 1000);
+    const dd = String(jkt.getUTCDate()).padStart(2, "0");
+    const mm = String(jkt.getUTCMonth() + 1).padStart(2, "0");
+    const yyyy = jkt.getUTCFullYear();
+    const HH = String(jkt.getUTCHours()).padStart(2, "0");
+    const MM = String(jkt.getUTCMinutes()).padStart(2, "0");
+    const SS = String(jkt.getUTCSeconds()).padStart(2, "0");
+    const tanggal = `${dd}/${mm}/${yyyy}`;
+    const waktu = `${HH}:${MM}:${SS}`;
+
+    const headerBox =
+      `┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓\n` +
+      `┃  🛒 JAS HUJAN EXTREME STORE         ┃\n` +
+      `┃        ✅ ORDER CONFIRMATION        ┃\n` +
+      `┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛\n` +
+      (orderId ? `Order ID: ${orderId}\n` : "") +
+      `Tanggal: ${tanggal}\n` +
+      `Waktu: ${waktu}\n\n`;
+
+    const customerBlock =
+      `📋 INFORMASI PELANGGAN\n` +
+      `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
+      `👤 Nama: ${customerName}\n` +
+      `📱 No. HP: ${receiverPhone}\n` +
+      `📍 Alamat: ${address}` +
       `${villageName ? `, ${villageName}` : ""}` +
       `${subdistrictName ? `, Kec. ${subdistrictName}` : ""}` +
       `${cityName ? `, ${cityName}` : ""}` +
-      `${provinceName ? `, ${provinceName}` : ""}\n` +
-      `Metode Bayar: ${payment}\n` +
-      `Pengiriman: ${shipping}${
-        shippingType && shippingType !== "-" ? ` - ${shippingType}` : ""
-      }\n` +
-      (orderId ? `Order/Invoice: ${orderId}\n` : "") +
-      (itemsText ? `\nProduk (${items.length} item):\n${itemsText}\n` : "") +
+      `${provinceName ? `, ${provinceName}` : ""}\n\n`;
+
+    const productBlock =
+      `🛍️ DETAIL PRODUK (${items.length} item)\n` +
+      `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
+      (itemsText ? `${itemsText}\n` : "") +
+      `──────────────────────────────────────\n\n`;
+
+    const summaryLines =
       (discount
-        ? `\nDiskon: Rp ${Number(discount).toLocaleString("id-ID")}`
+        ? `Diskon: Rp ${Number(discount).toLocaleString("id-ID")}\n`
         : "") +
       (shippingCost
-        ? `\nOngkir: Rp ${Number(shippingCost).toLocaleString("id-ID")}`
+        ? `Ongkir: Rp ${Number(shippingCost).toLocaleString("id-ID")}\n`
         : "") +
       (serviceFee
-        ? `\nBiaya Layanan: Rp ${Number(serviceFee).toLocaleString("id-ID")}`
+        ? `Biaya Layanan: Rp ${Number(serviceFee).toLocaleString("id-ID")}\n`
         : "") +
       (additionalCost
-        ? `\nBiaya Tambahan: Rp ${Number(additionalCost).toLocaleString(
+        ? `Biaya Tambahan: Rp ${Number(additionalCost).toLocaleString(
             "id-ID"
-          )}`
+          )}\n`
         : "") +
       (insuranceValue
-        ? `\nAsuransi: Rp ${Number(insuranceValue).toLocaleString("id-ID")}`
-        : "") +
-      (codValue
-        ? `\nNilai COD: Rp ${Number(codValue).toLocaleString("id-ID")}`
-        : "") +
-      (total
-        ? `\nTotal Bayar: Rp ${Number(total).toLocaleString("id-ID")}`
+        ? `Asuransi: Rp ${Number(insuranceValue).toLocaleString("id-ID")}\n`
         : "");
 
-    // Gunakan wa.me sebagai primary (resmi/lebih stabil), whatsapp.me sebagai secondary
+    const totalLine = total
+      ? `💵 TOTAL BAYAR: Rp ${Number(total).toLocaleString("id-ID")}\n`
+      : "";
+
+    const codMessage =
+      headerBox +
+      customerBlock +
+      productBlock +
+      `🚚 Pengiriman: ${shipping}${
+        shippingType && shippingType !== "-" ? ` - ${shippingType}` : ""
+      }\n` +
+      `💳 Metode Pembayaran: COD\n` +
+      (codValue
+        ? `💰 Nilai COD: Rp ${Number(codValue).toLocaleString("id-ID")}\n`
+        : "") +
+      (summaryLines || "") +
+      totalLine +
+      `\n✅ STATUS: PESANAN COD BERHASIL DIBUAT\n` +
+      `💡 Pembayaran dilakukan saat barang diterima\n` +
+      `📦 Pesanan akan segera diproses dan dikirim\n` +
+      `⏰ Estimasi pengiriman: 1-3 hari kerja\n` +
+      `\nTerima kasih telah berbelanja di Jas Hujan Extreme Store! ✨`;
+
+    // Use the same layout as COD receipt for paid transfer, only the payment/status lines differ
+    const transferPaidMessage =
+      headerBox +
+      customerBlock +
+      productBlock +
+      `🚚 Pengiriman: ${shipping}${
+        shippingType && shippingType !== "-" ? ` - ${shippingType}` : ""
+      }\n` +
+      `💳 Metode Pembayaran: Transfer Bank (Lunas)\n` +
+      (summaryLines || "") +
+      totalLine +
+      `\n✅ STATUS: PEMBAYARAN BERHASIL (LUNAS)\n` +
+      `📦 Pesanan akan segera diproses dan dikirim\n` +
+      `⏰ Estimasi pengiriman: 1-3 hari kerja\n` +
+      `\nTerima kasih telah berbelanja di Jas Hujan Extreme Store! ✨`;
+
+    const isCOD =
+      (payment || "").toString().toUpperCase().includes("COD") ||
+      (codValue && Number(codValue) > 0);
+    const defaultMessage = isCOD
+      ? codMessage
+      : headerBox +
+        customerBlock +
+        productBlock +
+        `💳 Metode Pembayaran: Transfer Bank\n` +
+        totalLine +
+        `\nMohon selesaikan pembayaran untuk memproses pesanan Anda.`;
+
+    // Pre-build URLs for default message (COD uses this directly)
     const waPrimaryUrl = `https://wa.me/${phone62}?text=${encodeURIComponent(
-      message
+      defaultMessage
     )}`;
     const waSecondaryUrl = `https://whatsapp.me/${phone62}?text=${encodeURIComponent(
-      message
+      defaultMessage
     )}`;
     const waTertiaryUrl = `https://api.whatsapp.com/send?phone=${phone62}&text=${encodeURIComponent(
-      message
+      defaultMessage
     )}`;
 
     if (typeof window !== "undefined") {
       window.__waRedirectInfo = {
         phone62,
-        message,
+        isCOD,
+        message: defaultMessage,
+        transferPaidMessage,
         waPrimaryUrl,
         waSecondaryUrl,
         waTertiaryUrl,
       };
     }
-  } catch {}
+  } catch {
+    /* no-op */
+  }
 };
 
 // Trigger WA redirect if prepared
@@ -339,17 +385,30 @@ const triggerWaRedirectIfPrepared = () => {
   }
   // Prefer same-tab navigation to avoid popup blockers; do it asynchronously
   try {
-    const targetUrl =
-      info.waPrimaryUrl || info.waSecondaryUrl || info.waTertiaryUrl;
+    // If transfer and paid message exists, rebuild URLs on the fly
+    let targetMessage = info.message;
+    if (!info.isCOD && info.transferPaidMessage) {
+      targetMessage = info.transferPaidMessage;
+    }
+    const waPrimaryUrl = `https://wa.me/${
+      info.phone62
+    }?text=${encodeURIComponent(targetMessage)}`;
+    const waSecondaryUrl = `https://whatsapp.me/${
+      info.phone62
+    }?text=${encodeURIComponent(targetMessage)}`;
+    const waTertiaryUrl = `https://api.whatsapp.com/send?phone=${
+      info.phone62
+    }&text=${encodeURIComponent(targetMessage)}`;
+
+    const targetUrl = waPrimaryUrl || waSecondaryUrl || waTertiaryUrl;
     setTimeout(() => {
       try {
         window.location.href = targetUrl;
       } catch {
         try {
-          window.location.href =
-            info.waSecondaryUrl || info.waTertiaryUrl || targetUrl;
+          window.location.href = waSecondaryUrl || waTertiaryUrl || targetUrl;
         } catch {
-          window.location.href = info.waTertiaryUrl || targetUrl;
+          window.location.href = waTertiaryUrl || targetUrl;
         }
       }
     }, 50);
@@ -445,7 +504,7 @@ export const handleMidtransPayment = (snapToken, redirectUrl) => {
     try {
       // Create a more robust popup configuration
       const popupConfig = {
-        onSuccess: function (result) {
+        onSuccess: function () {
           // Close popup and show success message
           if (window.snapPopup && !window.snapPopup.closed) {
             window.snapPopup.close();
@@ -456,10 +515,10 @@ export const handleMidtransPayment = (snapToken, redirectUrl) => {
           // Optionally redirect to success page
           window.location.href = "/success";
         },
-        onPending: function (result) {
+        onPending: function () {
           alert("Pembayaran pending, silakan selesaikan pembayaran Anda.");
         },
-        onError: function (result) {
+        onError: function () {
           // Close popup if open
           if (window.snapPopup && !window.snapPopup.closed) {
             window.snapPopup.close();
@@ -475,13 +534,18 @@ export const handleMidtransPayment = (snapToken, redirectUrl) => {
       window.snap.pay(snapToken, popupConfig);
       return;
     } catch (err) {
-      // Trying alternative methods
+      console.error("Midtrans popup failed:", err);
     }
   }
 
   // Method 2: Try opening in new window/tab
   if (redirectUrl) {
     try {
+      try {
+        sessionStorage.setItem("waPostPayment", "1");
+      } catch {
+        /* no-op */
+      }
       const popup = window.open(
         redirectUrl,
         "midtrans_payment",
@@ -507,7 +571,7 @@ export const handleMidtransPayment = (snapToken, redirectUrl) => {
         window.location.href = redirectUrl;
       }
     } catch (err) {
-      window.location.href = redirectUrl;
+      console.error("Midtrans popup failed:", err);
     }
   } else {
     alert("Terjadi kesalahan dalam memproses pembayaran. Silakan coba lagi.");
@@ -525,43 +589,37 @@ export const embedMidtransSnap = (
 ) => {
   if (window.snap && typeof window.snap.embed === "function") {
     try {
-      // Show the container
       const container = document.getElementById(containerId);
-      const embedContent = document.getElementById("snap-embed-content");
       if (container) {
         container.style.display = "block";
       }
 
       window.snap.embed(snapToken, {
         embedId: containerId,
-        onSuccess: function (result) {
-          // Hide container
+        onSuccess: function () {
           if (container) {
             container.style.display = "none";
           }
           alert("Pembayaran berhasil! Terima kasih telah berbelanja.");
-          // Optionally redirect to success page
           window.location.href = "/success";
         },
-        onPending: function (result) {
+        onPending: function () {
           alert("Pembayaran pending, silakan selesaikan pembayaran Anda.");
         },
-        onError: function (result) {
-          // Hide container
+        onError: function () {
           if (container) {
             container.style.display = "none";
           }
           alert("Pembayaran gagal. Silakan coba lagi.");
         },
         onClose: function () {
-          // Hide container
           if (container) {
             container.style.display = "none";
           }
         },
       });
     } catch (err) {
-      alert("Terjadi kesalahan dalam menampilkan halaman pembayaran.");
+      console.error("Midtrans popup failed:", err);
     }
   } else {
     alert("Halaman pembayaran tidak dapat ditampilkan.");
@@ -578,6 +636,11 @@ export const handleMidtransPaymentEnhanced = (snapToken, redirectUrl) => {
   if (redirectUrl) {
     try {
       // Try to open in new window/tab
+      try {
+        sessionStorage.setItem("waPostPayment", "1");
+      } catch {
+        /* no-op */
+      }
       const popup = window.open(
         redirectUrl,
         "midtrans_payment",
@@ -585,7 +648,6 @@ export const handleMidtransPaymentEnhanced = (snapToken, redirectUrl) => {
       );
 
       if (popup && !popup.closed) {
-        // Check if popup was blocked
         setTimeout(() => {
           if (popup.closed) {
             window.location.href = redirectUrl;
@@ -598,8 +660,7 @@ export const handleMidtransPaymentEnhanced = (snapToken, redirectUrl) => {
         return;
       }
     } catch (err) {
-      window.location.href = redirectUrl;
-      return;
+      console.error("Midtrans popup failed:", err);
     }
   }
 
@@ -607,25 +668,22 @@ export const handleMidtransPaymentEnhanced = (snapToken, redirectUrl) => {
   if (window.snap && typeof window.snap.pay === "function" && snapToken) {
     try {
       window.snap.pay(snapToken, {
-        onSuccess: function (result) {
-          // Auto redirect to WhatsApp after successful payment
+        onSuccess: function () {
           triggerWaRedirectIfPrepared();
           alert("Pembayaran berhasil! Terima kasih telah berbelanja.");
           window.location.href = "/success";
         },
-        onPending: function (result) {
+        onPending: function () {
           alert("Pembayaran pending, silakan selesaikan pembayaran Anda.");
         },
-        onError: function (result) {
+        onError: function () {
           alert("Pembayaran gagal. Silakan coba lagi.");
         },
-        onClose: function () {
-          // Payment popup closed
-        },
+        onClose: function () {},
       });
       return;
     } catch (err) {
-      // Snap popup failed
+      console.error("Midtrans popup failed:", err);
     }
   }
 
@@ -635,14 +693,13 @@ export const handleMidtransPaymentEnhanced = (snapToken, redirectUrl) => {
       embedMidtransSnap(snapToken);
       return;
     } catch (err) {
-      // Embedded mode failed
+      console.error("Midtrans popup failed:", err);
     }
   }
 
   // Method 3: Try Snap embed with redirect URL (extract token from URL)
   if (window.snap && typeof window.snap.embed === "function" && redirectUrl) {
     try {
-      // Extract token from redirect URL if possible
       const urlParts = redirectUrl.split("/");
       const extractedToken = urlParts[urlParts.length - 1];
 
@@ -651,7 +708,7 @@ export const handleMidtransPaymentEnhanced = (snapToken, redirectUrl) => {
         return;
       }
     } catch (err) {
-      // Snap embed with redirect URL failed
+      console.error("Midtrans popup failed:", err);
     }
   }
 
@@ -668,12 +725,17 @@ export const handleMidtransPaymentEnhanced = (snapToken, redirectUrl) => {
         return;
       }
     } catch (err) {
-      // New window popup failed
+      console.error("Midtrans popup failed:", err);
     }
   }
 
   // Method 5: Fallback to redirect
   if (redirectUrl) {
+    try {
+      sessionStorage.setItem("waPostPayment", "1");
+    } catch {
+      /* no-op */
+    }
     window.location.href = redirectUrl;
   } else {
     alert("Terjadi kesalahan dalam memproses pembayaran. Silakan coba lagi.");
@@ -692,10 +754,11 @@ export const storeOrder = async (orderData) => {
     const formattedData = formatOrderData(orderData);
 
     // Get payment method from possible properties
-    const paymentMethod = orderData.paymentMethod || 
-                          orderData.payment_method || 
-                          (formattedData && formattedData.payment_method);
-    
+    const paymentMethod =
+      orderData.paymentMethod ||
+      orderData.payment_method ||
+      (formattedData && formattedData.payment_method);
+
     // Special case handling for COD orders
     if (paymentMethod && paymentMethod.toUpperCase().includes("COD")) {
       // Process COD order
@@ -748,37 +811,58 @@ export const getOrderData = async (orderId) => {
 export const createStoreOrder = async (checkoutData) => {
   try {
     if (!checkoutData) {
-      throw new Error('Data checkout tidak tersedia');
+      throw new Error("Data checkout tidak tersedia");
     }
-    
+
     // Format the checkout data into the order format with proper location names
     const orderData = await formatStoreOrderData(checkoutData);
-    
+
     // Validate the formatted order data
     if (!orderData) {
       throw new Error("Data order tidak tersedia");
     }
-    
+
     // Enhanced logging with visual separation for easier debugging
-    console.log('\n\n🔍 ========== STORE ORDER DEBUGGING INFO ==========');
-    console.log('📅 Timestamp:', new Date().toISOString());
-    console.log('📦 ORDER DATA (API CALL DISABLED):');
+    console.log("\n\n🔍 ========== STORE ORDER DEBUGGING INFO ==========");
+    console.log("📅 Timestamp:", new Date().toISOString());
+    console.log("📦 ORDER DATA (API CALL DISABLED):");
     console.log(JSON.stringify(orderData, null, 2));
-    
+
     // Log specific important fields
-    if (orderData.receiver_name) console.log('👤 Receiver:', orderData.receiver_name);
-    if (orderData.receiver_phone) console.log('📱 Phone:', orderData.receiver_phone);
-    if (orderData.payment_method) console.log('💰 Payment Method:', orderData.payment_method);
-    if (orderData.shipping) console.log('🚚 Courier:', orderData.shipping);
-    console.log('================================================\n\n');
-    
-    // DISABLED: API call temporarily disabled for debugging
+    if (orderData.receiver_name)
+      console.log("👤 Receiver:", orderData.receiver_name);
+    if (orderData.receiver_phone)
+      console.log("📱 Phone:", orderData.receiver_phone);
+    if (orderData.payment_method)
+      console.log("💰 Payment Method:", orderData.payment_method);
+    if (orderData.shipping) console.log("🚚 Courier:", orderData.shipping);
+    console.log("================================================\n\n");
+
+    // (API call disabled)
     // Instead, return a mock successful response
-    console.warn('⚠️ API CALL DISABLED: Store order API call has been temporarily disabled for debugging');
-    
+    console.warn(
+      "⚠️ API CALL DISABLED: Store order API call has been temporarily disabled for debugging"
+    );
+
     // Generate a realistic looking order ID
     const mockOrderId = `SIM-${Date.now().toString().slice(-8)}`;
-    
+
+    // If COD, prepare and redirect to WhatsApp immediately with COD receipt
+    try {
+      const payMethod = (orderData.payment_method || "")
+        .toString()
+        .toUpperCase();
+      if (payMethod.includes("COD")) {
+        const orderWithId = { ...orderData, order_id: mockOrderId };
+        if (typeof window !== "undefined") {
+          prepareWaRedirectInfo(orderWithId);
+          triggerWaRedirectIfPrepared();
+        }
+      }
+    } catch {
+      /* no-op */
+    }
+
     // Return mock successful response
     return {
       success: true,
@@ -786,144 +870,24 @@ export const createStoreOrder = async (checkoutData) => {
       order_id: mockOrderId,
       status: "SIMULATION_MODE",
       timestamp: new Date().toISOString(),
-      data: orderData
+      data: orderData,
     };
-    
-    /* DISABLED API CALL - KEEP FOR REFERENCE
-    // Validasi field yang diperlukan
-    const requiredFields = [
-      "order_date",
-      "receiver_name",
-      "receiver_phone",
-      "receiver_address",
-      "receiver_destination_id",
-      "shipping",
-      "shipping_type",
-      "payment_method",
-      "shipping_cost",
-      "grand_total",
-    ];
-
-    const missingFields = requiredFields.filter((field) => !orderData[field]);
-
-    if (missingFields.length > 0) {
-      throw new Error(`Data tidak lengkap: ${missingFields.join(', ')}`);
-    }
-    
-    // Kirim request ke API dengan timeout
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 detik timeout
-
-    try {
-      // Log the request payload for debugging
-      console.log('Creating store order with data:', JSON.stringify(orderData, null, 2)); 
-      
-      const response = await fetch(`${API_BASE_URL}/api/v1/store_order/store_order`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
-        body: JSON.stringify(orderData),
-        signal: controller.signal
-      });
-      
-      clearTimeout(timeoutId);
-
-      if (!response.ok) {
-        let errorDetail = "";
-        try {
-          const errorResponse = await response.json();
-
-          // Check for specific error messages about service fee or insurance
-          if (
-            errorResponse.detail &&
-            typeof errorResponse.detail === "string"
-          ) {
-            // Check for COD not supported by courier error
-            if (
-              errorResponse.detail.includes("Kurir") &&
-              errorResponse.detail.includes("tidak mendukung pembayaran COD")
-            ) {
-              // Show alert for courier not supporting COD
-              alert(errorResponse.detail);
-              errorDetail = errorResponse.detail;
-            } else if (
-              errorResponse.detail.includes("service fee") ||
-              errorResponse.detail.includes("insurance")
-            ) {
-              errorDetail = errorResponse.detail;
-            } else {
-              errorDetail = `Error from server: ${errorResponse.detail}`;
-            }
-          } else if (errorResponse.meta && errorResponse.meta.message) {
-            // Handle errors that come in the meta.message format
-            errorDetail = errorResponse.meta.message;
-
-            // Special handling for date order error
-            if (errorDetail.includes("date order can't before today")) {
-              console.error(
-                "Date error detected! Current date used:",
-                orderData.order_date
-              );
-              errorDetail =
-                "Terjadi kesalahan pada tanggal order. Silakan coba lagi.";
-            }
-          } else {
-            errorDetail = JSON.stringify(errorResponse);
-          }
-        } catch (e) {
-          const errorText = await response.text();
-          errorDetail = errorText;
-        }
-        throw new Error(
-          `Gagal membuat store order (${response.status}): ${errorDetail}`
-        );
-      }
-
-      const data = await response.json();
-      // Jika pembayaran COD, langsung redirect ke WhatsApp setelah order berhasil dibuat
-      try {
-        const payMethod = (
-          orderData.payment_method ||
-          orderData.paymentMethod ||
-          ""
-        ).toString();
-        if (payMethod.toUpperCase().includes("COD")) {
-          // Siapkan data WA jika belum
-          if (typeof window !== "undefined" && !window.__waRedirectInfo) {
-            prepareWaRedirectInfo(orderData);
-          }
-          triggerWaRedirectIfPrepared();
-        }
-      } catch {}
-      return data;
-    } catch (fetchError) {
-      clearTimeout(timeoutId);
-
-      if (fetchError.name === "AbortError") {
-        throw new Error("Koneksi timeout, silakan coba lagi");
-      }
-
-      throw fetchError;
-    }
-    */
   } catch (error) {
     console.error("❌ ERROR in createStoreOrder:", error);
     console.error("Error details:", error.message);
-    
+
     // Provide more context about the error for debugging
-    if (error.message.includes('tidak tersedia')) {
+    if (error.message.includes("tidak tersedia")) {
       console.error("Cause: Missing order data");
-    } else if (error.message.includes('tidak lengkap')) {
+    } else if (error.message.includes("tidak lengkap")) {
       console.error("Cause: Incomplete required fields");
-    } else if (error.message.includes('COD')) {
+    } else if (error.message.includes("COD")) {
       console.error("Cause: COD payment method issue");
     }
-    
+
     // Log the stack trace
     console.error("Stack trace:", error.stack);
-    
+
     throw error;
   }
 };
@@ -972,18 +936,18 @@ export const formatStoreOrderData = async (checkoutData) => {
     provinceName: existingProvinceName,
     districtName: existingDistrictName,
     postalCode,
-    villageName: existingVillageName
+    villageName: existingVillageName,
   } = checkoutData;
-  
+
   // Extract items separately as a variable we can modify later
   let items = checkoutData.items;
-  
+
   // If we have IDs but not names, fetch the names from the wilayah API
   let cityName = existingCityName;
   let provinceName = existingProvinceName;
   let districtName = existingDistrictName;
   let villageName = existingVillageName;
-  
+
   // Fetch location names if they're not already provided
   if (province_id || city_id || district_id || village_id) {
     try {
@@ -993,94 +957,113 @@ export const formatStoreOrderData = async (checkoutData) => {
         district_id,
         village_id || destination_id // destination_id might be the village ID
       );
-      
+
       // Use fetched names if they exist and we don't already have names
       if (locationNames.provinceName && !provinceName) {
         provinceName = locationNames.provinceName;
       }
-      
+
       if (locationNames.cityName && !cityName) {
         cityName = locationNames.cityName;
       }
-      
+
       if (locationNames.districtName && !districtName) {
         districtName = locationNames.districtName;
       }
-      
+
       if (locationNames.villageName && !villageName) {
         villageName = locationNames.villageName;
       }
     } catch (error) {
-      console.error('Failed to fetch location names:', error);
+      console.error("Failed to fetch location names:", error);
       // Continue with whatever names we have
     }
   }
-  
+
   // Special handling for testing: if any location ID is present but the corresponding name is missing,
   // try fetching them one more time with direct calls
-  if ((province_id && !provinceName) || 
-      (city_id && !cityName) || 
-      (district_id && !districtName) || 
-      (village_id && !villageName)) {
-    
-    console.log('🔄 Location names missing but IDs present - trying direct fetch...');
-    
+  if (
+    (province_id && !provinceName) ||
+    (city_id && !cityName) ||
+    (district_id && !districtName) ||
+    (village_id && !villageName)
+  ) {
+    console.log(
+      "🔄 Location names missing but IDs present - trying direct fetch..."
+    );
+
     try {
       // Direct API calls to populate missing location names
       if (province_id && !provinceName) {
         const provinces = await fetchProvinces();
-        const province = provinces.find(p => p.id == province_id || String(p.id) === String(province_id));
+        const province = provinces.find(
+          (p) => p.id == province_id || String(p.id) === String(province_id)
+        );
         if (province) {
           provinceName = province.name;
           console.log(`✅ Direct fetch - Found province: ${province.name}`);
         }
       }
-      
+
       if (city_id && !cityName) {
         const cities = await fetchCities(province_id);
-        const city = cities.find(c => c.id == city_id || String(c.id) === String(city_id));
+        const city = cities.find(
+          (c) => c.id == city_id || String(c.id) === String(city_id)
+        );
         if (city) {
           cityName = city.name;
           console.log(`✅ Direct fetch - Found city: ${city.name}`);
         }
       }
-      
+
       if (district_id && !districtName) {
         const districts = await fetchSubdistricts(city_id);
-        const district = districts.find(d => d.id == district_id || String(d.id) === String(district_id));
+        const district = districts.find(
+          (d) => d.id == district_id || String(d.id) === String(district_id)
+        );
         if (district) {
           districtName = district.name;
           console.log(`✅ Direct fetch - Found district: ${district.name}`);
         }
       }
-      
+
       if (village_id && !villageName) {
         const villages = await fetchVillages(district_id);
-        const village = villages.find(v => v.id == village_id || String(v.id) === String(village_id));
+        const village = villages.find(
+          (v) => v.id == village_id || String(v.id) === String(village_id)
+        );
         if (village) {
           villageName = village.name;
           console.log(`✅ Direct fetch - Found village: ${village.name}`);
         }
       }
     } catch (error) {
-      console.error('Error in direct location fetch:', error);
+      console.error("Error in direct location fetch:", error);
     }
   }
-  
+
   // Process checkout data
-  
+
   // Validate phone number format
-  if (telephone && !/^(\+62|62|0)[0-9]{9,13}$/.test(telephone.replace(/[\s-]/g, ''))) {
-    throw new Error('Format nomor telepon tidak valid. Gunakan format: 08XXXXXXXXXX');
+  if (
+    telephone &&
+    !/^(\+62|62|0)[0-9]{9,13}$/.test(telephone.replace(/[\s-]/g, ""))
+  ) {
+    throw new Error(
+      "Format nomor telepon tidak valid. Gunakan format: 08XXXXXXXXXX"
+    );
   }
-  
+
   // Use items if available or fallback to empty array
   if (!items || !Array.isArray(items)) {
     items = [];
   }
 
   // Map payment method to Komerce format
-  const mappedPaymentMethod = paymentMethod.includes("COD")
+  const mappedPaymentMethod = (paymentMethod || "")
+    .toString()
+    .toUpperCase()
+    .includes("COD")
     ? "COD"
     : "Transfer";
 
@@ -1088,27 +1071,31 @@ export const formatStoreOrderData = async (checkoutData) => {
   const [courier, serviceType] = parseShippingMethod(shippingMethod);
 
   // Calculate COD value
-  const codValue = mappedPaymentMethod === 'COD' ? totalAmount : 0;
-  
+  const codValue = mappedPaymentMethod === "COD" ? totalAmount : 0;
+
   // Ensure we have the correct names for address formation
   const villageString = villageName || "";
   const districtString = districtName || "";
   const cityString = cityName || city || "";
   const provinceString = provinceName || province || "";
-  
+
   // Debug log location data
-  console.log('📍 DEBUG LOCATION DATA:');
-  console.log('Province ID:', province_id, 'Name:', provinceName || 'MISSING');
-  console.log('City ID:', city_id, 'Name:', cityName || 'MISSING');
-  console.log('District ID:', district_id, 'Name:', districtName || 'MISSING');
-  console.log('Village ID:', village_id, 'Name:', villageName || 'MISSING');
-  
+  console.log("📍 DEBUG LOCATION DATA:");
+  console.log("Province ID:", province_id, "Name:", provinceName || "MISSING");
+  console.log("City ID:", city_id, "Name:", cityName || "MISSING");
+  console.log("District ID:", district_id, "Name:", districtName || "MISSING");
+  console.log("Village ID:", village_id, "Name:", villageName || "MISSING");
+
   // Double check that we're not using IDs in the address
-  if (!villageString && village_id) console.warn('⚠️ Missing village name for ID:', village_id);
-  if (!districtString && district_id) console.warn('⚠️ Missing district name for ID:', district_id);
-  if (!cityString && city_id) console.warn('⚠️ Missing city name for ID:', city_id);
-  if (!provinceString && province_id) console.warn('⚠️ Missing province name for ID:', province_id);
-  
+  if (!villageString && village_id)
+    console.warn("⚠️ Missing village name for ID:", village_id);
+  if (!districtString && district_id)
+    console.warn("⚠️ Missing district name for ID:", district_id);
+  if (!cityString && city_id)
+    console.warn("⚠️ Missing city name for ID:", city_id);
+  if (!provinceString && province_id)
+    console.warn("⚠️ Missing province name for ID:", province_id);
+
   // Only use parts that are actual names, not numeric IDs
   const fullAddress = [
     address,
@@ -1117,72 +1104,97 @@ export const formatStoreOrderData = async (checkoutData) => {
     districtString && !/^\d+$/.test(districtString) ? districtString : "",
     cityString && !/^\d+$/.test(cityString) ? cityString : "",
     provinceString && !/^\d+$/.test(provinceString) ? provinceString : "",
-    postalCode ? `Kode Pos: ${postalCode}` : ""
-  ].filter(part => part && part.trim() !== "").join(", ");
-  
+    postalCode ? `Kode Pos: ${postalCode}` : "",
+  ]
+    .filter((part) => part && part.trim() !== "")
+    .join(", ");
+
   // Format order details with minimal error checking
   const orderDetails = [];
-  
+
   // Process each item if available
   if (items && items.length > 0) {
     for (const item of items) {
       if (item) {
-        const productName = item.name || item.product_name || item.title || "Product";
+        const productName =
+          item.name || item.product_name || item.title || "Product";
         const price = item.price || 0;
         const quantity = item.quantity || 1;
-        
+
         const formattedItem = {
           product_name: productName,
-          product_variant_name: (item.color && item.size) ? `${item.color} - ${item.size}` : 
-                              item.variant || item.variant_name || productName,
+          product_variant_name:
+            item.color && item.size
+              ? `${item.color} - ${item.size}`
+              : item.variant || item.variant_name || productName,
           product_price: parseInt(price),
-          product_width: parseInt(item.width || item.product_width || (shipper_info?.product_width || 20)),
-          product_height: parseInt(item.height || item.product_height || (shipper_info?.product_height || 5)),
-          product_weight: parseInt(item.weight || item.product_weight || (shipper_info?.product_weight || 300)),
-          product_length: parseInt(item.length || item.product_length || (shipper_info?.product_length || 30)),
+          product_width: parseInt(
+            item.width ||
+              item.product_width ||
+              shipper_info?.product_width ||
+              20
+          ),
+          product_height: parseInt(
+            item.height ||
+              item.product_height ||
+              shipper_info?.product_height ||
+              5
+          ),
+          product_weight: parseInt(
+            item.weight ||
+              item.product_weight ||
+              shipper_info?.product_weight ||
+              300
+          ),
+          product_length: parseInt(
+            item.length ||
+              item.product_length ||
+              shipper_info?.product_length ||
+              30
+          ),
           qty: parseInt(quantity),
-          subtotal: parseInt(price * quantity)
+          subtotal: parseInt(price * quantity),
         };
-        
+
         orderDetails.push(formattedItem);
       }
     }
   }
-  
+
   // Default product if needed
   if (orderDetails.length === 0) {
-    console.error('No valid items could be processed');
-    throw new Error('Tidak ada produk valid yang dapat diproses');
+    console.error("No valid items could be processed");
+    throw new Error("Tidak ada produk valid yang dapat diproses");
   }
-  
+
   // Get shipper info from checkout data or use store info from configuration
-  const shipper = shipper_info || checkoutData.shipper || {};
-  
+  // const shipper = shipper_info || checkoutData.shipper || {};
+
   // Set official shipper (seller) information
   const shipperInfo = {
     name: "Extreme Store Official",
-    brand_name: "Extreme Store", 
+    brand_name: "Extreme Store",
     email: "jashujanextrimee@gmail.com",
-    address: "Jl. Raya Kebumen, Kebumen, Jawa Tengah", 
-    destination_id: 3305 // Kebumen city ID
+    address: "Jl. Raya Kebumen, Kebumen, Jawa Tengah",
+    destination_id: 3305, // Kebumen city ID
   };
-  
+
   // Create store order object according to backend schema with clear separation of seller/buyer data
   // Log all checkout data for debugging
-  console.log('Raw checkout data:', checkoutData);
-  
+  console.log("Raw checkout data:", checkoutData);
+
   // Make sure we have proper destination names for the API
   const receiverDestName = districtName || cityName || city || "";
   const receiverProvName = provinceName || province || "";
-  
+
   // Log the final address components we're using
-  console.log('🏠 FINAL ADDRESS COMPONENTS:');
-  console.log('Street address:', address);
-  console.log('Village:', villageString);
-  console.log('District:', districtString);
-  console.log('City:', cityString);
-  console.log('Province:', provinceString);
-  console.log('Full address:', fullAddress);
+  console.log("🏠 FINAL ADDRESS COMPONENTS:");
+  console.log("Street address:", address);
+  console.log("Village:", villageString);
+  console.log("District:", districtString);
+  console.log("City:", cityString);
+  console.log("Province:", provinceString);
+  console.log("Full address:", fullAddress);
 
   const formattedOrder = {
     order_date: orderDate,
@@ -1195,52 +1207,65 @@ export const formatStoreOrderData = async (checkoutData) => {
     shipper_province_name: "Jawa Tengah",
     shipper_address: shipperInfo.address,
     shipper_email: shipperInfo.email,
-    
+
     // Receiver (customer/buyer) data
     receiver_name: fullName,
     receiver_phone: telephone,
     receiver_destination_id: parseInt(destination_id),
-    receiver_destination_name: receiverDestName, 
+    receiver_destination_name: receiverDestName,
     receiver_province_name: receiverProvName,
     receiver_address: fullAddress,
-    
+
     // Shipping information
     shipping: courier,
     shipping_type: serviceType,
     payment_method: mappedPaymentMethod,
     shipping_cost: parseInt(shippingCost),
     shipping_cashback: parseInt(checkoutData.shipping_cashback || 0),
-    
+
     // Financial calculations
-    service_fee: mappedPaymentMethod === 'COD' 
-      ? Math.round(parseInt(codValue) * 0.028) 
-      : Math.round(parseInt(totalAmount) * 0.028),
+    service_fee:
+      mappedPaymentMethod === "COD"
+        ? Math.round(parseInt(codValue) * 0.028)
+        : Math.round(parseInt(totalAmount) * 0.028),
     additional_cost: parseInt(checkoutData.additional_cost || 0),
     grand_total: parseInt(totalAmount),
     cod_value: parseInt(codValue),
-    
+
     // Insurance value - explicitly set to 0 to avoid issues with Komerce API
     // Per Komerce API, only products with total price > IDR 300,000 can be insured
     insurance_value: 0,
-    
+
     // Order items
-    order_details: orderDetails
+    order_details: orderDetails,
   };
 
   // Calculate total product price to check insurance eligibility
-  const totalProductPrice = formattedOrder.order_details.reduce((sum, item) => sum + item.subtotal, 0);
-  
+  // const totalProductPrice = formattedOrder.order_details.reduce((sum, item) => sum + item.subtotal, 0);
+
   // Log the formatted order for debugging
-  console.log('\n\n📋 ========== FORMATTED ORDER DATA ==========');
+  console.log("\n\n📋 ========== FORMATTED ORDER DATA ==========");
   console.log(JSON.stringify(formattedOrder, null, 2));
-  
+
   // Log specific location information for debugging
-  console.log('\n📍 Location Information:');
-  console.log('Shipper Location:', formattedOrder.shipper_destination_name, '(ID:', formattedOrder.shipper_destination_id, ')');
-  console.log('Receiver City/District:', formattedOrder.receiver_destination_name, '(ID:', formattedOrder.receiver_destination_id, ')');
-  console.log('Receiver Province:', formattedOrder.receiver_province_name);
-  console.log('=============================================\n\n');
-  
+  console.log("\n📍 Location Information:");
+  console.log(
+    "Shipper Location:",
+    formattedOrder.shipper_destination_name,
+    "(ID:",
+    formattedOrder.shipper_destination_id,
+    ")"
+  );
+  console.log(
+    "Receiver City/District:",
+    formattedOrder.receiver_destination_name,
+    "(ID:",
+    formattedOrder.receiver_destination_id,
+    ")"
+  );
+  console.log("Receiver Province:", formattedOrder.receiver_province_name);
+  console.log("=============================================\n\n");
+
   return formattedOrder;
 };
 
@@ -1389,7 +1414,6 @@ export const createTransactionFromStoredOrder = async (orderId) => {
   try {
     // First get the stored order data
     const orderData = await getOrderData(orderId);
-
     // Convert items back to the format expected by the API
     const formattedOrderData = {
       ...orderData,
@@ -1414,15 +1438,89 @@ export const createTransactionFromStoredOrder = async (orderId) => {
     });
 
     if (!response.ok) {
-      const errorText = await response.text();
-
+      await response.text();
       throw new Error(`Failed to create transaction (${response.status})`);
     }
 
     const data = await response.json();
 
     return data;
-  } catch (error) {
-    throw error;
+  } catch (e) {
+    throw e;
   }
 };
+
+// Redirect to WhatsApp with LUNAS after returning from Midtrans if status indicates success
+export const initWaReturnRedirect = () => {
+  if (typeof window === "undefined") return;
+  if (window.__waReturnInit) return;
+  window.__waReturnInit = true;
+
+  try {
+    const params = new URLSearchParams(window.location.search);
+    const statusCode = params.get("status_code") || params.get("status") || "";
+    const txnStatus = (params.get("transaction_status") || "").toLowerCase();
+    const redirectStatus = (params.get("redirect_status") || "").toLowerCase();
+    const statusMessage = (params.get("status_message") || "").toLowerCase();
+    const hash = (window.location.hash || "").toLowerCase();
+    const sessionFlag = (() => {
+      try {
+        return sessionStorage.getItem("waPostPayment") === "1";
+      } catch {
+        return false;
+      }
+    })();
+    const isSuccess =
+      statusCode === "200" ||
+      statusCode.toLowerCase() === "success" ||
+      ["settlement", "capture", "success", "paid"].includes(txnStatus) ||
+      redirectStatus === "success" ||
+      statusMessage === "success" ||
+      hash.includes("#/success") ||
+      (hash && hash.includes("success"));
+
+    if (sessionFlag && isSuccess) {
+      try {
+        sessionStorage.removeItem("waPostPayment");
+      } catch {
+        /* no-op */
+      }
+      setTimeout(() => {
+        try {
+          triggerWaRedirectIfPrepared();
+        } catch {
+          /* no-op */
+        }
+      }, 120);
+    } else if (sessionFlag) {
+      const host = (window.location.hostname || "").toLowerCase();
+      if (!host.includes("midtrans")) {
+        setTimeout(() => {
+          try {
+            triggerWaRedirectIfPrepared();
+          } catch {
+            /* no-op */
+          }
+        }, 600);
+      }
+    }
+  } catch {
+    /* no-op */
+  }
+};
+
+// Expose a helper for UI to manually open the prepared WhatsApp receipt
+export const openWhatsappReceipt = () => {
+  try {
+    return triggerWaRedirectIfPrepared();
+  } catch {
+    return false;
+  }
+};
+
+// Auto-init on module load
+try {
+  initWaReturnRedirect();
+} catch {
+  /* no-op */
+}

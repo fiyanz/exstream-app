@@ -17,6 +17,7 @@ class Settings(BaseSettings):
     MIDTRANS_SERVER_KEY: str = ""
     MIDTRANS_CLIENT_KEY: str = ""
     MIDTRANS_IS_PRODUCTION: bool = False
+    ADMIN_WHATSAPP: str = ""
 
     
     class Config:

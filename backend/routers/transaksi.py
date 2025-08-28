@@ -11,6 +11,7 @@ from datetime import datetime
 from core.config import settings
 from utils.get_name_location import get_location_names
 from utils.format_phone_number import format_phone_number
+from fastapi.responses import RedirectResponse
 
 transaksi = APIRouter()
 
@@ -285,3 +286,152 @@ def payment_callback(callback_data: PaymentCallback, db: Session = Depends(get_d
         
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Gagal memproses callback: {str(e)}")
+
+
+@transaksi.get("/wa_redirect")
+def wa_redirect(text: str = "", phone: str | None = None):
+    """Public endpoint to redirect to WhatsApp with URL-encoded text.
+    Use this as a Finish URL if you want Midtrans to hit a public URL that opens WhatsApp.
+    Example: /api/v1/transaksi/wa_redirect?phone=62xxxxxxxxxx&text=...
+    """
+    admin = phone or settings.ADMIN_WHATSAPP
+    if not admin:
+        raise HTTPException(status_code=400, detail="No WhatsApp number configured")
+    from urllib.parse import quote
+    encoded = quote(text or "")
+    url = f"https://wa.me/{admin}?text={encoded}"
+    return RedirectResponse(url)
+
+
+@transaksi.get("/payment_success_wa")
+def payment_success_wa(
+    order_id: str = "",
+    transaction_status: str = "",
+    payment_type: str = "",
+    gross_amount: str = "",
+    customer_name: str = "",
+    customer_phone: str = "",
+    customer_address: str = "",
+    items: str = "",
+    shipping_method: str = "",
+    shipping_cost: str = "",
+    admin_phone: str | None = None
+):
+    """
+    Endpoint untuk redirect langsung ke WhatsApp setelah pembayaran berhasil.
+    Gunakan ini sebagai Finish Redirect URL di Midtrans.
+    
+    Parameter yang diterima dari Midtrans:
+    - order_id: ID pesanan
+    - transaction_status: Status transaksi (settlement, capture, dll)
+    - payment_type: Jenis pembayaran (bank_transfer, gopay, dll)
+    - gross_amount: Total pembayaran
+    - customer_name: Nama pelanggan
+    - customer_phone: Nomor telepon pelanggan
+    - customer_address: Alamat pelanggan
+    - items: Detail item (JSON string)
+    - shipping_method: Metode pengiriman
+    - shipping_cost: Biaya pengiriman
+    """
+    try:
+        # Validasi status pembayaran
+        if transaction_status not in ["settlement", "capture"]:
+            # Jika bukan pembayaran sukses, redirect ke halaman error
+            return RedirectResponse(url="https://your-domain.com/#/error")
+        
+        # Ambil nomor admin WhatsApp
+        admin = admin_phone or settings.ADMIN_WHATSAPP
+        if not admin:
+            raise HTTPException(status_code=400, detail="No WhatsApp number configured")
+        
+        # Parse items jika ada
+        items_list = []
+        if items:
+            try:
+                import json
+                items_list = json.loads(items)
+            except:
+                items_list = [{"name": "Produk", "quantity": 1, "price": gross_amount}]
+        
+        # Format tanggal dan waktu
+        from datetime import datetime
+        now = datetime.now()
+        tanggal = now.strftime("%d/%m/%Y")
+        waktu = now.strftime("%H:%M:%S")
+        
+        # Buat pesan WhatsApp dengan format resi
+        wa_message = f"""╔═══════════════════════════════════════╗
+║ 🛒 JAS HUJAN EXTREME STORE ║
+║ 📦 ORDER CONFIRMATION ║
+╠═══════════════════════════════════════════════╣
+║ Order ID: {order_id} ║
+║ Tanggal: {tanggal} ║
+║ Waktu: {waktu} ║
+╚═══════════════════════════════════════════════╝
+
+📋 INFORMASI PELANGGAN
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+👤 Nama: {customer_name or 'N/A'}
+📱 No. HP: {customer_phone or 'N/A'}
+📍 Alamat: {customer_address or 'N/A'}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🛍️ DETAIL PRODUK ({len(items_list)} item)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"""
+        
+        # Tambahkan detail produk
+        for i, item in enumerate(items_list, 1):
+            name = item.get('name', 'Produk')
+            quantity = item.get('quantity', 1)
+            price = item.get('price', 0)
+            subtotal = quantity * price
+            wa_message += f"""
+{i}. {name}
+   Qty: {quantity} x Rp {price:,}
+   Subtotal: Rp {subtotal:,}"""
+        
+        wa_message += f"""
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+💰 RINGKASAN PEMBAYARAN
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+💳 Metode Pembayaran: {payment_type.upper()}
+🚚 Pengiriman: {shipping_method or 'N/A'}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📊 Rincian Biaya:
+Subtotal: Rp {int(gross_amount) - int(shipping_cost or 0):,}
+Ongkir: Rp {int(shipping_cost or 0):,}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+💵 TOTAL BAYAR: Rp {int(gross_amount):,}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+✅ STATUS: LUNAS ✅
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+💳 Pembayaran telah berhasil dilakukan
+📦 Pesanan akan segera diproses dan dikirim
+⏰ Estimasi pengiriman: 1-3 hari kerja
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Terima kasih telah berbelanja di Jas Hujan Extreme Store! 🛒✨
+
+Halo Admin, pembayaran sudah LUNAS. Berikut detail lengkap:
+Nama: {customer_name or 'N/A'}
+No HP: {customer_phone or 'N/A'}
+Alamat: {customer_address or 'N/A'}
+Metode Bayar: {payment_type.upper()}
+Pengiriman: {shipping_method or 'N/A'}
+Total Bayar: Rp {int(gross_amount):,}"""
+        
+        # Encode pesan untuk URL WhatsApp
+        from urllib.parse import quote
+        encoded_message = quote(wa_message)
+        
+        # Redirect ke WhatsApp
+        wa_url = f"https://wa.me/{admin}?text={encoded_message}"
+        return RedirectResponse(url=wa_url)
+        
+    except Exception as e:
+        # Jika ada error, redirect ke halaman error
+        return RedirectResponse(url="https://your-domain.com/#/error")

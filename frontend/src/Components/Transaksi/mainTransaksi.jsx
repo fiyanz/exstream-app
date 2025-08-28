@@ -40,13 +40,9 @@ import {
 } from "../../Data/dataWilayah";
 import {
   createTransaction,
-  formatStoreOrderData,
-  storeOrder,
   createStoreOrder,
-  getOrderData,
-  createTransactionFromStoredOrder,
-  handleMidtransPayment,
   handleMidtransPaymentEnhanced,
+  openWhatsappReceipt,
 } from "../../Data/transactionService";
 
 // Data for products, options, and mock location data.
@@ -203,12 +199,12 @@ class ErrorBoundary extends React.Component {
     this.state = { hasError: false };
   }
 
-  static getDerivedStateFromError(error) {
+  static getDerivedStateFromError(_error) {
     return { hasError: true };
   }
 
-  componentDidCatch(error, errorInfo) {
-    // Error handled silently in production
+  componentDidCatch(_error, _errorInfo) {
+    // no-op in production
   }
 
   render() {
@@ -320,8 +316,8 @@ const App = () => {
         setIsLoadingLocations(true);
         const provincesData = await fetchProvinces();
         setProvinces(provincesData);
-      } catch (error) {
-        // Error handled silently in production
+      } catch {
+        /* no-op */
       } finally {
         setIsLoadingLocations(false);
       }
@@ -349,8 +345,8 @@ const App = () => {
           subDistrict: "",
           village: "",
         }));
-      } catch (error) {
-        // Error handled silently in production
+      } catch {
+        /* no-op */
       } finally {
         setIsLoadingLocations(false);
       }
@@ -377,8 +373,8 @@ const App = () => {
           subDistrict: "",
           village: "",
         }));
-      } catch (error) {
-        // Error handled silently in production
+      } catch {
+        /* no-op */
       } finally {
         setIsLoadingLocations(false);
       }
@@ -404,8 +400,8 @@ const App = () => {
           ...prev,
           village: "",
         }));
-      } catch (error) {
-        // Error handled silently in production
+      } catch {
+        /* no-op */
       } finally {
         setIsLoadingLocations(false);
       }
@@ -449,7 +445,7 @@ const App = () => {
         } else {
           setShippingOptions([]);
         }
-      } catch (error) {
+      } catch {
         setShippingOptions([]);
       } finally {
         setIsLoadingShipping(false);
@@ -754,10 +750,8 @@ const App = () => {
         let transactionResult;
 
         if (formData.paymentMethod.toLowerCase().includes("cod")) {
-          // For COD, format the data for Komerce API and use createStoreOrder
-          const formattedOrderData = formatStoreOrderData(orderData);
-
-          transactionResult = await createStoreOrder(formattedOrderData);
+          // For COD, send order data; service will format and auto-redirect to WhatsApp
+          transactionResult = await createStoreOrder(orderData);
 
           // Ensure we have necessary data for the success page
           if (transactionResult && transactionResult.data) {
@@ -839,19 +833,14 @@ const App = () => {
           // Handle Midtrans payment
           if (transactionResult.redirect_url) {
             // If we have redirect_url but no token, use redirect directly
-            if (transactionResult.token) {
-              handleMidtransPaymentEnhanced(
-                transactionResult.token,
-                transactionResult.redirect_url
-              );
-            } else {
-              // Direct redirect to Midtrans payment page
-              window.open(transactionResult.redirect_url, "_blank");
-            }
+            handleMidtransPaymentEnhanced(
+              transactionResult.token || null,
+              transactionResult.redirect_url
+            );
           }
         }
-      } catch (error) {
-        // Handle the error silently
+      } catch {
+        /* no-op */
       } finally {
         setIsSubmitting(false);
       }
@@ -1064,6 +1053,10 @@ const App = () => {
                 <div className="flex justify-center w-full mt-6">
                   <a
                     href="#"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      openWhatsappReceipt();
+                    }}
                     className="text-sm bg-gradient-to-r from-purple-500 to-indigo-600 text-white font-bold rounded-xl shadow-lg transition-all duration-300 transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-orange-300 flex items-center gap-1 cek-sta"
                   >
                     <svg
