@@ -9,7 +9,7 @@ const PilihanUtamaCom = () => {
             <section className='flex flex-col lg:flex-row justify-center items-center pil-a1'>
                 <div className='flex flex-col gap-2 justify-center items-center pil-a'>
                     <div>
-                        <button className='text-white bu-pil text-center'>
+                        <button className='text-white bu-pil text-center bg-gradient-to-r from-purple-500 to-indigo-600  rounded-full'>
                             Tersedia 8 Pilihan Warna Jas Hujan
                         </button>
                     </div>
