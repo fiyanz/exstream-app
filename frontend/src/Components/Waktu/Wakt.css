@@ -16,6 +16,12 @@
 .wak-4 {
     padding: 0.8rem 2rem 0.8rem 2rem;
     margin-bottom: 1rem;
+    animation: zoom 2s ease-in-out infinite;
+}
+
+@keyframes zoom {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.1); }
 }
 
 .svg {
@@ -27,6 +33,10 @@
   0% { transform: translateY(0); }
   50% { transform: translateY(-15px); } /* naik */
   100% { transform: translateY(0); }   /* turun */
+}
+
+.p-wak {
+  padding: 1rem 0 1rem 0;
 }
 
 

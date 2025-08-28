@@ -41,7 +41,7 @@ function WaktuL() {
           
           {/* Informasi harga */}
           <div className="mb-8 flex flex-col gap-2 wak-2">
-            <p className="text-lg lg:text-3xl text-white line-through bg-gradient-to-r from-purple-500 to-indigo-600  rounded-full">
+            <p className="text-lg lg:text-3xl text-white line-through bg-gradient-to-r from-purple-500 to-indigo-600  rounded-full p-wak">
               Harga Normal: Rp. {normalPrice.toLocaleString('id-ID')}
             </p>
             <div className="wak-3a">
