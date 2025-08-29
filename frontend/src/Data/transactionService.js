@@ -122,6 +122,16 @@ const normalizePhoneTo62 = (phone) => {
 // Build and store WhatsApp redirect info for post-payment redirect
 const prepareWaRedirectInfo = (orderData) => {
   try {
+    // Save order_id in session storage for redirect after payment
+    if (orderData.id) {
+      try {
+        sessionStorage.setItem("lastOrderId", orderData.id);
+        sessionStorage.setItem("waPostPayment", "1");
+      } catch (e) {
+        console.warn("Failed to save order info:", e);
+      }
+    }
+
     // Prioritaskan nomor admin sebagai tujuan utama
     const candidatePhone =
       ADMIN_WHATSAPP ||
@@ -329,10 +339,11 @@ const prepareWaRedirectInfo = (orderData) => {
       `🚚 Pengiriman: ${shipping}${
         shippingType && shippingType !== "-" ? ` - ${shippingType}` : ""
       }\n` +
-      `💳 Metode Pembayaran: Transfer Bank (Lunas)\n` +
+      `💳 Metode Pembayaran: Transfer Bank\n` +
       (summaryLines || "") +
       totalLine +
-      `\n✅ STATUS: PEMBAYARAN BERHASIL (LUNAS)\n` +
+      `\n✅ STATUS: PEMBAYARAN LUNAS\n` +
+      `💡 Pembayaran telah diterima ✅\n` +
       `📦 Pesanan akan segera diproses dan dikirim\n` +
       `⏰ Estimasi pengiriman: 1-3 hari kerja\n` +
       `\nTerima kasih telah berbelanja di Jas Hujan Extreme Store! ✨`;
@@ -345,9 +356,17 @@ const prepareWaRedirectInfo = (orderData) => {
       : headerBox +
         customerBlock +
         productBlock +
+        `🚚 Pengiriman: ${shipping}${
+          shippingType && shippingType !== "-" ? ` - ${shippingType}` : ""
+        }\n` +
         `💳 Metode Pembayaran: Transfer Bank\n` +
+        (summaryLines || "") +
         totalLine +
-        `\nMohon selesaikan pembayaran untuk memproses pesanan Anda.`;
+        `\n⏳ STATUS: MENUNGGU PEMBAYARAN\n` +
+        `💡 Mohon selesaikan pembayaran untuk memproses pesanan\n` +
+        `📦 Pesanan akan segera diproses setelah pembayaran diterima\n` +
+        `⏰ Estimasi pengiriman: 1-3 hari kerja\n` +
+        `\nTerima kasih telah berbelanja di Jas Hujan Extreme Store! ✨`;
 
     // Pre-build URLs for default message (COD uses this directly)
     const waPrimaryUrl = `https://wa.me/${phone62}?text=${encodeURIComponent(
@@ -499,79 +518,52 @@ export const getOrderStatus = async (orderId) => {
  * @param {string} redirectUrl - Midtrans redirect URL from backend
  */
 export const handleMidtransPayment = (snapToken, redirectUrl) => {
-  // Method 1: Try popup mode first (if Snap.js is available)
+  // Only use Snap popup, do not fallback to redirect/tab
   if (window.snap && typeof window.snap.pay === "function") {
     try {
-      // Create a more robust popup configuration
       const popupConfig = {
         onSuccess: function () {
-          // Close popup and show success message
+          // Tutup popup jika ada
           if (window.snapPopup && !window.snapPopup.closed) {
             window.snapPopup.close();
           }
-          // Auto redirect to WhatsApp after successful payment
-          triggerWaRedirectIfPrepared();
-          alert("Pembayaran berhasil! Terima kasih telah berbelanja.");
-          // Optionally redirect to success page
-          window.location.href = "/success";
+          // Langsung redirect ke WhatsApp dengan template lunas
+          if (
+            window.__waRedirectInfo &&
+            window.__waRedirectInfo.transferPaidMessage
+          ) {
+            const phone = window.__waRedirectInfo.phone62 || "6285702257423";
+            const targetUrl = `https://wa.me/${phone}?text=${encodeURIComponent(
+              window.__waRedirectInfo.transferPaidMessage
+            )}`;
+            window.location.href = targetUrl;
+          } else {
+            console.error("No message template found for WhatsApp redirect");
+            alert(
+              "Terjadi kesalahan dalam memproses pesan. Silakan coba lagi."
+            );
+          }
         },
         onPending: function () {
           alert("Pembayaran pending, silakan selesaikan pembayaran Anda.");
         },
         onError: function () {
-          // Close popup if open
           if (window.snapPopup && !window.snapPopup.closed) {
             window.snapPopup.close();
           }
           alert("Pembayaran gagal. Silakan coba lagi.");
         },
         onClose: function () {
-          // Don't show alert here as user might have intentionally closed it
+          // User closed popup
         },
       };
-
-      // Try to open popup
       window.snap.pay(snapToken, popupConfig);
       return;
     } catch (err) {
       console.error("Midtrans popup failed:", err);
-    }
-  }
-
-  // Method 2: Try opening in new window/tab
-  if (redirectUrl) {
-    try {
-      try {
-        sessionStorage.setItem("waPostPayment", "1");
-      } catch {
-        /* no-op */
-      }
-      const popup = window.open(
-        redirectUrl,
-        "midtrans_payment",
-        "width=800,height=600,scrollbars=yes,resizable=yes,status=yes,location=yes,toolbar=no,menubar=no"
+      alert(
+        "Gagal membuka popup pembayaran. Silakan cek pengaturan browser Anda atau coba lagi."
       );
-
-      if (popup) {
-        window.snapPopup = popup;
-
-        // Check if popup was blocked
-        if (popup.closed || typeof popup.closed === "undefined") {
-          window.location.href = redirectUrl;
-        } else {
-          // Monitor popup
-          const checkClosed = setInterval(() => {
-            if (popup.closed) {
-              clearInterval(checkClosed);
-              // You could check payment status here
-            }
-          }, 1000);
-        }
-      } else {
-        window.location.href = redirectUrl;
-      }
-    } catch (err) {
-      console.error("Midtrans popup failed:", err);
     }
   } else {
     alert("Terjadi kesalahan dalam memproses pembayaran. Silakan coba lagi.");
@@ -583,25 +575,36 @@ export const handleMidtransPayment = (snapToken, redirectUrl) => {
  * @param {string} snapToken - Midtrans snap token
  * @param {string} containerId - ID of the container element
  */
-export const embedMidtransSnap = (
-  snapToken,
-  containerId = "snap-container"
-) => {
+export const embedMidtransSnap = (snapToken, onSuccessCallback) => {
   if (window.snap && typeof window.snap.embed === "function") {
     try {
-      const container = document.getElementById(containerId);
-      if (container) {
-        container.style.display = "block";
+      const container = document.getElementById("snap-container");
+      const embedContent = document.getElementById("snap-embed-content");
+      if (!container || !embedContent) {
+        throw new Error("Required container elements not found");
       }
 
+      container.style.display = "block";
+
       window.snap.embed(snapToken, {
-        embedId: containerId,
-        onSuccess: function () {
-          if (container) {
-            container.style.display = "none";
+        embedId: "snap-embed-content",
+        onSuccess: function (result) {
+          container.style.display = "none";
+          if (
+            window.__waRedirectInfo &&
+            window.__waRedirectInfo.transferPaidMessage
+          ) {
+            const phone = window.__waRedirectInfo.phone62 || "6285702257423";
+            const targetUrl = `https://wa.me/${phone}?text=${encodeURIComponent(
+              window.__waRedirectInfo.transferPaidMessage
+            )}`;
+            window.location.href = targetUrl;
+          } else {
+            console.error("No message template found for WhatsApp redirect");
+            alert(
+              "Terjadi kesalahan dalam memproses pesan. Silakan coba lagi."
+            );
           }
-          alert("Pembayaran berhasil! Terima kasih telah berbelanja.");
-          window.location.href = "/success";
         },
         onPending: function () {
           alert("Pembayaran pending, silakan selesaikan pembayaran Anda.");
@@ -631,105 +634,124 @@ export const embedMidtransSnap = (
  * @param {string} snapToken - Midtrans snap token
  * @param {string} redirectUrl - Midtrans redirect URL
  */
-export const handleMidtransPaymentEnhanced = (snapToken, redirectUrl) => {
-  // Method 1: Try direct redirect first (most reliable)
-  if (redirectUrl) {
-    try {
-      // Try to open in new window/tab
-      try {
-        sessionStorage.setItem("waPostPayment", "1");
-      } catch {
-        /* no-op */
-      }
-      const popup = window.open(
-        redirectUrl,
-        "midtrans_payment",
-        "width=800,height=600,scrollbars=yes,resizable=yes,status=yes,location=yes,toolbar=no,menubar=no"
-      );
-
-      if (popup && !popup.closed) {
-        setTimeout(() => {
-          if (popup.closed) {
-            window.location.href = redirectUrl;
-          }
-        }, 1000);
-
-        return;
-      } else {
-        window.location.href = redirectUrl;
-        return;
-      }
-    } catch (err) {
-      console.error("Midtrans popup failed:", err);
-    }
+// Accepts optional onSuccessCallback for post-payment actions (e.g., WhatsApp redirect)
+export const handleMidtransPaymentEnhanced = (
+  snapToken,
+  redirectUrl,
+  onSuccessCallback
+) => {
+  // Create or ensure container exists
+  let container = document.getElementById("snap-container");
+  if (!container) {
+    container = document.createElement("div");
+    container.id = "snap-container";
+    container.style.position = "fixed";
+    container.style.top = "0";
+    container.style.left = "0";
+    container.style.width = "100%";
+    container.style.height = "100%";
+    container.style.backgroundColor = "rgba(0, 0, 0, 0.5)";
+    container.style.zIndex = "9999";
+    container.style.display = "none";
+    document.body.appendChild(container);
   }
 
-  // Method 2: Try Snap.js if available
-  if (window.snap && typeof window.snap.pay === "function" && snapToken) {
+  // Method 1: Try embedded mode with token (preferred method)
+  if (window.snap && typeof window.snap.embed === "function" && snapToken) {
     try {
-      window.snap.pay(snapToken, {
-        onSuccess: function () {
-          triggerWaRedirectIfPrepared();
-          alert("Pembayaran berhasil! Terima kasih telah berbelanja.");
-          window.location.href = "/success";
+      const container = document.getElementById("snap-container");
+      container.style.display = "block";
+
+      window.snap.embed(snapToken, {
+        embedId: "snap-container",
+        onSuccess: function (result) {
+          container.style.display = "none";
+          if (
+            window.__waRedirectInfo &&
+            window.__waRedirectInfo.transferPaidMessage
+          ) {
+            const phone = window.__waRedirectInfo.phone62 || "6285702257423";
+            const targetUrl = `https://wa.me/${phone}?text=${encodeURIComponent(
+              window.__waRedirectInfo.transferPaidMessage
+            )}`;
+            window.location.href = targetUrl;
+          } else {
+            console.error("No message template found for WhatsApp redirect");
+            alert(
+              "Terjadi kesalahan dalam memproses pesan. Silakan coba lagi."
+            );
+          }
         },
-        onPending: function () {
+        onPending: function (result) {
+          container.style.display = "none";
           alert("Pembayaran pending, silakan selesaikan pembayaran Anda.");
         },
-        onError: function () {
+        onError: function (result) {
+          container.style.display = "none";
+          console.error("Payment error:", result);
           alert("Pembayaran gagal. Silakan coba lagi.");
         },
-        onClose: function () {},
+        onClose: function () {
+          container.style.display = "none";
+        },
       });
       return;
     } catch (err) {
-      console.error("Midtrans popup failed:", err);
+      console.error("Midtrans embedded mode failed:", err);
     }
   }
 
-  // Method 2: Try embedded mode with token
-  if (window.snap && typeof window.snap.embed === "function" && snapToken) {
-    try {
-      embedMidtransSnap(snapToken);
-      return;
-    } catch (err) {
-      console.error("Midtrans popup failed:", err);
-    }
-  }
-
-  // Method 3: Try Snap embed with redirect URL (extract token from URL)
+  // Method 2: Extract token from redirect URL and try embedded mode
   if (window.snap && typeof window.snap.embed === "function" && redirectUrl) {
     try {
       const urlParts = redirectUrl.split("/");
       const extractedToken = urlParts[urlParts.length - 1];
 
       if (extractedToken && extractedToken.length > 10) {
-        embedMidtransSnap(extractedToken);
+        const container = document.getElementById("snap-container");
+        container.style.display = "block";
+
+        window.snap.embed(extractedToken, {
+          embedId: "snap-container",
+          onSuccess: function (result) {
+            container.style.display = "none";
+            if (
+              window.__waRedirectInfo &&
+              window.__waRedirectInfo.transferPaidMessage
+            ) {
+              const phone = window.__waRedirectInfo.phone62 || "6285702257423";
+              const targetUrl = `https://wa.me/${phone}?text=${encodeURIComponent(
+                window.__waRedirectInfo.transferPaidMessage
+              )}`;
+              window.location.href = targetUrl;
+            } else {
+              console.error("No message template found for WhatsApp redirect");
+              alert(
+                "Terjadi kesalahan dalam memproses pesan. Silakan coba lagi."
+              );
+            }
+          },
+          onPending: function () {
+            container.style.display = "none";
+            alert("Pembayaran pending, silakan selesaikan pembayaran Anda.");
+          },
+          onError: function () {
+            container.style.display = "none";
+            console.error("Payment error");
+            alert("Pembayaran gagal. Silakan coba lagi.");
+          },
+          onClose: function () {
+            container.style.display = "none";
+          },
+        });
         return;
       }
     } catch (err) {
-      console.error("Midtrans popup failed:", err);
+      console.error("Midtrans embedded mode failed:", err);
     }
   }
 
-  // Method 4: Try new window popup
-  if (redirectUrl) {
-    try {
-      const popup = window.open(
-        redirectUrl,
-        "midtrans_payment",
-        "width=800,height=600,scrollbars=yes,resizable=yes,status=yes,location=yes,toolbar=no,menubar=no"
-      );
-
-      if (popup && !popup.closed) {
-        return;
-      }
-    } catch (err) {
-      console.error("Midtrans popup failed:", err);
-    }
-  }
-
-  // Method 5: Fallback to redirect
+  // Method 3: Fallback to redirect
   if (redirectUrl) {
     try {
       sessionStorage.setItem("waPostPayment", "1");

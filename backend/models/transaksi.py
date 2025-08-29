@@ -17,4 +17,5 @@ class Barang(Base):
     # Tambahan informasi pengguna
     nama_pengguna = Column(String(100), nullable=True)
     alamat = Column(String(500), nullable=True)
-    
+    status = Column(String(50), nullable=True, default="pending")  # Status pembayaran
+

@@ -32,7 +32,16 @@ def create_snap_transaction(order_id: str, gross_amount: int, customer: dict, it
             "customer_details": customer,
             "credit_card": {
                 "secure": True
-            }
+            },
+            # Midtrans production endpoints
+            "callbacks": {
+                "finish": "https://jashujanextrime.my.id/api/v1/transaksi/payment_success_wa",
+                "unfinish": "https://jashujanextrime.my.id/",
+                "error": "https://jashujanextrime.my.id/"
+            },
+            "notification_url": [
+                "https://jashujanextrime.my.id/"
+            ]
         }
         
         # For Midtrans, we only need the final total amount
