@@ -1,3 +1,5 @@
+
+# --- Import Section ---
 import uuid
 import json
 from fastapi import APIRouter, Depends, HTTPException
@@ -12,8 +14,40 @@ from core.config import settings
 from utils.get_name_location import get_location_names
 from utils.format_phone_number import format_phone_number
 from fastapi.responses import RedirectResponse
+from typing import Optional
 
 transaksi = APIRouter()
+
+
+# Endpoint: Cek status pembayaran transaksi by order_id
+@transaksi.get("/{order_id}/status")
+def get_order_status(order_id: str, db: Session = Depends(get_db)):
+    transaksi_db = db.query(Barang).filter(Barang.id == order_id).first()
+    if not transaksi_db:
+        raise HTTPException(status_code=404, detail="Order tidak ditemukan")
+    # Status default jika belum ada kolom status di tabel: pending
+    status = getattr(transaksi_db, "status", None)
+    if not status:
+        # fallback: jika sudah settlement di Midtrans, callback akan update status ke 'success' atau 'lunas'
+        status = "pending"
+    # Normalisasi status agar frontend mudah pakai
+    if status in ["success", "settlement", "paid", "lunas"]:
+        payment_status = "lunas"
+    elif status in ["pending", "pending_payment", "pending_cod"]:
+        payment_status = "pending"
+    else:
+        payment_status = "failed"
+    return {
+        "order_id": order_id,
+        "payment_status": payment_status,
+        "status": status,
+        "customer_name": getattr(transaksi_db, "nama_pengguna", None),
+        "customer_phone": getattr(transaksi_db, "no_telp", None),
+        "total": getattr(transaksi_db, "total", None),
+    }
+
+
+# --- Endpoint Section ---
 
 
 
@@ -260,37 +294,58 @@ def payment_callback(callback_data: PaymentCallback, db: Session = Depends(get_d
         transaksi_db = db.query(Barang).filter(Barang.id == callback_data.order_id).first()
         if not transaksi_db:
             raise HTTPException(status_code=404, detail="Order tidak ditemukan")
-        
+
         # Update transaction status based on callback
+        status_map = {
+            ("capture", "challenge"): "challenge",
+            ("capture", "accept"): "success",
+            ("settlement", None): "success",
+            ("cancel", None): "failed",
+            ("deny", None): "failed",
+            ("expire", None): "failed",
+            ("pending", None): "pending",
+        }
+        new_status = None
         if callback_data.transaction_status == "capture":
             if callback_data.fraud_status == "challenge":
-                # TODO: Set status to "challenge"
-                pass
+                new_status = "challenge"
             elif callback_data.fraud_status == "accept":
-                # TODO: Set status to "success"
-                pass
+                new_status = "success"
         elif callback_data.transaction_status == "settlement":
-            # TODO: Set status to "success"
-            pass
-        elif callback_data.transaction_status == "cancel" or callback_data.transaction_status == "deny" or callback_data.transaction_status == "expire":
-            # TODO: Set status to "failed"
-            pass
+            new_status = "success"
+        elif callback_data.transaction_status in ["cancel", "deny", "expire"]:
+            new_status = "failed"
         elif callback_data.transaction_status == "pending":
-            # TODO: Set status to "pending"
-            pass
-        
-        # Commit changes
-        db.commit()
-        
-        return {"status": "success", "message": "Callback processed successfully"}
-        
+            new_status = "pending"
+
+        if new_status:
+            # Always normalize success status to "lunas" for frontend
+            if new_status == "success":
+                new_status = "lunas"
+            transaksi_db.status = new_status
+            db.commit()
+
+            # If payment is successful, prepare WhatsApp redirect data
+            if new_status == "lunas":
+                wa_redirect_url = f"/api/v1/transaksi/payment_success_wa?order_id={callback_data.order_id}"
+                return {
+                    "status": "success",
+                    "message": "Pembayaran berhasil",
+                    "redirect_url": wa_redirect_url
+                }
+
+        return {"status": "success", "message": f"Callback processed successfully, status: {new_status}"}
+
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Gagal memproses callback: {str(e)}")
 
 
+
+# Endpoint: Redirect ke WhatsApp dengan pesan custom
 @transaksi.get("/wa_redirect")
-def wa_redirect(text: str = "", phone: str | None = None):
-    """Public endpoint to redirect to WhatsApp with URL-encoded text.
+def wa_redirect(text: str = "", phone: Optional[str] = None):
+    """
+    Public endpoint to redirect to WhatsApp with URL-encoded text.
     Use this as a Finish URL if you want Midtrans to hit a public URL that opens WhatsApp.
     Example: /api/v1/transaksi/wa_redirect?phone=62xxxxxxxxxx&text=...
     """
@@ -303,135 +358,60 @@ def wa_redirect(text: str = "", phone: str | None = None):
     return RedirectResponse(url)
 
 
+
+
+# Endpoint: Direct WhatsApp redirect after payment success
 @transaksi.get("/payment_success_wa")
 def payment_success_wa(
     order_id: str = "",
+    status_code: str = "",
     transaction_status: str = "",
-    payment_type: str = "",
-    gross_amount: str = "",
-    customer_name: str = "",
-    customer_phone: str = "",
-    customer_address: str = "",
-    items: str = "",
-    shipping_method: str = "",
-    shipping_cost: str = "",
-    admin_phone: str | None = None
+    admin_phone: Optional[str] = None,
+    db: Session = Depends(get_db)
 ):
-    """
-    Endpoint untuk redirect langsung ke WhatsApp setelah pembayaran berhasil.
-    Gunakan ini sebagai Finish Redirect URL di Midtrans.
-    
-    Parameter yang diterima dari Midtrans:
-    - order_id: ID pesanan
-    - transaction_status: Status transaksi (settlement, capture, dll)
-    - payment_type: Jenis pembayaran (bank_transfer, gopay, dll)
-    - gross_amount: Total pembayaran
-    - customer_name: Nama pelanggan
-    - customer_phone: Nomor telepon pelanggan
-    - customer_address: Alamat pelanggan
-    - items: Detail item (JSON string)
-    - shipping_method: Metode pengiriman
-    - shipping_cost: Biaya pengiriman
-    """
     try:
-        # Validasi status pembayaran
-        if transaction_status not in ["settlement", "capture"]:
-            # Jika bukan pembayaran sukses, redirect ke halaman error
-            return RedirectResponse(url="https://your-domain.com/#/error")
+        # Default admin number if not provided
+        admin = admin_phone or settings.ADMIN_WHATSAPP or "6285702257423"
+
+        # Handle missing order_id
+        if not order_id:
+            # Fallback to simple WhatsApp message
+            wa_message = "LUNAS"
+            from urllib.parse import quote
+            encoded_message = quote(wa_message)
+            wa_url = f"https://wa.me/{admin}?text={encoded_message}"
+            return RedirectResponse(url=wa_url)
         
-        # Ambil nomor admin WhatsApp
-        admin = admin_phone or settings.ADMIN_WHATSAPP
-        if not admin:
-            raise HTTPException(status_code=400, detail="No WhatsApp number configured")
+        # Try to get transaction data
+        transaksi_db = db.query(Barang).filter(Barang.id == order_id).first()
         
-        # Parse items jika ada
-        items_list = []
-        if items:
-            try:
-                import json
-                items_list = json.loads(items)
-            except:
-                items_list = [{"name": "Produk", "quantity": 1, "price": gross_amount}]
+        # If transaction found, use its data
+        if transaksi_db:
+            # Update status to lunas if payment successful
+            if status_code == "200" or transaction_status == "settlement":
+                transaksi_db.status = "lunas"
+                db.commit()
+            
+            # Get order details
+            customer_name = getattr(transaksi_db, "nama_pengguna", "Customer")
+            customer_phone = getattr(transaksi_db, "no_telp", "-")
+            customer_address = getattr(transaksi_db, "alamat", "-")
+            total = getattr(transaksi_db, "total", 0)
+            
+            # Format WhatsApp message
+            wa_message = f"*PESANAN LUNAS*\n\nNo.Order: #{order_id}\nNama: {customer_name}\nHP: {customer_phone}\nAlamat: {customer_address}\nTotal: Rp {total:,}\nStatus: ✅ LUNAS"
+        else:
+            # Fallback message if transaction not found
+            wa_message = f"*LUNAS*\n\nNo.Order: #{order_id}"
         
-        # Format tanggal dan waktu
-        from datetime import datetime
-        now = datetime.now()
-        tanggal = now.strftime("%d/%m/%Y")
-        waktu = now.strftime("%H:%M:%S")
-        
-        # Buat pesan WhatsApp dengan format resi
-        wa_message = f"""╔═══════════════════════════════════════╗
-║ 🛒 JAS HUJAN EXTREME STORE ║
-║ 📦 ORDER CONFIRMATION ║
-╠═══════════════════════════════════════════════╣
-║ Order ID: {order_id} ║
-║ Tanggal: {tanggal} ║
-║ Waktu: {waktu} ║
-╚═══════════════════════════════════════════════╝
-
-📋 INFORMASI PELANGGAN
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-👤 Nama: {customer_name or 'N/A'}
-📱 No. HP: {customer_phone or 'N/A'}
-📍 Alamat: {customer_address or 'N/A'}
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-🛍️ DETAIL PRODUK ({len(items_list)} item)
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"""
-        
-        # Tambahkan detail produk
-        for i, item in enumerate(items_list, 1):
-            name = item.get('name', 'Produk')
-            quantity = item.get('quantity', 1)
-            price = item.get('price', 0)
-            subtotal = quantity * price
-            wa_message += f"""
-{i}. {name}
-   Qty: {quantity} x Rp {price:,}
-   Subtotal: Rp {subtotal:,}"""
-        
-        wa_message += f"""
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-💰 RINGKASAN PEMBAYARAN
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-💳 Metode Pembayaran: {payment_type.upper()}
-🚚 Pengiriman: {shipping_method or 'N/A'}
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-📊 Rincian Biaya:
-Subtotal: Rp {int(gross_amount) - int(shipping_cost or 0):,}
-Ongkir: Rp {int(shipping_cost or 0):,}
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-💵 TOTAL BAYAR: Rp {int(gross_amount):,}
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-✅ STATUS: LUNAS ✅
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-💳 Pembayaran telah berhasil dilakukan
-📦 Pesanan akan segera diproses dan dikirim
-⏰ Estimasi pengiriman: 1-3 hari kerja
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-Terima kasih telah berbelanja di Jas Hujan Extreme Store! 🛒✨
-
-Halo Admin, pembayaran sudah LUNAS. Berikut detail lengkap:
-Nama: {customer_name or 'N/A'}
-No HP: {customer_phone or 'N/A'}
-Alamat: {customer_address or 'N/A'}
-Metode Bayar: {payment_type.upper()}
-Pengiriman: {shipping_method or 'N/A'}
-Total Bayar: Rp {int(gross_amount):,}"""
-        
-        # Encode pesan untuk URL WhatsApp
+        # Generate WhatsApp URL and redirect
         from urllib.parse import quote
         encoded_message = quote(wa_message)
-        
-        # Redirect ke WhatsApp
         wa_url = f"https://wa.me/{admin}?text={encoded_message}"
-        return RedirectResponse(url=wa_url)
+        return RedirectResponse(url=wa_url, status_code=302)
         
     except Exception as e:
-        # Jika ada error, redirect ke halaman error
-        return RedirectResponse(url="https://your-domain.com/#/error")
+        # If anything fails, redirect to WhatsApp with simple message
+        print(f"Error in payment_success_wa: {str(e)}")
+        wa_url = f"https://wa.me/{admin}?text=LUNAS"
+        return RedirectResponse(url=wa_url, status_code=302)

@@ -43,6 +43,7 @@ import {
   createStoreOrder,
   handleMidtransPaymentEnhanced,
   openWhatsappReceipt,
+  getOrderStatus,
 } from "../../Data/transactionService";
 
 // Data for products, options, and mock location data.
@@ -270,6 +271,91 @@ const App = () => {
   const [orderPlaced, setOrderPlaced] = useState(false);
   const [isLoadingLocations, setIsLoadingLocations] = useState(false);
   const [orderDetails, setOrderDetails] = useState(null);
+  const [paymentStatus, setPaymentStatus] = useState("");
+  const [isCheckingStatus, setIsCheckingStatus] = useState(false);
+  // Polling payment status after order placed
+  useEffect(() => {
+    let polling;
+    const fetchStatus = async () => {
+      // Check if we're being redirected from Midtrans
+      const isMidtransRedirect = window.location.href.includes("midtrans.com");
+      const params = new URLSearchParams(window.location.search);
+      const transactionStatus = params.get("transaction_status");
+      const statusCode = params.get("status_code");
+      const orderId =
+        params.get("order_id") ||
+        orderDetails?.id ||
+        sessionStorage.getItem("lastOrderId");
+
+      // Handle Midtrans redirect
+      if (isMidtransRedirect && orderId) {
+        // Map status to our system
+        let newStatus = "pending";
+        if (
+          transactionStatus === "settlement" ||
+          transactionStatus === "capture" ||
+          statusCode === "200"
+        ) {
+          newStatus = "lunas";
+        } else if (
+          ["deny", "cancel", "expire", "failure"].includes(transactionStatus)
+        ) {
+          newStatus = "failed";
+        }
+
+        setPaymentStatus(newStatus);
+
+        // Redirect based on status
+        if (newStatus === "lunas") {
+          const waRedirectUrl = `/api/v1/transaksi/payment_success_wa?order_id=${orderId}`;
+          window.location.href = waRedirectUrl;
+          return;
+        } else {
+          // Stay on page but update UI
+          window.history.pushState(
+            {},
+            "",
+            `/transaksi?order_id=${orderId}&status=${newStatus}`
+          );
+        }
+      }
+
+      if (orderPlaced && orderDetails?.id) {
+        setIsCheckingStatus(true);
+        try {
+          const res = await fetch(
+            `/api/v1/transaksi/${orderDetails.id}/status`
+          );
+          if (!res.ok) throw new Error("Status fetch failed");
+          const data = await res.json();
+          console.log("Payment status response:", data); // Debug log
+          setPaymentStatus(data.payment_status); // 'pending', 'lunas', 'failed'
+
+          // If payment is successful, direct WhatsApp redirect with LUNAS message
+          if (data.payment_status === "lunas") {
+            const message = `✅ PEMBAYARAN LUNAS!\n\nNo.Order: #${orderDetails.id}\nStatus: Pembayaran Berhasil ✅\n\nTerima kasih telah berbelanja di Jas Hujan Extreme Store! 🙏`;
+            const waUrl = `https://wa.me/6285702257423?text=${encodeURIComponent(
+              message
+            )}`;
+            window.location.href = waUrl;
+          } else if (data.payment_status === "pending") {
+            // Keep polling only if still pending
+            polling = setTimeout(fetchStatus, 4000);
+          }
+        } catch (error) {
+          console.error("Error fetching status:", error);
+          setPaymentStatus("");
+        } finally {
+          setIsCheckingStatus(false);
+        }
+      }
+    };
+
+    fetchStatus();
+    return () => {
+      if (polling) clearTimeout(polling);
+    };
+  }, [orderPlaced, orderDetails?.id]);
 
   // Create refs for various form sections
   const productFormRef = useRef(null);
@@ -817,7 +903,6 @@ const App = () => {
           // Store the order details for the success page
           setOrderDetails(transactionResult);
           setOrderPlaced(true);
-          // console.log('Order placed successfully:', transactionResult);
         } else {
           console.error("Invalid transaction result:", transactionResult);
           throw new Error(
@@ -831,11 +916,35 @@ const App = () => {
           // Non-COD - Check for Midtrans payment details
 
           // Handle Midtrans payment
-          if (transactionResult.redirect_url) {
-            // If we have redirect_url but no token, use redirect directly
+          if (transactionResult.token || transactionResult.redirect_url) {
+            // Save order ID for post-payment handling
+            try {
+              sessionStorage.setItem("lastOrderId", transactionResult.id);
+              sessionStorage.setItem("waPostPayment", "1");
+            } catch (e) {
+              console.warn("Failed to save order info:", e);
+            }
+
+            // Use Snap for payment
             handleMidtransPaymentEnhanced(
-              transactionResult.token || null,
-              transactionResult.redirect_url
+              transactionResult.token,
+              transactionResult.redirect_url,
+              (result) => {
+                // After payment success
+                if (
+                  result &&
+                  (result.status_code === "200" ||
+                    result.transaction_status === "settlement" ||
+                    result.transaction_status === "capture")
+                ) {
+                  // Direct WhatsApp redirect with LUNAS message
+                  const message = `✅ PEMBAYARAN LUNAS!\n\nNo.Order: #${transactionResult.id}\nStatus: Pembayaran Berhasil ✅\n\nTerima kasih telah berbelanja di Jas Hujan Extreme Store! 🙏`;
+                  const waUrl = `https://wa.me/6285702257423?text=${encodeURIComponent(
+                    message
+                  )}`;
+                  window.location.href = waUrl;
+                }
+              }
             );
           }
         }
@@ -1020,10 +1129,22 @@ const App = () => {
                     </li>
                     <li className="flex justify-between items-center">
                       <span className="text-gray-600">Status:</span>
-                      <span className="font-medium text-gray-900">
+                      <span
+                        className={`font-medium ${
+                          paymentStatus === "lunas"
+                            ? "text-green-600"
+                            : paymentStatus === "failed"
+                            ? "text-red-600"
+                            : "text-gray-900"
+                        }`}
+                      >
                         {formData.paymentMethod.toLowerCase().includes("cod")
                           ? "Menunggu Pengiriman (COD)"
-                          : "Menunggu Pembayaran"}
+                          : paymentStatus === "lunas"
+                          ? "✅ LUNAS"
+                          : paymentStatus === "failed"
+                          ? "❌ GAGAL"
+                          : "⏳ Menunggu Pembayaran"}
                       </span>
                     </li>
                   </ul>
@@ -1050,32 +1171,80 @@ const App = () => {
                     className="img-test rounded-xl shadow-md border-2 border-white transform transition-transform duration-300 hover:scale-110 object-cover w-full h-full max-w-xs"
                   />
                 </div>
-                <div className="flex justify-center w-full mt-6">
-                  <a
-                    href="#"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      openWhatsappReceipt();
-                    }}
-                    className="text-sm bg-gradient-to-r from-purple-500 to-indigo-600 text-white font-bold rounded-xl shadow-lg transition-all duration-300 transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-orange-300 flex items-center gap-1 cek-sta"
+                <div className="flex flex-col items-center gap-4 w-full mt-6">
+                  {/* Status Check Button */}
+                  <button
+                    type="button"
+                    onClick={openWhatsappReceipt}
+                    className={`w-full text-sm ${
+                      paymentStatus === "lunas"
+                        ? "bg-green-500 hover:bg-green-600"
+                        : "bg-gradient-to-r from-purple-500 to-indigo-600"
+                    } text-white font-bold rounded-xl shadow-lg transition-all duration-300 transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-orange-300 flex items-center justify-center gap-2 py-3 ${
+                      isCheckingStatus || paymentStatus !== "lunas"
+                        ? "opacity-50 cursor-not-allowed"
+                        : ""
+                    }`}
+                    disabled={isCheckingStatus || paymentStatus !== "lunas"}
                   >
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      width="16"
-                      height="16"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M9 5l7 7-7 7"
-                      />
-                    </svg>
-                    Cek status pesanan
-                  </a>
+                    {paymentStatus === "lunas" ? (
+                      <>
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          className="h-5 w-5"
+                          viewBox="0 0 20 20"
+                          fill="currentColor"
+                        >
+                          <path
+                            fillRule="evenodd"
+                            d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                            clipRule="evenodd"
+                          />
+                        </svg>
+                        <span>Pesanan Lunas - Buka WhatsApp</span>
+                      </>
+                    ) : isCheckingStatus ? (
+                      <>
+                        <svg
+                          className="animate-spin h-5 w-5"
+                          xmlns="http://www.w3.org/2000/svg"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                        >
+                          <circle
+                            className="opacity-25"
+                            cx="12"
+                            cy="12"
+                            r="10"
+                            stroke="currentColor"
+                            strokeWidth="4"
+                          ></circle>
+                          <path
+                            className="opacity-75"
+                            fill="currentColor"
+                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                          ></path>
+                        </svg>
+                        <span>Memeriksa Status Pembayaran...</span>
+                      </>
+                    ) : (
+                      <>
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          className="h-5 w-5"
+                          viewBox="0 0 20 20"
+                          fill="currentColor"
+                        >
+                          <path
+                            fillRule="evenodd"
+                            d="M4 4a2 2 0 00-2 2v8a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2H4zm3 1h6v2H7V5zm8 5.5a.5.5 0 01-.5.5h-7a.5.5 0 010-1h7a.5.5 0 01.5.5zm-7.5 2h6v2h-6v-2z"
+                            clipRule="evenodd"
+                          />
+                        </svg>
+                        <span>Menunggu Pembayaran</span>
+                      </>
+                    )}
+                  </button>
                 </div>
               </div>
             </div>
