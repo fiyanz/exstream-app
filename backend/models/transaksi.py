@@ -13,6 +13,7 @@ class Barang(Base):
     jumlah_barang = Column(Integer, nullable=False)
     total = Column(Integer, nullable=False)
     detail_barang = Column(String(5000), nullable=True)  # Increased for detailed JSON
+    status = Column(String(50), nullable=False, default="pending")
     
     # Tambahan informasi pengguna
     nama_pengguna = Column(String(100), nullable=True)
