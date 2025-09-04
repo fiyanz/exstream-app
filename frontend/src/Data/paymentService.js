@@ -15,24 +15,31 @@ export const redirectToWhatsApp = (orderId, statusCode, transactionStatus) => {
 };
 
 // Enhanced Midtrans payment handler
+// Enhanced Midtrans payment handler
 export const handleMidtransPayment = (token, orderId) => {
   if (!token) {
     console.error("No token provided for payment");
     return;
   }
 
-  // Save order info
+  // Simpan orderId aja, jangan langsung set waPostPayment
   try {
     sessionStorage.setItem("lastOrderId", orderId);
-    sessionStorage.setItem("waPostPayment", "1");
   } catch (e) {
-    console.warn("Failed to save payment info:", e);
+    console.warn("Failed to save order info:", e);
   }
 
   // Configure Snap
   window.snap.pay(token, {
     onSuccess: (result) => {
-      // Immediate redirect to WhatsApp on success
+      // ✅ Flag WA hanya saat transaksi sukses
+      try {
+        sessionStorage.setItem("waPostPayment", "1");
+      } catch (e) {
+        console.warn("Failed to save WA flag:", e);
+      }
+
+      // ✅ Auto redirect ke WA
       redirectToWhatsApp(
         orderId,
         result.status_code,
@@ -46,7 +53,7 @@ export const handleMidtransPayment = (token, orderId) => {
       console.error("Payment error:", result);
     },
     onClose: () => {
-      // Clean up if needed
+      // ❌ Jangan redirect ke WA kalau user close sebelum selesai
       try {
         sessionStorage.removeItem("waPostPayment");
       } catch (e) {
