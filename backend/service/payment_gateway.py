@@ -36,11 +36,11 @@ def create_snap_transaction(order_id: str, gross_amount: int, customer: dict, it
             # Midtrans production endpoints
             "callbacks": {
                 "finish": "https://jashujanextrime.my.id/api/v1/transaksi/payment_success_wa",
-                "unfinish": "https://jashujanextrime.my.id/",
-                "error": "https://jashujanextrime.my.id/"
+                "unfinish": "https://jashujanextrime.my.id/api/v1/transaksi/payment_error_wa",
+                "error": "https://jashujanextrime.my.id/api/v1/transaksi/payment_error_wa"
             },
             "notification_url": [
-                "https://jashujanextrime.my.id/"
+                "https://jashujanextrime.my.id/api/v1/transaksi/callback"
             ]
         }
         

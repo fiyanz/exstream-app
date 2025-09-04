@@ -14,8 +14,8 @@ class Settings(BaseSettings):
     KOMERCE_ORDER_BASE_URL: str = ""
     MY_ORIGIN_DESTINATION_ID: str = ""
     RAJA_ONGKIR_DESTINATION_URL: str = ""
-    MIDTRANS_SERVER_KEY: str = "Mid-server-fx1KexTtY7wK58fh9Mo7YGhY"
-    MIDTRANS_CLIENT_KEY: str = "Mid-client-I2eQnF0U5AfjcUB4"
+    MIDTRANS_SERVER_KEY: str = "Mid-server-HpGCuZ2W9xVIuelaBDR50KCu"
+    MIDTRANS_CLIENT_KEY: str = "Mid-client-S556xu9my6BPr1ig"
     MIDTRANS_IS_PRODUCTION: bool = True
     ADMIN_WHATSAPP: str = ""
 
