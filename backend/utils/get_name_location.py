@@ -1,5 +1,5 @@
 from sqlalchemy.orm import Session
-from models.data_wilayah import Province, Regency, District, Village
+from models.wilayah_model import Province, Regency, District, Village
 
 def get_location_names(db: Session, province_id: str, city_id: str, subdistrict_id: str, village_id: str):
     """

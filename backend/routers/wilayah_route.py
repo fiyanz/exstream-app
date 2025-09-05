@@ -1,12 +1,11 @@
-from typing import List
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from sqlalchemy import or_  # Pastikan import ini ada
+from typing import List
 
-# Impor dependency get_db dan model/schema kita
 from db.database import get_db
-from models import data_wilayah as models
-from schemas.wilayah import WilayahBase
+from models import wilayah_model as models
+from schemas.wilayah_schemas import WilayahBase
 
 # Buat instance router
 wilayah = APIRouter()

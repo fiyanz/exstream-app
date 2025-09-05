@@ -5,13 +5,10 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import Response
 
 from core.config import settings
-from routers.wilayah import wilayah
-from routers.lokasi import lokasi
-from routers.cost_ongkir import cost_ongkir
-from routers.cost_ongkir_local import cost_ongkir_lokal
-from routers.transaksi import transaksi
-from routers.store_order import store_order
-from routers.domestic import domesticCostRequest
+from routers.wilayah_route import wilayah
+from routers.transaksi_route import transaksi
+from routers.store_order_route import store_order
+from routers.domestic_route import domesticCostRequest
 
 from db.database import Base, engine
 
@@ -41,24 +38,6 @@ app.include_router(
     prefix=f"{settings.API_PREFIX}/wilayah",
     tags=["Wilayah Indonesia"]
 )
-
-# app.include_router(
-#     lokasi,
-#     prefix="/api/v1/lokasi",
-#     tags=["Pencarian Lokasi Menggunakan API"]
-# )
-
-# app.include_router(
-#     cost_ongkir,
-#     prefix="/api/v1/cost_ongkir",
-#     tags=["Pengiriman API Raja Ongkir"]
-# )
-
-# app.include_router(
-#     cost_ongkir_lokal,
-#     prefix="/api/v1/cost_ongkir_lokal",
-#     tags=["Pengiriman dengan Data Lokal"]
-# )
 
 app.include_router(
     domesticCostRequest,

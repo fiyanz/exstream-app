@@ -4,7 +4,7 @@ router untuk mengelola destinasi endpoint dari api raja ongkir v1
 
 from fastapi import APIRouter, HTTPException
 from core.config import settings
-from schemas.domestic import DomesticCostRequest
+from schemas.domestic_schemas import DomesticCostRequest
 import requests
 from utils.get_id_distric import extract_city_id_from_village
 

@@ -1,20 +1,20 @@
-
-# --- Import Section ---
 import uuid
 import json
+
 from fastapi import APIRouter, Depends, HTTPException
+from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
-from models.transaksi import Barang
-from models.data_wilayah import Province, Regency, District, Village
-from db.database import get_db
-from service.payment_gateway import create_snap_transaction
-from schemas.transaksi_schemas import TransaksiCreate, TransaksiOut, TransaksiCreateEnhanced, PaymentCallback
 from datetime import datetime
+from typing import Optional
+
 from core.config import settings
+from db.database import get_db
+from models.transaksi_model import Barang
+from models.wilayah_model import Province, Regency, District, Village
+from schemas.transaksi_schemas import TransaksiCreate, TransaksiOut, TransaksiCreateEnhanced, PaymentCallback
+from service.payment_gateway_service import create_snap_transaction
 from utils.get_name_location import get_location_names
 from utils.format_phone_number import format_phone_number
-from fastapi.responses import RedirectResponse
-from typing import Optional
 
 transaksi = APIRouter()
 
@@ -45,9 +45,6 @@ def get_order_status(order_id: str, db: Session = Depends(get_db)):
         "customer_phone": getattr(transaksi_db, "no_telp", None),
         "total": getattr(transaksi_db, "total", None),
     }
-
-
-# --- Endpoint Section ---
 
 
 
