@@ -359,7 +359,6 @@ def wa_redirect(text: str = "", phone: Optional[str] = None):
 
 
 
-
 # Endpoint: Direct WhatsApp redirect after payment success
 @transaksi.get("/payment_success_wa")
 def payment_success_wa(
@@ -370,13 +369,13 @@ def payment_success_wa(
     db: Session = Depends(get_db)
 ):
     try:
-        # Default admin number if not provided
-        admin = admin_phone or settings.ADMIN_WHATSAPP or "6285702257423"
+        # Default admin number - prioritize admin WhatsApp
+        admin = admin_phone or settings.ADMIN_WHATSAPP or "6287890792595"
 
         # Handle missing order_id
         if not order_id:
             # Fallback to simple WhatsApp message
-            wa_message = "LUNAS"
+            wa_message = "✅ PEMBAYARAN LUNAS - Terima kasih telah berbelanja di Jas Hujan Extreme Store!"
             from urllib.parse import quote
             encoded_message = quote(wa_message)
             wa_url = f"https://wa.me/{admin}?text={encoded_message}"
@@ -385,7 +384,7 @@ def payment_success_wa(
         # Try to get transaction data
         transaksi_db = db.query(Barang).filter(Barang.id == order_id).first()
         
-        # If transaction found, use its data
+        # If transaction found, use its data to create detailed receipt
         if transaksi_db:
             # Update status to lunas if payment successful
             if status_code == "200" or transaction_status == "settlement":
@@ -398,11 +397,90 @@ def payment_success_wa(
             customer_address = getattr(transaksi_db, "alamat", "-")
             total = getattr(transaksi_db, "total", 0)
             
-            # Format WhatsApp message
-            wa_message = f"*PESANAN LUNAS*\n\nNo.Order: #{order_id}\nNama: {customer_name}\nHP: {customer_phone}\nAlamat: {customer_address}\nTotal: Rp {total:,}\nStatus: ✅ LUNAS"
+            # Parse detail_barang if it exists (JSON format from enhanced endpoint)
+            detail_barang = getattr(transaksi_db, "detail_barang", "{}")
+            try:
+                import json
+                order_details = json.loads(detail_barang) if detail_barang else {}
+            except:
+                order_details = {}
+            
+            # Get current Jakarta time
+            from datetime import datetime
+            now = datetime.now()
+            jkt = datetime.fromtimestamp(now.timestamp() + 7 * 3600)  # UTC+7
+            tanggal = jkt.strftime("%d/%m/%Y")
+            waktu = jkt.strftime("%H:%M:%S")
+            
+            # Create detailed receipt message similar to COD format
+            header_box = (
+                "┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓\n"
+                "┃  🛒 JAS HUJAN EXTREME STORE         ┃\n"
+                "┃        ✅ ORDER CONFIRMATION        ┃\n"
+                "┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛\n"
+                f"Order ID: {order_id}\n"
+                f"Tanggal: {tanggal}\n"
+                f"Waktu: {waktu}\n\n"
+            )
+            
+            customer_block = (
+                "📋 INFORMASI PELANGGAN\n"
+                "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
+                f"👤 Nama: {customer_name}\n"
+                f"📱 No. HP: {customer_phone}\n"
+                f"📍 Alamat: {customer_address}\n\n"
+            )
+            
+            # Get items from order details if available
+            items = order_details.get('items', [])
+            if items:
+                items_text = ""
+                for idx, item in enumerate(items):
+                    name = item.get('name', f'Item {idx + 1}')
+                    qty = item.get('quantity', 1)
+                    price = item.get('price', 0)
+                    subtotal = price * qty
+                    items_text += f"- {name} | Qty: {qty} | @ Rp {price:,} | Subtotal: Rp {subtotal:,}\n"
+                
+                product_block = (
+                    f"🛍️ DETAIL PRODUK ({len(items)} item)\n"
+                    "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
+                    f"{items_text}"
+                    "──────────────────────────────────────\n\n"
+                )
+            else:
+                product_block = (
+                    "🛍️ DETAIL PRODUK\n"
+                    "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
+                    "- Jas Hujan Extrime\n"
+                    "──────────────────────────────────────\n\n"
+                )
+            
+            # Payment and shipping info
+            shipping_method = order_details.get('shipping_method', 'Kurir')
+            payment_block = (
+                f"🚚 Pengiriman: {shipping_method}\n"
+                "💳 Metode Pembayaran: Transfer Bank\n"
+                f"💵 TOTAL BAYAR: Rp {total:,}\n\n"
+            )
+            
+            status_block = (
+                "✅ STATUS: PEMBAYARAN LUNAS\n"
+                "💡 Pembayaran telah diterima ✅\n"
+                "📦 Pesanan akan segera diproses dan dikirim\n"
+                "⏰ Estimasi pengiriman: 1-3 hari kerja\n\n"
+                "Terima kasih telah berbelanja di Jas Hujan Extreme Store! ✨"
+            )
+            
+            wa_message = header_box + customer_block + product_block + payment_block + status_block
         else:
             # Fallback message if transaction not found
-            wa_message = f"*LUNAS*\n\nNo.Order: #{order_id}"
+            wa_message = (
+                "✅ PEMBAYARAN LUNAS\n\n"
+                f"No.Order: #{order_id}\n"
+                "Status: ✅ LUNAS\n\n"
+                "Terima kasih telah berbelanja di Jas Hujan Extreme Store! ✨"
+            )
         
         # Generate WhatsApp URL and redirect
         from urllib.parse import quote
@@ -413,5 +491,107 @@ def payment_success_wa(
     except Exception as e:
         # If anything fails, redirect to WhatsApp with simple message
         print(f"Error in payment_success_wa: {str(e)}")
-        wa_url = f"https://wa.me/{admin}?text=LUNAS"
+        admin = admin_phone or settings.ADMIN_WHATSAPP or "6287890792595"
+        wa_message = "✅ PEMBAYARAN LUNAS - Terima kasih telah berbelanja di Jas Hujan Extreme Store!"
+        from urllib.parse import quote
+        encoded_message = quote(wa_message)
+        wa_url = f"https://wa.me/{admin}?text={encoded_message}"
+        return RedirectResponse(url=wa_url, status_code=302)
+
+
+# Endpoint: Direct WhatsApp redirect after payment error/failure
+@transaksi.get("/payment_error_wa")
+def payment_error_wa(
+    order_id: str = "",
+    status_code: str = "",
+    transaction_status: str = "",
+    admin_phone: Optional[str] = None,
+    db: Session = Depends(get_db)
+):
+    try:
+        # Default admin number - prioritize admin WhatsApp
+        admin = admin_phone or settings.ADMIN_WHATSAPP or "6287890792595"
+
+        # Handle missing order_id
+        if not order_id:
+            # Fallback to simple WhatsApp message
+            wa_message = "❌ PEMBAYARAN GAGAL - Silakan coba lagi atau hubungi admin untuk bantuan."
+            from urllib.parse import quote
+            encoded_message = quote(wa_message)
+            wa_url = f"https://wa.me/{admin}?text={encoded_message}"
+            return RedirectResponse(url=wa_url)
+        
+        # Try to get transaction data
+        transaksi_db = db.query(Barang).filter(Barang.id == order_id).first()
+        
+        # If transaction found, use its data to create error message
+        if transaksi_db:
+            # Update status to failed
+            transaksi_db.status = "failed"
+            db.commit()
+            
+            # Get order details
+            customer_name = getattr(transaksi_db, "nama_pengguna", "Customer")
+            customer_phone = getattr(transaksi_db, "no_telp", "-")
+            total = getattr(transaksi_db, "total", 0)
+            
+            # Get current Jakarta time
+            from datetime import datetime
+            now = datetime.now()
+            jkt = datetime.fromtimestamp(now.timestamp() + 7 * 3600)  # UTC+7
+            tanggal = jkt.strftime("%d/%m/%Y")
+            waktu = jkt.strftime("%H:%M:%S")
+            
+            # Create error message
+            header_box = (
+                "┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓\n"
+                "┃  🛒 JAS HUJAN EXTREME STORE         ┃\n"
+                "┃        ❌ PEMBAYARAN GAGAL          ┃\n"
+                "┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛\n"
+                f"Order ID: {order_id}\n"
+                f"Tanggal: {tanggal}\n"
+                f"Waktu: {waktu}\n\n"
+            )
+            
+            customer_block = (
+                "📋 INFORMASI PELANGGAN\n"
+                "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
+                f"👤 Nama: {customer_name}\n"
+                f"📱 No. HP: {customer_phone}\n"
+                f"💵 Total: Rp {total:,}\n\n"
+            )
+            
+            error_block = (
+                "❌ STATUS: PEMBAYARAN GAGAL\n"
+                "💡 Pembayaran tidak dapat diproses\n"
+                "🔄 Silakan coba lagi atau pilih metode pembayaran lain\n"
+                "📞 Atau hubungi admin untuk bantuan\n\n"
+                "Terima kasih atas pengertiannya! 🙏"
+            )
+            
+            wa_message = header_box + customer_block + error_block
+        else:
+            # Fallback message if transaction not found
+            wa_message = (
+                "❌ PEMBAYARAN GAGAL\n\n"
+                f"No.Order: #{order_id}\n"
+                "Status: ❌ GAGAL\n\n"
+                "Silakan coba lagi atau hubungi admin untuk bantuan.\n"
+                "Terima kasih atas pengertiannya! 🙏"
+            )
+        
+        # Generate WhatsApp URL and redirect
+        from urllib.parse import quote
+        encoded_message = quote(wa_message)
+        wa_url = f"https://wa.me/{admin}?text={encoded_message}"
+        return RedirectResponse(url=wa_url, status_code=302)
+        
+    except Exception as e:
+        # If anything fails, redirect to WhatsApp with simple error message
+        print(f"Error in payment_error_wa: {str(e)}")
+        admin = admin_phone or settings.ADMIN_WHATSAPP or "6287890792595"
+        wa_message = "❌ PEMBAYARAN GAGAL - Silakan coba lagi atau hubungi admin untuk bantuan."
+        from urllib.parse import quote
+        encoded_message = quote(wa_message)
+        wa_url = f"https://wa.me/{admin}?text={encoded_message}"
         return RedirectResponse(url=wa_url, status_code=302)
