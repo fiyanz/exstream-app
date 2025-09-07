@@ -334,7 +334,7 @@ const App = () => {
           // If payment is successful, direct WhatsApp redirect with LUNAS message
           if (data.payment_status === "lunas") {
             const message = `✅ PEMBAYARAN LUNAS!\n\nNo.Order: #${orderDetails.id}\nStatus: Pembayaran Berhasil ✅\n\nTerima kasih telah berbelanja di Jas Hujan Extreme Store! 🙏`;
-            const waUrl = `https://wa.me/6285702257423?text=${encodeURIComponent(
+            const waUrl = `https://wa.me/6285137535186?text=${encodeURIComponent(
               message
             )}`;
             window.location.href = waUrl;
@@ -939,7 +939,7 @@ const App = () => {
                 ) {
                   // Direct WhatsApp redirect with LUNAS message
                   const message = `✅ PEMBAYARAN LUNAS!\n\nNo.Order: #${transactionResult.id}\nStatus: Pembayaran Berhasil ✅\n\nTerima kasih telah berbelanja di Jas Hujan Extreme Store! 🙏`;
-                  const waUrl = `https://wa.me/6285702257423?text=${encodeURIComponent(
+                  const waUrl = `https://wa.me/6285137535186?text=${encodeURIComponent(
                     message
                   )}`;
                   window.location.href = waUrl;

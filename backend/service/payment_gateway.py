@@ -33,14 +33,14 @@ def create_snap_transaction(order_id: str, gross_amount: int, customer: dict, it
             "credit_card": {
                 "secure": True
             },
-            # Midtrans production endpoints
+            # Midtrans callback endpoints
             "callbacks": {
-                "finish": "https://jashujanextrime.my.id/api/v1/transaksi/payment_success_wa",
-                "unfinish": "https://jashujanextrime.my.id/api/v1/transaksi/payment_error_wa",
-                "error": "https://jashujanextrime.my.id/api/v1/transaksi/payment_error_wa"
+                "finish": "http://localhost:3000/payment/success",
+                "unfinish": "http://localhost:3000/payment/pending",
+                "error": "http://localhost:3000/payment/error"
             },
             "notification_url": [
-                "https://jashujanextrime.my.id/api/v1/transaksi/callback"
+                "http://localhost:8000/api/v1/transaksi/callback"
             ]
         }
         

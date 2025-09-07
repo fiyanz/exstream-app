@@ -265,8 +265,8 @@ const prepareWaRedirectInfo = (orderData) => {
 
     const headerBox =
       `┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓\n` +
-      `┃  🛒 JAS HUJAN EXTREME STORE         ┃\n` +
-      `┃        ✅ ORDER CONFIRMATION        ┃\n` +
+      `┃  🛒 JAS HUJAN EXTREME STORE       ┃\n` +
+      `┃        ✅ ORDER CONFIRMATION      ┃\n` +
       `┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛\n` +
       (orderId ? `Order ID: ${orderId}\n` : "") +
       `Tanggal: ${tanggal}\n` +
@@ -532,7 +532,7 @@ export const handleMidtransPayment = (snapToken, redirectUrl) => {
             window.__waRedirectInfo &&
             window.__waRedirectInfo.transferPaidMessage
           ) {
-            const phone = window.__waRedirectInfo.phone62 || "6285702257423";
+            const phone = window.__waRedirectInfo.phone62 || "6285137535186";
             const targetUrl = `https://wa.me/${phone}?text=${encodeURIComponent(
               window.__waRedirectInfo.transferPaidMessage
             )}`;
@@ -594,7 +594,7 @@ export const embedMidtransSnap = (snapToken, onSuccessCallback) => {
             window.__waRedirectInfo &&
             window.__waRedirectInfo.transferPaidMessage
           ) {
-            const phone = window.__waRedirectInfo.phone62 || "6285702257423";
+            const phone = window.__waRedirectInfo.phone62 || "6285137535186";
             const targetUrl = `https://wa.me/${phone}?text=${encodeURIComponent(
               window.__waRedirectInfo.transferPaidMessage
             )}`;
@@ -670,7 +670,7 @@ export const handleMidtransPaymentEnhanced = (
             window.__waRedirectInfo &&
             window.__waRedirectInfo.transferPaidMessage
           ) {
-            const phone = window.__waRedirectInfo.phone62 || "6285702257423";
+            const phone = window.__waRedirectInfo.phone62 || "6285137535186";
             const targetUrl = `https://wa.me/${phone}?text=${encodeURIComponent(
               window.__waRedirectInfo.transferPaidMessage
             )}`;
@@ -719,7 +719,7 @@ export const handleMidtransPaymentEnhanced = (
               window.__waRedirectInfo &&
               window.__waRedirectInfo.transferPaidMessage
             ) {
-              const phone = window.__waRedirectInfo.phone62 || "6285702257423";
+              const phone = window.__waRedirectInfo.phone62 || "6285137535186";
               const targetUrl = `https://wa.me/${phone}?text=${encodeURIComponent(
                 window.__waRedirectInfo.transferPaidMessage
               )}`;

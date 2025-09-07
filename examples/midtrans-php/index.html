@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Midtrans Snap Production Test - PHP</title>
+    <script type="text/javascript" src="https://app.midtrans.com/snap/snap.js" data-client-key="Mid-client-YOUR_PRODUCTION_CLIENT_KEY"></script>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 600px; margin: 50px auto; padding: 20px; }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; }
+        input, button { padding: 10px; width: 100%; box-sizing: border-box; }
+        button { background: #007bff; color: white; border: none; cursor: pointer; margin-top: 10px; }
+        button:hover { background: #0056b3; }
+        .debug { background: #f8f9fa; padding: 15px; margin: 15px 0; border-left: 4px solid #007bff; }
+        .error { background: #f8d7da; color: #721c24; padding: 15px; margin: 15px 0; border-left: 4px solid #dc3545; }
+        .success { background: #d4edda; color: #155724; padding: 15px; margin: 15px 0; border-left: 4px solid #28a745; }
+    </style>
+</head>
+<body>
+    <h1>Midtrans Snap Production Test - PHP</h1>
+    
+    <form id="paymentForm">
+        <div class="form-group">
+            <label for="amount">Amount (IDR):</label>
+            <input type="number" id="amount" value="100000" required>
+        </div>
+        
+        <div class="form-group">
+            <label for="customerName">Customer Name:</label>
+            <input type="text" id="customerName" value="Test Customer" required>
+        </div>
+        
+        <div class="form-group">
+            <label for="email">Email:</label>
+            <input type="email" id="email" value="test@example.com" required>
+        </div>
+        
+        <div class="form-group">
+            <label for="phone">Phone:</label>
+            <input type="tel" id="phone" value="08123456789" required>
+        </div>
+        
+        <div class="form-group">
+            <label for="itemName">Item Name:</label>
+            <input type="text" id="itemName" value="Test Product" required>
+        </div>
+        
+        <button type="submit">Pay with Midtrans</button>
+    </form>
+    
+    <div id="debugInfo" class="debug" style="display: none;">
+        <h3>Debug Information:</h3>
+        <pre id="debugContent"></pre>
+    </div>
+    
+    <div id="errorInfo" class="error" style="display: none;">
+        <h3>Error:</h3>
+        <pre id="errorContent"></pre>
+    </div>
+    
+    <div id="successInfo" class="success" style="display: none;">
+        <h3>Success:</h3>
+        <pre id="successContent"></pre>
+    </div>
+
+    <script>
+        // PHP Backend URL
+        const BACKEND_URL = './create_transaction.php';
+        
+        function showDebug(data) {
+            document.getElementById('debugContent').textContent = JSON.stringify(data, null, 2);
+            document.getElementById('debugInfo').style.display = 'block';
+            document.getElementById('errorInfo').style.display = 'none';
+            document.getElementById('successInfo').style.display = 'none';
+        }
+        
+        function showError(error) {
+            document.getElementById('errorContent').textContent = JSON.stringify(error, null, 2);
+            document.getElementById('errorInfo').style.display = 'block';
+            document.getElementById('debugInfo').style.display = 'none';
+            document.getElementById('successInfo').style.display = 'none';
+        }
+        
+        function showSuccess(data) {
+            document.getElementById('successContent').textContent = JSON.stringify(data, null, 2);
+            document.getElementById('successInfo').style.display = 'block';
+            document.getElementById('errorInfo').style.display = 'none';
+            document.getElementById('debugInfo').style.display = 'none';
+        }
+
+        document.getElementById('paymentForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const formData = {
+                amount: parseInt(document.getElementById('amount').value),
+                customer_name: document.getElementById('customerName').value,
+                email: document.getElementById('email').value,
+                phone: document.getElementById('phone').value,
+                item_name: document.getElementById('itemName').value
+            };
+            
+            console.log('=== FRONTEND DEBUG ===');
+            console.log('Form Data:', formData);
+            console.log('Backend URL:', BACKEND_URL);
+            
+            try {
+                const response = await fetch(BACKEND_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(formData)
+                });
+                
+                const result = await response.json();
+                
+                console.log('Backend Response:', result);
+                showDebug({
+                    request: formData,
+                    response: result,
+                    timestamp: new Date().toISOString()
+                });
+                
+                if (result.success && result.token) {
+                    console.log('Token received:', result.token);
+                    console.log('Order ID:', result.order_id);
+                    
+                    window.snap.pay(result.token, {
+                        onSuccess: function(result) {
+                            console.log('=== PAYMENT SUCCESS ===');
+                            console.log('Success Result:', result);
+                            showSuccess({
+                                status: 'SUCCESS',
+                                order_id: result.order_id,
+                                transaction_id: result.transaction_id,
+                                payment_type: result.payment_type,
+                                result: result
+                            });
+                        },
+                        onPending: function(result) {
+                            console.log('=== PAYMENT PENDING ===');
+                            console.log('Pending Result:', result);
+                            showDebug({
+                                status: 'PENDING',
+                                order_id: result.order_id,
+                                transaction_id: result.transaction_id,
+                                result: result
+                            });
+                        },
+                        onError: function(result) {
+                            console.error('=== PAYMENT ERROR ===');
+                            console.error('Error Result:', result);
+                            showError({
+                                status: 'ERROR',
+                                message: 'Payment failed',
+                                result: result
+                            });
+                        },
+                        onClose: function() {
+                            console.log('=== PAYMENT CLOSED ===');
+                            console.log('User closed the popup without finishing payment');
+                        }
+                    });
+                    
+                } else {
+                    throw new Error(result.message || 'Failed to get payment token');
+                }
+                
+            } catch (error) {
+                console.error('=== FRONTEND ERROR ===');
+                console.error('Error:', error);
+                showError({
+                    message: error.message,
+                    stack: error.stack,
+                    timestamp: new Date().toISOString()
+                });
+            }
+        });
+    </script>
+</body>
+</html>

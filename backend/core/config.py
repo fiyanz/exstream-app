@@ -16,7 +16,7 @@ class Settings(BaseSettings):
     RAJA_ONGKIR_DESTINATION_URL: str = ""
     MIDTRANS_SERVER_KEY: str = ""
     MIDTRANS_CLIENT_KEY: str = ""
-    MIDTRANS_IS_PRODUCTION: bool = True
+    MIDTRANS_IS_PRODUCTION: bool = False
     ADMIN_WHATSAPP: str = ""
 
     
