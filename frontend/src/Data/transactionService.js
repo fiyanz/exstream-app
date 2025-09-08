@@ -108,7 +108,7 @@ const fetchLocationNames = async (
 };
 
 // Admin WhatsApp number (will be used as primary destination)
-const ADMIN_WHATSAPP = "6287890792595";
+const ADMIN_WHATSAPP = "6285137535186";
 
 // Normalize Indonesian phone number to start with 62
 const normalizePhoneTo62 = (phone) => {
