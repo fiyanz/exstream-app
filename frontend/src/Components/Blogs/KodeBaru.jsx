@@ -60,7 +60,7 @@ const Koded = () => {
           </div>
           <div className='flex flex-col gap-4 items-center'>
             <h1 className='text-center text-2xl lg:text-4xl font-bold'>
-              Kelebihan atau Keunggulan Produk Kami
+              Kenapa Wajib Pilih Jas Hujan Extrime?
             </h1>
             <img src={des1} alt="" className='img-ko1' />
           </div>

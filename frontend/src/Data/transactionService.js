@@ -264,30 +264,39 @@ const prepareWaRedirectInfo = (orderData) => {
     const waktu = `${HH}:${MM}:${SS}`;
 
     const headerBox =
-      `┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓\n` +
-      `┃  🛒 JAS HUJAN EXTREME STORE       ┃\n` +
-      `┃        ✅ ORDER CONFIRMATION      ┃\n` +
-      `┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛\n` +
-      (orderId ? `Order ID: ${orderId}\n` : "") +
-      `Tanggal: ${tanggal}\n` +
-      `Waktu: ${waktu}\n\n`;
+      `🛒 JAS HUJAN EXTRIME STORE\n` +
+      `✅ ORDER CONFIRMATION\n` +
+      `---------------------------------------\n\n` +
+      (orderId ? `🆔 Order ID   : ${orderId}\n` : "") +
+      `📅 Tanggal    : ${tanggal}\n` +
+      `⏰ Waktu      : ${waktu}\n\n`;
 
     const customerBlock =
-      `📋 INFORMASI PELANGGAN\n` +
-      `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
-      `👤 Nama: ${customerName}\n` +
-      `📱 No. HP: ${receiverPhone}\n` +
-      `📍 Alamat: ${address}` +
+      `👤 Nama       : ${customerName}\n` +
+      `📱 No. HP     : ${receiverPhone}\n` +
+      `📍 Alamat     : ${address}` +
       `${villageName ? `, ${villageName}` : ""}` +
       `${subdistrictName ? `, Kec. ${subdistrictName}` : ""}` +
       `${cityName ? `, ${cityName}` : ""}` +
       `${provinceName ? `, ${provinceName}` : ""}\n\n`;
 
-    const productBlock =
-      `🛍️ DETAIL PRODUK (${items.length} item)\n` +
-      `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
-      (itemsText ? `${itemsText}\n` : "") +
-      `──────────────────────────────────────\n\n`;
+    // Simplified product display
+    const getSimplifiedProductText = (items) => {
+      if (!items || items.length === 0) {
+        return `📦 Produk           : Jas Hujan Extrime x1\n`;
+      }
+      
+      const firstItem = items[0];
+      const name = firstItem.name || firstItem.product_name || 'Jas Hujan Extreme';
+      const variant = firstItem.variant || firstItem.product_variant_name || 
+                     [firstItem.color, firstItem.size].filter(Boolean).join(' ') || '';
+      const qty = parseInt(firstItem.quantity || firstItem.qty || 1);
+      
+      const variantText = variant ? ` (${variant})` : '';
+      return `📦 Produk           : ${name}${variantText} x${qty}\n`;
+    };
+    
+    const productBlock = getSimplifiedProductText(items);
 
     const summaryLines =
       (discount
@@ -308,45 +317,40 @@ const prepareWaRedirectInfo = (orderData) => {
         ? `Asuransi: Rp ${Number(insuranceValue).toLocaleString("id-ID")}\n`
         : "");
 
-    const totalLine = total
-      ? `💵 TOTAL BAYAR: Rp ${Number(total).toLocaleString("id-ID")}\n`
-      : "";
-
     const codMessage =
       headerBox +
       customerBlock +
       productBlock +
-      `🚚 Pengiriman: ${shipping}${
-        shippingType && shippingType !== "-" ? ` - ${shippingType}` : ""
-      }\n` +
-      `💳 Metode Pembayaran: COD\n` +
-      (codValue
-        ? `💰 Nilai COD: Rp ${Number(codValue).toLocaleString("id-ID")}\n`
-        : "") +
-      (summaryLines || "") +
-      totalLine +
-      `\n✅ STATUS: PESANAN COD BERHASIL DIBUAT\n` +
+      `🚚 Pengiriman : ${shipping}${shippingType && shippingType !== "-" ? ` - ${shippingType}` : ""}\n` +
+      `💳 Pembayaran : COD\n` +
+      (codValue ? `💵 Nilai COD        : Rp ${Number(codValue).toLocaleString("id-ID")}\n` : "") +
+      (shippingCost ? `Ongkir          : Rp ${Number(shippingCost).toLocaleString("id-ID")}\n` : "") +
+      (serviceFee ? `Biaya Adm         : Rp ${Number(serviceFee).toLocaleString("id-ID")}\n` : "") +
+      `---------------------------------------\n` +
+      (total ? `💵 TOTAL BAYAR: Rp ${Number(total).toLocaleString("id-ID")}\n\n` : "") +
+      `✅ STATUS: PESANAN COD BERHASIL DIBUAT\n` +
       `💡 Pembayaran dilakukan saat barang diterima\n` +
-      `📦 Pesanan akan segera diproses dan dikirim\n` +
-      `⏰ Estimasi pengiriman: 1-3 hari kerja\n` +
-      `\nTerima kasih telah berbelanja di Jas Hujan Extreme Store! ✨`;
+      `📦 Pesanan segera diproses & dikirim\n` +
+      `⏰ Estimasi pengiriman: 1-3 hari kerja\n\n` +
+      `---------------------------------------\n` +
+      `✨ Terima kasih telah berbelanja di Jas Hujan Extrime Store! ✨`;
 
-    // Use the same layout as COD receipt for paid transfer, only the payment/status lines differ
     const transferPaidMessage =
       headerBox +
       customerBlock +
       productBlock +
-      `🚚 Pengiriman: ${shipping}${
-        shippingType && shippingType !== "-" ? ` - ${shippingType}` : ""
-      }\n` +
-      `💳 Metode Pembayaran: Transfer Bank\n` +
-      (summaryLines || "") +
-      totalLine +
-      `\n✅ STATUS: PEMBAYARAN LUNAS\n` +
+      `🚚 Pengiriman : ${shipping}${shippingType && shippingType !== "-" ? ` - ${shippingType}` : ""}\n` +
+      `💳 Pembayaran : Transfer Bank\n` +
+      (shippingCost ? `Ongkir       : Rp ${Number(shippingCost).toLocaleString("id-ID")}\n` : "") +
+      (serviceFee ? `Biaya Adm      : Rp ${Number(serviceFee).toLocaleString("id-ID")}\n` : "") +
+      `---------------------------------------\n` +
+      (total ? `💵 TOTAL BAYAR: Rp ${Number(total).toLocaleString("id-ID")}\n\n` : "") +
+      `✅ STATUS: PEMBAYARAN LUNAS\n` +
       `💡 Pembayaran telah diterima ✅\n` +
-      `📦 Pesanan akan segera diproses dan dikirim\n` +
-      `⏰ Estimasi pengiriman: 1-3 hari kerja\n` +
-      `\nTerima kasih telah berbelanja di Jas Hujan Extreme Store! ✨`;
+      `📦 Pesanan segera diproses & dikirim\n` +
+      `⏰ Estimasi pengiriman: 1-3 hari kerja\n\n` +
+      `---------------------------------------\n` +
+      `✨ Terima kasih telah berbelanja di Jas Hujan Extrime Store! ✨`;
 
     const isCOD =
       (payment || "").toString().toUpperCase().includes("COD") ||
@@ -356,17 +360,18 @@ const prepareWaRedirectInfo = (orderData) => {
       : headerBox +
         customerBlock +
         productBlock +
-        `🚚 Pengiriman: ${shipping}${
-          shippingType && shippingType !== "-" ? ` - ${shippingType}` : ""
-        }\n` +
-        `💳 Metode Pembayaran: Transfer Bank\n` +
-        (summaryLines || "") +
-        totalLine +
-        `\n⏳ STATUS: MENUNGGU PEMBAYARAN\n` +
+        `🚚 Pengiriman : ${shipping}${shippingType && shippingType !== "-" ? ` - ${shippingType}` : ""}\n` +
+        `💳 Pembayaran : Transfer Bank\n` +
+        (shippingCost ? `Ongkir         : Rp ${Number(shippingCost).toLocaleString("id-ID")}\n` : "") +
+        (serviceFee ? `Biaya Adm        : Rp ${Number(serviceFee).toLocaleString("id-ID")}\n` : "") +
+        `---------------------------------------\n` +
+        (total ? `💵 TOTAL BAYAR: Rp ${Number(total).toLocaleString("id-ID")}\n\n` : "") +
+        `⏳ STATUS: MENUNGGU PEMBAYARAN\n` +
         `💡 Mohon selesaikan pembayaran untuk memproses pesanan\n` +
-        `📦 Pesanan akan segera diproses setelah pembayaran diterima\n` +
-        `⏰ Estimasi pengiriman: 1-3 hari kerja\n` +
-        `\nTerima kasih telah berbelanja di Jas Hujan Extreme Store! ✨`;
+        `📦 Pesanan segera diproses setelah pembayaran diterima\n` +
+        `⏰ Estimasi pengiriman: 1-3 hari kerja\n\n` +
+        `---------------------------------------\n` +
+        `✨ Terima kasih telah berbelanja di Jas Hujan Extrime Store! ✨`;
 
     // Pre-build URLs for default message (COD uses this directly)
     const waPrimaryUrl = `https://wa.me/${phone62}?text=${encodeURIComponent(

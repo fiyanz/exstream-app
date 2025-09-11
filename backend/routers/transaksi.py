@@ -375,7 +375,7 @@ def payment_success_wa(
         # Handle missing order_id
         if not order_id:
             # Fallback to simple WhatsApp message
-            wa_message = "✅ PEMBAYARAN LUNAS - Terima kasih telah berbelanja di Jas Hujan Extreme Store!"
+            wa_message = "✅ PEMBAYARAN LUNAS - Terima kasih telah berbelanja di Jas Hujan Extrime Store!"
             from urllib.parse import quote
             encoded_message = quote(wa_message)
             wa_url = f"https://wa.me/{admin}?text={encoded_message}"
@@ -412,64 +412,62 @@ def payment_success_wa(
             tanggal = jkt.strftime("%d/%m/%Y")
             waktu = jkt.strftime("%H:%M:%S")
             
-            # Create detailed receipt message similar to COD format
+            # Create detailed receipt message with new professional format
             header_box = (
-                "┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓\n"
-                "┃  🛒 JAS HUJAN EXTREME STORE         ┃\n"
-                "┃        ✅ ORDER CONFIRMATION        ┃\n"
-                "┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛\n"
-                f"Order ID: {order_id}\n"
-                f"Tanggal: {tanggal}\n"
-                f"Waktu: {waktu}\n\n"
+                "🛒 JAS HUJAN EXTRIME STORE\n"
+                "✅ ORDER CONFIRMATION\n"
+                "---------------------------------------\n\n"
+                f"🆔 Order ID   : {order_id}\n"
+                f"📅 Tanggal    : {tanggal}\n"
+                f"⏰ Waktu      : {waktu}\n\n"
             )
             
             customer_block = (
-                "📋 INFORMASI PELANGGAN\n"
-                "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
-                f"👤 Nama: {customer_name}\n"
-                f"📱 No. HP: {customer_phone}\n"
-                f"📍 Alamat: {customer_address}\n\n"
+                f"👤 Nama       : {customer_name}\n"
+                f"📱 No. HP     : {customer_phone}\n"
+                f"📍 Alamat     : {customer_address}\n\n"
             )
             
-            # Get items from order details if available
+            # Simplified product display
             items = order_details.get('items', [])
-            if items:
-                items_text = ""
-                for idx, item in enumerate(items):
-                    name = item.get('name', f'Item {idx + 1}')
-                    qty = item.get('quantity', 1)
-                    price = item.get('price', 0)
-                    subtotal = price * qty
-                    items_text += f"- {name} | Qty: {qty} | @ Rp {price:,} | Subtotal: Rp {subtotal:,}\n"
+            if items and len(items) > 0:
+                first_item = items[0]
+                name = first_item.get('name', 'Jas Hujan Extrime')
+                qty = first_item.get('quantity', 1)
+                # Get variant info if available
+                variant_parts = []
+                if first_item.get('color'):
+                    variant_parts.append(first_item.get('color'))
+                if first_item.get('size'):
+                    variant_parts.append(first_item.get('size'))
+                variant = ' '.join(variant_parts) if variant_parts else first_item.get('variant', '')
                 
-                product_block = (
-                    f"🛍️ DETAIL PRODUK ({len(items)} item)\n"
-                    "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
-                    f"{items_text}"
-                    "──────────────────────────────────────\n\n"
-                )
+                variant_text = f" ({variant})" if variant else ""
+                product_block = f"📦 Produk     : {name}{variant_text} x{qty}\n"
             else:
-                product_block = (
-                    "🛍️ DETAIL PRODUK\n"
-                    "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
-                    "- Jas Hujan Extrime\n"
-                    "──────────────────────────────────────\n\n"
-                )
+                product_block = "📦 Produk     : Jas Hujan Extrime x1\n"
             
             # Payment and shipping info
             shipping_method = order_details.get('shipping_method', 'Kurir')
+            shipping_cost = order_details.get('shipping_cost', 0)
+            service_fee = order_details.get('service_fee', 0)
+            
             payment_block = (
-                f"🚚 Pengiriman: {shipping_method}\n"
-                "💳 Metode Pembayaran: Transfer Bank\n"
-                f"💵 TOTAL BAYAR: Rp {total:,}\n\n"
+                f"🚚 Pengiriman     : {shipping_method}\n"
+                "💳 Pembayaran      : Transfer Bank\n"
+                + (f"Ongkir         : Rp {shipping_cost:,}\n" if shipping_cost else "")
+                + (f"Biaya Adm      : Rp {service_fee:,}\n" if service_fee else "")
+                + "---------------------------------------\n"
+                + f"💵 TOTAL BAYAR: Rp {total:,}\n\n"
             )
             
             status_block = (
                 "✅ STATUS: PEMBAYARAN LUNAS\n"
                 "💡 Pembayaran telah diterima ✅\n"
-                "📦 Pesanan akan segera diproses dan dikirim\n"
+                "📦 Pesanan segera diproses & dikirim\n"
                 "⏰ Estimasi pengiriman: 1-3 hari kerja\n\n"
-                "Terima kasih telah berbelanja di Jas Hujan Extreme Store! ✨"
+                "---------------------------------------\n"
+                "✨ Terima kasih telah berbelanja di Jas Hujan Extrime Store! ✨"
             )
             
             wa_message = header_box + customer_block + product_block + payment_block + status_block
@@ -479,7 +477,7 @@ def payment_success_wa(
                 "✅ PEMBAYARAN LUNAS\n\n"
                 f"No.Order: #{order_id}\n"
                 "Status: ✅ LUNAS\n\n"
-                "Terima kasih telah berbelanja di Jas Hujan Extreme Store! ✨"
+                "Terima kasih telah berbelanja di Jas Hujan Extrime Store! ✨"
             )
         
         # Generate WhatsApp URL and redirect
@@ -542,23 +540,20 @@ def payment_error_wa(
             tanggal = jkt.strftime("%d/%m/%Y")
             waktu = jkt.strftime("%H:%M:%S")
             
-            # Create error message
+            # Create error message with new format
             header_box = (
-                "┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓\n"
-                "┃  🛒 JAS HUJAN EXTREME STORE         ┃\n"
-                "┃        ❌ PEMBAYARAN GAGAL          ┃\n"
-                "┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛\n"
-                f"Order ID: {order_id}\n"
-                f"Tanggal: {tanggal}\n"
-                f"Waktu: {waktu}\n\n"
+                "🛒 JAS HUJAN EXTREME STORE\n"
+                "❌ PEMBAYARAN GAGAL\n"
+                "---------------------------------------\n\n"
+                f"🆔 Order ID   : {order_id}\n"
+                f"📅 Tanggal    : {tanggal}\n"
+                f"⏰ Waktu      : {waktu}\n\n"
             )
             
             customer_block = (
-                "📋 INFORMASI PELANGGAN\n"
-                "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
-                f"👤 Nama: {customer_name}\n"
-                f"📱 No. HP: {customer_phone}\n"
-                f"💵 Total: Rp {total:,}\n\n"
+                f"👤 Nama       : {customer_name}\n"
+                f"📱 No. HP     : {customer_phone}\n"
+                f"💵 Total      : Rp {total:,}\n\n"
             )
             
             error_block = (
@@ -566,7 +561,8 @@ def payment_error_wa(
                 "💡 Pembayaran tidak dapat diproses\n"
                 "🔄 Silakan coba lagi atau pilih metode pembayaran lain\n"
                 "📞 Atau hubungi admin untuk bantuan\n\n"
-                "Terima kasih atas pengertiannya! 🙏"
+                "---------------------------------------\n"
+                "🙏 Terima kasih atas pengertiannya!"
             )
             
             wa_message = header_box + customer_block + error_block
