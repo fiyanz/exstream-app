@@ -59,7 +59,7 @@ const productData = [
   { color: "Red", image: red },
 ];
 
-const sizeOptions = ["L", "XL", "XXL", "XXXL"];
+const sizeOptions = ["L", "XL", "XXL"];
 
 const paymentMethods = [
   { name: "transfer", label: "Transfer Bank, Virtual Account" },
