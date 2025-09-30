@@ -32,7 +32,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(wilayah, prefix=f"{settings.API_PREFIX}/wilayah", tags=["Wilayah"])
+
 app.include_router(
     wilayah,
     prefix=f"{settings.API_PREFIX}/wilayah",
@@ -41,19 +41,19 @@ app.include_router(
 
 app.include_router(
     domesticCostRequest,
-    prefix="/api/v1/domestic",
+    prefix=f"{settings.API_PREFIX}/domestic",
     tags=["Domestic Shipping API"]
 )
 
 app.include_router(
     transaksi,
-    prefix="/api/v1/transaksi",
+    prefix=f"{settings.API_PREFIX}/transaksi",
     tags=["Transaksi"]
 )
 
 app.include_router(
     store_order,
-    prefix="/api/v1/store_order",
+    prefix=f"{settings.API_PREFIX}/store_order",
     tags=["Store Order"]
 )
 
