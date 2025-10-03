@@ -28,6 +28,13 @@ import red from "../../assets/Extrime/Cowok/One4.jpeg";
 import "./Cont.css";
 import Testi from "../../assets/image/baju.png";
 
+// =================================================================
+// LANGKAH 1: TAMBAHKAN IMPORT GAMBAR DI SINI
+// Pastikan path (lokasi file) ini sudah benar sesuai proyek Anda
+// =================================================================
+import CodImage from '../../assets/Blogs/payment-cod.png'; // GANTI DENGAN PATH GAMBAR COD ANDA
+import TransferImage from '../../assets/Blogs/payment-bank_transfer.png'; // GANTI DENGAN PATH GAMBAR TRANSFER ANDA
+
 import {
   calculateShippingCost,
   formatShippingOptions,
@@ -61,9 +68,10 @@ const productData = [
 
 const sizeOptions = ["L", "XL", "XXL"];
 
+// Updated payment methods to better match the UI goal
 const paymentMethods = [
-  { name: "transfer", label: "Transfer Bank, Virtual Account" },
-  { name: "cod", label: "COD (Bayar Di Tempat)" },
+  { name: "cod", label: "COD (Bayar di Tempat)" },
+  { name: "transfer", label: "Bank Transfer" },
 ];
 
 // Product price configuration
@@ -88,7 +96,7 @@ const SelectInput = ({
       htmlFor={name}
       className="block text-sm font-medium text-black on-1 mb-1.5"
     >
-      {label} {required && <span className="text-red-500">*</span>}
+      {label} {required && <span className="text-red-500"></span>}
     </label>
     <div className="relative">
       <select
@@ -167,7 +175,7 @@ const TextInput = ({
       htmlFor={name}
       className="block text-sm font-medium text-black on-1 mb-1.5"
     >
-      {label} {required && <span className="text-red-500">*</span>}
+      {label} {required && <span className="text-red-500"></span>}
     </label>
     <div className="relative">
       <input
@@ -612,9 +620,9 @@ const App = () => {
 
       // Scroll to cart if it exists
       // if (cartRef.current) {
-      //   setTimeout(() => {
+      //  setTimeout(() => {
       //     cartRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      //   }, 100);
+      //  }, 100);
       // }
     }
   }, [currentProduct, validateProductSelection]);
@@ -1334,11 +1342,12 @@ const App = () => {
                       onClick={handleAddProduct}
                       type="button"
                       className={`w-full h-12 py-4 px-6 font-bold rounded-lg shadow-md transition-all duration-300 flex items-center justify-center text-lg
-                                  ${
-                                    currentProduct.size && currentProduct.color
-                                      ? "bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white"
-                                      : "bg-gray-200 text-gray-400 cursor-not-allowed"
-                                  }`}
+                                     ${
+                                       currentProduct.size &&
+                                       currentProduct.color
+                                         ? "bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white"
+                                         : "bg-gray-200 text-gray-400 cursor-not-allowed"
+                                     }`}
                       style={{
                         boxShadow:
                           currentProduct.size && currentProduct.color
@@ -1469,7 +1478,7 @@ const App = () => {
                     >
                       Alamat Lengkap{" "}
                       {formErrors.completeAddress && (
-                        <span className="text-red-500">*</span>
+                        <span className="text-red-500"></span>
                       )}
                     </label>
                     <textarea
@@ -1481,7 +1490,7 @@ const App = () => {
                       placeholder="Jl. Kenanga No. 23 RT 02 RW 05, (Depan Toko Sembako Makmur, Belakang Klinik Sehat Sentosa)"
                       className={`w-full h-[160px] p-3 border ${
                         formErrors.completeAddress
-                          ? "border-red-500"
+                          ? "border-gray-500"
                           : "border-gray-300"
                       } rounded-lg shadow-sm focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 text-sm md:text-base text-black al-11`}
                       required
@@ -1497,7 +1506,7 @@ const App = () => {
                     {formErrors.completeAddress && (
                       <p
                         id="completeAddress-error"
-                        className="mt-1 text-xs text-red-500"
+                        className="mt-1 text-xs text-gray-500"
                       >
                         {formErrors.completeAddress}
                       </p>
@@ -1510,7 +1519,7 @@ const App = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 met-ap on-10">
                 <div>
                   <h2 className="text-2xl font-bold mb-6 text-black">
-                    Metode Pengiriman
+                    Metode Pengiriman:
                   </h2>
                   <SelectInput
                     label=""
@@ -1569,30 +1578,69 @@ const App = () => {
                       </div>
                     )}
                 </div>
+                
+                {/* =========== BAGIAN KODE YANG DIPERBARUI ADA DI SINI =========== */}
                 <div>
                   <h2 className="text-2xl font-bold mb-6 text-black">
                     Metode Pembayaran
                   </h2>
-                  <SelectInput
-                    label=""
-                    name="paymentMethod"
-                    value={formData.paymentMethod}
-                    options={paymentMethods.map((method) => method.label)}
-                    onChange={handleInputChange}
-                    placeholder="Pilih Metode Pembayaran"
-                    required
-                    error={formErrors.paymentMethod}
-                  />
-                  {formData.paymentMethod && (
-                    <div className="mt-3 text-sm">
-                      <p className="text-gray-600">
-                        {formData.paymentMethod.includes("COD")
-                          ? "Pembayaran dilakukan saat barang diterima"
-                          : "Lakukan pembayaran setelah checkout"}
-                      </p>
-                    </div>
+                  <div className="space-y-3">
+                    {paymentMethods.map((method) => {
+                      const isSelected =
+                        formData.paymentMethod === method.label;
+                      return (
+                        <label
+                          key={method.name}
+                          className={`user flex gap-2 items-center border rounded-lg cursor-pointer transition-all duration-200 ${
+                            isSelected
+                              ? "border-emerald-500 bg-emerald-50 ring-1 ring-emerald-500"
+                              : "border-gray-300 bg-white hover:bg-gray-50"
+                          }`}
+                        >
+                          <input
+                            type="radio"
+                            name="paymentMethod"
+                            value={method.label}
+                            checked={isSelected}
+                            onChange={handleInputChange}
+                            className="sr-only" // Hide the default radio button
+                          />
+                          {/* Custom Radio Button Visual */}
+                          <span
+                            className={`w-5 h-5 flex items-center justify-center rounded-full border-2 transition-all duration-200 ${
+                              isSelected
+                                ? "border-emerald-600"
+                                : "border-gray-400"
+                            }`}
+                          >
+                            {isSelected && (
+                              <span className="w-2.5 h-2.5 rounded-full bg-emerald-600"></span>
+                            )}
+                          </span>
+
+                          {/* Gambar Logo */}
+                          <img
+                            src={method.name === 'cod' ? CodImage : TransferImage}
+                            alt={method.label}
+                            className="h-8 w-auto ml-3" // Anda bisa mengatur ukuran gambar di sini
+                          />
+
+                          {/* Label Text */}
+                          <span className="ml-2 text-sm font-medium text-gray-800">
+                            {method.label}
+                          </span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                  {formErrors.paymentMethod && (
+                    <p className="mt-2 text-xs text-gray-500">
+                      {formErrors.paymentMethod}
+                    </p>
                   )}
                 </div>
+                {/* ============================================================= */}
+
               </div>
             </div>
 
@@ -1743,11 +1791,11 @@ const App = () => {
                   onClick={handleBuy}
                   disabled={!isFormValid || isSubmitting}
                   className={`mt-6 w-full py-4 font-bold text-lg md:text-xl rounded-xl shadow-lg transition-all duration-300 flex items-center justify-center gap-2 on-b5 focus:outline-none focus:ring-2 focus:ring-emerald-400
-                                  ${
-                                    isFormValid && !isSubmitting
-                                      ? "bg-emerald-500 hover:bg-emerald-600 text-white"
-                                      : "bg-gray-300 text-gray-500 cursor-not-allowed"
-                                  }`}
+                                       ${
+                                         isFormValid && !isSubmitting
+                                           ? "bg-emerald-500 hover:bg-emerald-600 text-white"
+                                           : "bg-gray-300 text-gray-500 cursor-not-allowed"
+                                       }`}
                 >
                   {isSubmitting ? (
                     <div className="flex items-center justify-center gap-2">
