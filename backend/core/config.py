@@ -18,6 +18,15 @@ class Settings(BaseSettings):
     MIDTRANS_CLIENT_KEY: str = ""
     MIDTRANS_IS_PRODUCTION: bool = True
     ADMIN_WHATSAPP: str = ""
+    
+    # JWT Authentication
+    JWT_SECRET_KEY: str = "your-secret-key-here-change-in-production"
+    JWT_ALGORITHM: str = "HS256"
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
+    
+    # Admin Credentials (for initial setup)
+    ADMIN_USERNAME: str = "admin"
+    ADMIN_PASSWORD: str = "admin123"  # Will be hashed
 
     
     class Config:

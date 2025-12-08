@@ -26,10 +26,12 @@ class TransaksiOut(TransaksiBase):
 # Enhanced schemas for new transaction system
 class OrderItem(BaseModel):
     name: str
+    variant: Optional[str] = None
     color: str
     size: str
     quantity: int
     price: int
+    product_weight: int = 0
     image: Optional[str] = None
 
 class TransaksiCreateEnhanced(BaseModel):

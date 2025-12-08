@@ -7,10 +7,15 @@ from starlette.responses import Response
 from core.config import settings
 from routers.wilayah_route import wilayah
 from routers.transaksi_route import transaksi
-from routers.store_order_route import store_order
+from routers.order_route import order_router
 from routers.domestic_route import domesticCostRequest
+from routers.auth_route import auth_router
+from routers.store_order_route import store_order
 
 from db.database import Base, engine
+from models.order_model import Order
+from models.admin_model import Admin
+
 
 Base.metadata.create_all(bind=engine)
 print("Semua tabel telah dibuat.")
@@ -32,6 +37,18 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
+app.include_router(
+    auth_router,
+    prefix=f"{settings.API_PREFIX}/auth",
+    tags=["Admin Authentication"]
+)
+
+app.include_router(
+    order_router,
+    prefix=f"{settings.API_PREFIX}/orders",
+    tags=["Unified Orders"]
+)
 
 app.include_router(
     wilayah,
