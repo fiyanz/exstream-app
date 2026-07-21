@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
-  LayoutDashboard, Package, TrendingUp, LogOut, 
+  LayoutDashboard, Package, LogOut, 
   ShoppingCart, DollarSign, Activity, AlertCircle 
 } from 'lucide-react';
 import { logout, getCurrentAdmin } from '../../services/authService';
@@ -46,33 +46,25 @@ const AdminDashboard = () => {
       title: 'Total Pesanan',
       value: statsData?.total_orders || '0',
       icon: ShoppingCart,
-      color: 'bg-blue-500',
-      textColor: 'text-blue-600',
-      shadow: 'shadow-blue-100'
+      color: 'bg-[#1960a3]'
     },
     {
       title: 'Perlu Diproses',
       value: statsData?.pending_orders || '0',
       icon: AlertCircle,
-      color: 'bg-amber-500',
-      textColor: 'text-amber-600',
-      shadow: 'shadow-amber-100'
+      color: 'bg-[#ba1a1a]'
     },
     {
       title: 'Pesanan Selesai',
       value: statsData?.completed_orders || '0',
       icon: Package,
-      color: 'bg-emerald-500',
-      textColor: 'text-emerald-600',
-      shadow: 'shadow-emerald-100'
+      color: 'bg-[#276749]'
     },
     {
       title: 'Total Pendapatan',
       value: `Rp ${(statsData?.total_revenue || 0).toLocaleString('id-ID')}`,
       icon: DollarSign,
-      color: 'bg-indigo-500',
-      textColor: 'text-indigo-600',
-      shadow: 'shadow-indigo-100'
+      color: 'bg-[#002045]'
     }
   ];
 
@@ -93,37 +85,37 @@ const AdminDashboard = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <Activity className="w-8 h-8 text-blue-600 animate-spin" />
+      <div className="min-h-screen flex items-center justify-center bg-[#faf9fd]">
+        <Activity className="w-10 h-10 text-[#1a365d] animate-spin" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 font-sans">
+    <div className="min-h-screen bg-[#faf9fd] font-sans text-[#1a1c1e]">
       <Toaster position="top-right" />
       
       {/* Header */}
-      <div className="bg-white border-b border-gray-200 sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-indigo-600 rounded-lg flex items-center justify-center shadow-md">
-                <LayoutDashboard className="w-5 h-5 text-white" />
+      <div className="bg-white border-b-2 border-[#c4c6cf] sticky top-0 z-50">
+        <div className="max-w-[800px] xl:max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center h-20">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 bg-[#1a365d] rounded-lg flex items-center justify-center border-2 border-[#002045]">
+                <LayoutDashboard className="w-6 h-6 text-white" />
               </div>
-              <h1 className="text-xl font-bold text-slate-800 tracking-tight">Extrime Admin</h1>
+              <h1 className="text-2xl font-bold text-[#002045] tracking-tight">Extrime Admin</h1>
             </div>
             
             <div className="flex items-center gap-6">
               <div className="hidden sm:block text-right">
-                <p className="text-sm font-semibold text-slate-800">{admin?.username || 'Admin'}</p>
-                <p className="text-xs text-slate-500">Administrator</p>
+                <p className="text-lg font-bold text-[#1a1c1e]">{admin?.username || 'Admin'}</p>
+                <p className="text-sm font-semibold text-[#43474e]">Administrator</p>
               </div>
               <button
                 onClick={handleLogout}
-                className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-slate-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                className="flex items-center gap-2 px-4 py-3 text-lg font-bold text-[#ba1a1a] hover:bg-[#ffdad6] border-2 border-transparent hover:border-[#ba1a1a] rounded-lg transition-all"
               >
-                <LogOut className="w-4 h-4" />
+                <LogOut className="w-5 h-5" />
                 Keluar
               </button>
             </div>
@@ -132,26 +124,26 @@ const AdminDashboard = () => {
       </div>
 
       {/* Main Content */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="max-w-[800px] xl:max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         {/* Welcome Section */}
-        <div className="mb-8">
-          <h2 className="text-2xl font-bold text-slate-800 mb-1">
+        <div className="mb-10">
+          <h2 className="text-3xl font-bold text-[#1a1c1e] mb-2">
             Ringkasan Hari Ini
           </h2>
-          <p className="text-slate-500 text-sm">Pantau aktivitas penjualan dan operasional toko Anda.</p>
+          <p className="text-[#43474e] text-lg">Pantau aktivitas penjualan dan operasional toko Anda dengan jelas.</p>
         </div>
 
         {/* Stats Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
           {stats.map((stat, index) => (
-            <div key={index} className={`bg-white rounded-2xl border border-gray-100 p-6 shadow-sm hover:shadow-md transition-shadow`}>
+            <div key={index} className="bg-white rounded-lg border-2 border-[#c4c6cf] p-6">
               <div className="flex items-center justify-between mb-4">
-                <div className={`w-12 h-12 ${stat.color} rounded-xl flex items-center justify-center shadow-lg ${stat.shadow}`}>
-                  <stat.icon className="w-6 h-6 text-white" />
+                <div className={`w-14 h-14 ${stat.color} rounded-lg flex items-center justify-center border-2 border-[#1a1c1e]`}>
+                  <stat.icon className="w-7 h-7 text-white" />
                 </div>
               </div>
-              <h3 className="text-slate-500 text-sm font-medium mb-1">{stat.title}</h3>
-              <p className={`text-2xl font-bold ${stat.textColor}`}>{stat.value}</p>
+              <h3 className="text-[#43474e] text-lg font-semibold mb-2">{stat.title}</h3>
+              <p className="text-3xl font-bold text-[#1a1c1e]">{stat.value}</p>
             </div>
           ))}
         </div>
@@ -159,25 +151,25 @@ const AdminDashboard = () => {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Quick Actions */}
           <div className="lg:col-span-1">
-            <div className="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm">
-              <h3 className="text-lg font-bold text-slate-800 mb-4">Akses Cepat</h3>
-              <div className="space-y-3">
+            <div className="bg-white rounded-lg border-2 border-[#c4c6cf] p-6">
+              <h3 className="text-xl font-bold text-[#1a1c1e] mb-6">Navigasi Utama</h3>
+              <div className="space-y-4">
                 {menuItems.map((item, index) => (
                   <button
                     key={index}
                     onClick={() => navigate(item.path)}
-                    className={`w-full flex items-center gap-4 p-4 rounded-xl border transition-all text-left ${
+                    className={`w-full flex items-center gap-4 p-4 rounded-lg border-2 transition-all text-left ${
                       item.active
-                        ? 'border-indigo-600 bg-indigo-50 shadow-sm'
-                        : 'border-gray-100 hover:border-indigo-200 hover:bg-slate-50'
+                        ? 'border-[#1a365d] bg-[#d6e3ff] shadow-sm'
+                        : 'border-[#c4c6cf] hover:border-[#1a365d] hover:bg-[#f4f3f7]'
                     }`}
                   >
-                    <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
-                      item.active ? 'bg-indigo-600' : 'bg-slate-100'
+                    <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${
+                      item.active ? 'bg-[#1a365d]' : 'bg-[#e3e2e6]'
                     }`}>
-                      <item.icon className={`w-5 h-5 ${item.active ? 'text-white' : 'text-slate-600'}`} />
+                      <item.icon className={`w-6 h-6 ${item.active ? 'text-white' : 'text-[#1a1c1e]'}`} />
                     </div>
-                    <span className={`font-semibold text-sm ${item.active ? 'text-indigo-700' : 'text-slate-700'}`}>
+                    <span className={`font-bold text-lg ${item.active ? 'text-[#001b3c]' : 'text-[#1a1c1e]'}`}>
                       {item.title}
                     </span>
                   </button>
@@ -188,40 +180,40 @@ const AdminDashboard = () => {
 
           {/* Recent Orders Snippet */}
           <div className="lg:col-span-2">
-            <div className="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm">
-              <div className="flex items-center justify-between mb-6">
-                <h3 className="text-lg font-bold text-slate-800">Pesanan Masuk Terbaru</h3>
-                <button onClick={() => navigate('/admin/orders')} className="text-sm font-medium text-indigo-600 hover:text-indigo-700">
-                  Lihat Semua &rarr;
+            <div className="bg-white rounded-lg border-2 border-[#c4c6cf] p-6">
+              <div className="flex items-center justify-between mb-6 border-b-2 border-[#e3e2e6] pb-4">
+                <h3 className="text-xl font-bold text-[#1a1c1e]">Pesanan Masuk Terbaru</h3>
+                <button onClick={() => navigate('/admin/orders')} className="text-lg font-bold text-[#1a365d] hover:underline">
+                  Kelola Semua &rarr;
                 </button>
               </div>
               
               {statsData?.recent_orders?.length > 0 ? (
                 <div className="overflow-x-auto">
-                  <table className="w-full text-sm text-left">
-                    <thead className="text-xs text-slate-500 uppercase bg-slate-50 rounded-lg">
+                  <table className="w-full text-left">
+                    <thead className="bg-[#f4f3f7] border-b-2 border-[#c4c6cf]">
                       <tr>
-                        <th className="px-4 py-3 rounded-l-lg">Order ID</th>
-                        <th className="px-4 py-3">Nama</th>
-                        <th className="px-4 py-3">Metode</th>
-                        <th className="px-4 py-3 rounded-r-lg">Status</th>
+                        <th className="px-4 py-4 text-sm font-bold text-[#43474e] uppercase">Order ID</th>
+                        <th className="px-4 py-4 text-sm font-bold text-[#43474e] uppercase">Nama</th>
+                        <th className="px-4 py-4 text-sm font-bold text-[#43474e] uppercase">Metode</th>
+                        <th className="px-4 py-4 text-sm font-bold text-[#43474e] uppercase">Status</th>
                       </tr>
                     </thead>
                     <tbody>
                       {statsData.recent_orders.map((o) => (
-                        <tr key={o.id} className="border-b border-gray-50 last:border-0 hover:bg-slate-50 transition-colors">
-                          <td className="px-4 py-3 font-mono text-xs text-slate-500">{o.id.substring(0, 8).toUpperCase()}</td>
-                          <td className="px-4 py-3 font-medium text-slate-800">{o.nama_pengguna || '-'}</td>
-                          <td className="px-4 py-3">
-                            <span className="px-2 py-1 bg-slate-100 text-slate-600 text-xs font-semibold rounded-md">
+                        <tr key={o.id} className="border-b-2 border-[#e3e2e6] last:border-0 hover:bg-[#faf9fd] transition-colors">
+                          <td className="px-4 py-4 font-mono text-base font-bold text-[#1a365d]">{o.id.substring(0, 8).toUpperCase()}</td>
+                          <td className="px-4 py-4 text-lg font-semibold text-[#1a1c1e]">{o.nama_pengguna || '-'}</td>
+                          <td className="px-4 py-4">
+                            <span className="px-3 py-1 bg-[#e3e2e6] border-2 border-[#c4c6cf] text-[#1a1c1e] text-sm font-bold rounded-lg">
                               {o.payment_method}
                             </span>
                           </td>
-                          <td className="px-4 py-3">
-                            <span className={`px-2 py-1 text-xs font-semibold rounded-full ${
-                              o.status.includes('pending') ? 'bg-amber-100 text-amber-700' :
-                              o.status === 'PAID' || o.status === 'lunas' ? 'bg-emerald-100 text-emerald-700' :
-                              'bg-indigo-100 text-indigo-700'
+                          <td className="px-4 py-4">
+                            <span className={`px-3 py-1 text-sm font-bold rounded-lg border-2 ${
+                              o.status.includes('pending') ? 'bg-[#ffddba] text-[#633f0f] border-[#c6955e]' :
+                              o.status === 'PAID' || o.status === 'lunas' ? 'bg-[#cee5da] text-[#0b1f18] border-[#52675e]' :
+                              'bg-[#d6e3ff] text-[#001b3c] border-[#86a0cd]'
                             }`}>
                               {o.status.replace('_', ' ').toUpperCase()}
                             </span>
@@ -232,9 +224,9 @@ const AdminDashboard = () => {
                   </table>
                 </div>
               ) : (
-                <div className="text-center py-8 text-slate-500">
-                  <Package className="w-12 h-12 text-slate-300 mx-auto mb-3" />
-                  <p>Belum ada pesanan terbaru.</p>
+                <div className="text-center py-12 text-[#43474e]">
+                  <Package className="w-16 h-16 text-[#c4c6cf] mx-auto mb-4" />
+                  <p className="text-lg font-semibold">Belum ada pesanan terbaru.</p>
                 </div>
               )}
             </div>
