@@ -1,0 +1,51 @@
+version: '3.8'
+
+services:
+  # 1. Peladen Database PostgreSQL
+  db:
+    image: postgres:15-alpine
+    container_name: exstream-db
+    restart: always
+    environment:
+      POSTGRES_USER: exstream_user
+      POSTGRES_PASSWORD: password_rahasia_anda
+      POSTGRES_DB: exstream_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  # 2. Peladen Backend (FastAPI Python)
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: exstream-backend
+    restart: always
+    ports:
+      - "8000:8000"
+    environment:
+      # Terhubung ke container 'db' di atas
+      - DATABASE_URL=postgresql://exstream_user:password_rahasia_anda@db:5432/exstream_db
+    depends_on:
+      - db
+    volumes:
+      # Peringatan: Hapus bagian volumes ini jika sudah rilis production
+      # Ini berguna agar Anda tidak perlu rebuild jika hanya mengganti isi .py
+      - ./backend:/app
+
+  # 3. Peladen Frontend (React Vite + Nginx)
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: exstream-frontend
+    restart: always
+    ports:
+      - "80:80"   # Akses dari browser langsung pakai http://localhost/ (tanpa port)
+    depends_on:
+      - backend
+
+# Penyimpanan persisten untuk database agar tidak hilang saat direstart
+volumes:
+  postgres_data:
