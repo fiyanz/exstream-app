@@ -1,11 +1,11 @@
 import pytest
 from fastapi.testclient import TestClient
+from unittest.mock import patch
+
 from main import app
-from unittest.mock import MagicMock, patch
 
 client = TestClient(app)
 
-# Mock data
 valid_order_payload = {
     "customer_name": "Test User",
     "customer_phone": "081234567890",
@@ -26,7 +26,7 @@ valid_order_payload = {
             "size": "L",
             "quantity": 1,
             "price": 150000,
-            "product_weight": 1000
+            "product_weight": 1000,
         }
     ],
     "shipping_method": "JNE - REG",
@@ -34,16 +34,16 @@ valid_order_payload = {
     "payment_method": "Transfer",
     "subtotal": 150000,
     "discount": 0,
-    "total": 170000
+    "total": 170000,
 }
 
-@patch("service.payment_gateway_service.snap.create_transaction")
-def test_create_order_transfer(mock_snap):
-    # Mock Midtrans response
-    mock_snap.return_value = {"token": "snap_token_123", "redirect_url": "http://redirect.url"}
-    
+
+@patch("service.order_service.create_snap_transaction")
+def test_create_order_transfer(mock_create_snap):
+    mock_create_snap.return_value = {"token": "snap_token_123", "redirect_url": "http://redirect.url"}
+
     response = client.post("/api/v1/orders/", json=valid_order_payload)
-    
+
     assert response.status_code == 201
     data = response.json()
     assert data["status"] == "success"
@@ -51,24 +51,17 @@ def test_create_order_transfer(mock_snap):
     assert data["snap_token"] == "snap_token_123"
     assert data["order_id"] is not None
 
-@patch("service.store_order_service.requests.post")
-def test_create_order_cod(mock_post):
-    # Update payload for COD
+
+@patch("service.order_service.create_komerce_order")
+def test_create_order_cod(mock_create_komerce):
     cod_payload = valid_order_payload.copy()
     cod_payload["payment_method"] = "COD"
-    
-    # Mock Komerce response
-    mock_post.return_value.status_code = 200
-    mock_post.return_value.json.return_value = {
-        "data": {
-            "order_id": "KOMERCE-123"
-        }
-    }
-    
+
+    mock_create_komerce.return_value = {"data": {"order_id": "KOMERCE-123"}}
+
     response = client.post("/api/v1/orders/", json=cod_payload)
-    
+
     assert response.status_code == 201
     data = response.json()
     assert data["status"] == "success"
-    # assert data["message"] == "Order COD Created" # checking generic success
     assert "komerce_data" in data

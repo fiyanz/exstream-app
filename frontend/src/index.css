@@ -1,5 +1,50 @@
 @import "tailwindcss";
 
+@theme {
+  /* Colors */
+  --color-primary: #002045;
+  --color-secondary: #1960a3;
+  --color-background: #faf9fd;
+  --color-surface: #faf9fd;
+  --color-surface-variant: #e3e2e6;
+  --color-surface-gray: #F7FAFC;
+  --color-on-surface: #1a1c1e;
+  --color-on-surface-variant: #43474e;
+  --color-error-red: #C53030;
+  --color-success-green: #276749;
+  --color-outline: #74777f;
+  --color-outline-variant: #c4c6cf;
+  --color-surface-container-high: #e9e7eb;
+  --color-surface-container-lowest: #ffffff;
+  --color-on-primary: #ffffff;
+  --color-on-secondary: #ffffff;
+
+  /* Custom Spacing & Sizing */
+  --spacing-section-gap: 5rem;
+  --spacing-element-gap: 2rem;
+  --spacing-container-max: 800px;
+  --spacing-margin-safe: 1.5rem;
+
+  /* Fonts */
+  --font-body-md: 'Inter', sans-serif;
+  --font-headline-lg: 'Inter', sans-serif;
+  --font-headline-md: 'Inter', sans-serif;
+  --font-headline-sm: 'Inter', sans-serif;
+  --font-body-lg: 'Inter', sans-serif;
+  --font-label-lg: 'Inter', sans-serif;
+  --font-button-text: 'Inter', sans-serif;
+
+  /* Font Sizes */
+  --font-size-headline-lg-mobile: 32px;
+  --font-size-button-text: 20px;
+  --font-size-headline-sm: 24px;
+  --font-size-headline-md: 32px;
+  --font-size-headline-lg: 48px;
+  --font-size-label-lg: 18px;
+  --font-size-body-lg: 20px;
+  --font-size-body-md: 18px;
+}
+
 @keyframes fade-in {
     from { 
         opacity: 0; 

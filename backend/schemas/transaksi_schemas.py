@@ -19,6 +19,7 @@ class TransaksiOut(TransaksiBase):
     redirect_url: Optional[str] = None
     payment_status: Optional[str] = None
     message: Optional[str] = None
+    whatsapp_url: Optional[str] = None
 
     class Config:
         from_attributes = True  # Mengganti orm_mode karena sudah deprecated di Pydantic V2

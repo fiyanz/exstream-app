@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react';
 import { calculateShippingCost, formatShippingOptions } from '../services/hitungCostOngkir';
-import { PRODUCT_WEIGHT } from '../features/transactions/constants';
+
+const PRODUCT_WEIGHT = 1000;
 
 export const useShipping = () => {
     const [shippingOptions, setShippingOptions] = useState([]);

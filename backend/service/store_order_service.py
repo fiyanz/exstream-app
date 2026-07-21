@@ -1,385 +1,167 @@
-import requests
-import re
-from core.config import settings
-from typing import Dict, Any, List, Optional
 import logging
 import math
+from typing import Any
+
+import requests
+from sqlalchemy.orm import Session
+from fastapi import HTTPException, status
+
+from core.config import settings
+from models.store_order_model import StoreOrder, OrderDetails
+from schemas.store_order_schemas import StoreOrderRequest
 
 logger = logging.getLogger(__name__)
 
 KOMERCE_API_KEY = settings.KOMERCE_API_KEY
 KOMERCE_ORDER_BASE_URL = settings.KOMERCE_ORDER_BASE_URL
 
+
 def calculate_service_fee(grand_total: int, cod_value: int, payment_method: str = "") -> int:
-    """
-    Calculate service fee (2.8% of COD or grand total as required by Komerce documentation)
-    
-    Args:
-        grand_total: Total order amount
-        cod_value: COD value if applicable
-        payment_method: Payment method ("COD" or "Transfer")
-        
-    Returns:
-        Calculated service fee
-    """
-    # According to Komerce error documentation: service_fee should be 2.8% of grand total or COD value
-    # For COD payments, use the cod_value
-    # For non-COD payments, use the grand_total
-    if payment_method and payment_method.upper() == "COD" and cod_value > 0:
-        base_amount = cod_value
-    else:
-        base_amount = grand_total
-    
-    # Calculate exactly 2.8% without any minimums or additional calculations
-    # Make sure to handle floating point precision correctly
-    calculated_fee = round(base_amount * 0.028)  # 2.8% rounded to nearest integer
-    
-    logger.info(f"Calculated service fee: {calculated_fee} (2.8% of {base_amount}, method: {payment_method})")
-    return calculated_fee
+    base = cod_value if payment_method and payment_method.upper() == "COD" and cod_value > 0 else grand_total
+    return max(1, round(base * 0.028))
 
-def validate_service_fee(order_data: Dict[str, Any]) -> Dict[str, Any]:
-    """
-    Validate and auto-calculate service fee if needed
-    
-    Args:
-        order_data: Order data dictionary
-        
-    Returns:
-        Updated order data with validated service fee
-    """
-    grand_total = order_data.get("grand_total", 0)
-    cod_value = order_data.get("cod_value", 0)
-    payment_method = order_data.get("payment_method", "")
-    current_service_fee = order_data.get("service_fee", 0)
-    
-    # If service fee is already set and seems reasonable, don't override it
-    if current_service_fee > 0 and abs(current_service_fee - round(grand_total * 0.028)) < 10:
-        logger.info(f"Using provided service fee: {current_service_fee}")
-        return order_data
-
-    # Calculate expected service fee based on payment method
-    expected_service_fee = calculate_service_fee(grand_total, cod_value, payment_method)
-    
-    # Set the service fee in the order data
-    order_data["service_fee"] = expected_service_fee
-    logger.info(f"Set service fee to {expected_service_fee} for {payment_method} payment (grand_total: {grand_total}, cod_value: {cod_value})")
-    
-    # Make sure it's a positive integer (this shouldn't be necessary, but just to be safe)
-    if not isinstance(order_data["service_fee"], int):
-        logger.warning(f"Converting service fee to integer: {order_data['service_fee']}")
-        order_data["service_fee"] = int(float(order_data["service_fee"]))
-    
-    # Make sure it's not zero, which could cause validation issues
-    if order_data["service_fee"] <= 0:
-        logger.warning("Service fee calculated as zero or negative, setting to minimum value")
-        order_data["service_fee"] = max(1, round(grand_total * 0.028))  # At least 1, or 2.8% rounded
-    
-    return order_data
 
 def calculate_insurance_value(courier: str, total_product_price: int, grand_total: int) -> int:
-    """
-    Calculate insurance value based on courier policies and Komerce requirements
-    
-    Args:
-        courier: Courier code (e.g., JNE, SICEPAT, etc.)
-        total_product_price: Total product price (without shipping)
-        grand_total: Grand total of the order
-        
-    Returns:
-        Calculated insurance value (0 if insurance not applicable)
-    """
-    # Per Komerce API error message: "only products price more than IDR 300,000.00 can be insured"
-    # Check if total product price is below minimum threshold
     if total_product_price <= 300000:
-        logger.info(f"Total product price ({total_product_price}) is below minimum threshold (300,000) for insurance. Setting insurance_value to 0.")
         return 0
-    
-    # Normalize courier code to uppercase for consistent comparison
-    courier = courier.upper() if courier else ""
-    
-    # Default insurance value is 0
-    insurance_value = 0
-    
-    try:
-        if courier == "JNE":
-            # JNE: (0.2% x total_product_price) + Rp5.000
-            insurance_value = int((total_product_price * 0.002) + 5000)
-            
-        elif courier == "SICEPAT":
-            # SiCepat: 0.3% x grand_total if grand_total > IDR 500,000
-            if grand_total > 500000:
-                insurance_value = int(grand_total * 0.003)
-            
-        elif courier == "IDEXPRESS":
-            # IDExpress: 0.2% x total_product_price
-            insurance_value = int(total_product_price * 0.002)
-            
-        elif courier == "SAP":
-            # SAP: (0.3% x total_product_price) + Rp2.000/AWB
-            insurance_value = int((total_product_price * 0.003) + 2000)
-            
-        elif courier == "NINJA":
-            # Ninja: 0.25% x total_product_price with minimum IDR 2,500 for orders <= IDR 1,000,000
-            if total_product_price <= 1000000:
-                insurance_value = 2500
-            else:
-                insurance_value = int(total_product_price * 0.0025)
-                
-        elif courier in ["JNT", "J&T"]:
-            # J&T: 0.2% x total_product_price
-            insurance_value = int(total_product_price * 0.002)
-            
-        # Round up to the nearest 100
-        insurance_value = math.ceil(insurance_value / 100) * 100
-        
-        logger.info(f"Calculated insurance value for {courier}: {insurance_value} (product price: {total_product_price}, grand total: {grand_total})")
-        
-    except Exception as e:
-        logger.error(f"Error calculating insurance value: {str(e)}")
-        # Default to 0 on error
-        insurance_value = 0
-    
-    return insurance_value
 
-def validate_insurance_value(order_data: Dict[str, Any]) -> Dict[str, Any]:
-    """
-    Calculate and validate insurance value based on courier and Komerce requirements
-    
-    Args:
-        order_data: Order data dictionary
-        
-    Returns:
-        Updated order data with validated insurance value
-    """
-    courier = order_data.get("shipping", "")
-    
-    # Calculate total product price from order details
+    courier = (courier or "").upper()
+    match courier:
+        case "JNE":
+            value = int(total_product_price * 0.002) + 5000
+        case "SICEPAT":
+            value = int(grand_total * 0.003) if grand_total > 500000 else 0
+        case "IDEXPRESS":
+            value = int(total_product_price * 0.002)
+        case "SAP":
+            value = int(total_product_price * 0.003) + 2000
+        case "NINJA":
+            value = 2500 if total_product_price <= 1000000 else int(total_product_price * 0.0025)
+        case "JNT" | "J&T":
+            value = int(total_product_price * 0.002)
+        case _:
+            value = 0
+
+    return math.ceil(value / 100) * 100
+
+
+def _validate_order(order_data: dict[str, Any]) -> dict[str, Any]:
+    order_data["service_fee"] = calculate_service_fee(
+        order_data.get("grand_total", 0),
+        order_data.get("cod_value", 0),
+        order_data.get("payment_method", ""),
+    )
+
     order_details = order_data.get("order_details", [])
-    total_product_price = sum(item.get("subtotal", 0) for item in order_details)
-    
-    grand_total = order_data.get("grand_total", 0)
-    
-    # Log the total product price for debugging
-    logger.info(f"Total product price: {total_product_price} (minimum 300,000 required for insurance)")
-    
-    # Check if insurance_value field exists in the order_data
-    has_insurance_value = "insurance_value" in order_data
-    current_insurance_value = order_data.get("insurance_value", 0) if has_insurance_value else None
-    
-    # If insurance_value field doesn't exist, don't add it
-    if current_insurance_value is None:
-        logger.info("No insurance_value field in request. Skipping insurance calculation.")
-        return order_data
-    
-    # Per Komerce API: only products with price > 300,000 can be insured
-    if total_product_price <= 300000:
-        logger.info(f"Product price ({total_product_price}) is below the minimum threshold for insurance. Removing insurance_value field.")
-        # Don't include insurance_value field at all for products below threshold
-        if "insurance_value" in order_data:
-            del order_data["insurance_value"]
-        return order_data
-    
-    # Calculate expected insurance value (only if product price is above threshold)
-    expected_insurance_value = calculate_insurance_value(courier, total_product_price, grand_total)
-    
-    # Update insurance value in order data
-    if current_insurance_value <= 0 or abs(current_insurance_value - expected_insurance_value) > 1000:
-        order_data["insurance_value"] = expected_insurance_value
-        logger.info(f"Set insurance value to {expected_insurance_value} for courier: {courier}")
-    
+    total_product = sum(item.get("subtotal", 0) for item in order_details)
+    if total_product <= 300000 and "insurance_value" in order_data:
+        del order_data["insurance_value"]
+    elif "insurance_value" in order_data:
+        order_data["insurance_value"] = calculate_insurance_value(
+            order_data.get("shipping", ""),
+            total_product,
+            order_data.get("grand_total", 0),
+        )
+
     return order_data
 
-def create_store_order(order_data: Dict[str, Any]) -> Dict[str, Any]:
-    """
-    Create a store order using Komerce API
-    
-    Args:
-        order_data: Dictionary containing order information
-        
-    Returns:
-        Dict containing the API response
-    """
-    # Log original values before validation
-    original_service_fee = order_data.get("service_fee", 0)
-    original_insurance_value = order_data.get("insurance_value", 0)
-    logger.info(f"Original service fee before validation: {original_service_fee}")
-    logger.info(f"Original insurance value before validation: {original_insurance_value}")
-    
-    # Validate and fix service fee before sending to API
-    order_data = validate_service_fee(order_data)
-    
-    # Validate and fix insurance value before sending to API
-    order_data = validate_insurance_value(order_data)
-    
-    # Log values after validation
-    logger.info(f"Final service fee after validation: {order_data.get('service_fee', 0)}")
-    logger.info(f"Final insurance value after validation: {order_data.get('insurance_value', 0)}")
-    logger.info(f"Payment method: {order_data.get('payment_method', 'Unknown')}")
-    logger.info(f"Shipping courier: {order_data.get('shipping', 'Unknown')}")
-    logger.info(f"Grand total: {order_data.get('grand_total', 0)}")
-    
+
+def create_komerce_order(order_data: dict[str, Any]) -> dict[str, Any]:
     url = f"{KOMERCE_ORDER_BASE_URL}/orders/store"
     headers = {
         "x-api-key": KOMERCE_API_KEY,
-        "Content-Type": "application/json"
+        "Content-Type": "application/json",
     }
-    
-    logger.info(f"Sending store order request to Komerce API: {url}")
-    logger.info(f"Headers: {headers}")
-    logger.info(f"Order data: {order_data}")
-    
+
     try:
-        # Log full URL and request details
-        logger.info(f"Full URL: {url}")
-        logger.info(f"API Key: {KOMERCE_API_KEY[:4]}...{KOMERCE_API_KEY[-4:] if len(KOMERCE_API_KEY) > 8 else ''}")
-        logger.info(f"Request data: {order_data}")
-        
-        response = requests.post(url, headers=headers, json=order_data)
-        
-        # Log response details regardless of status code
-        logger.info(f"API Response status: {response.status_code}")
-        logger.info(f"API Response content: {response.text}")
-        
-        # Raise exception for 4XX/5XX responses
+        response = requests.post(url, headers=headers, json=order_data, timeout=30)
         response.raise_for_status()
-        
-        result = response.json()
-        logger.info(f"API Response parsed: {result}")
-        return result
+        return response.json()
     except requests.exceptions.RequestException as e:
-        logger.error(f"Error calling Komerce Store Order API: {str(e)}")
-        if hasattr(e, 'response') and e.response is not None:
+        logger.error("Komerce API error: %s", e)
+        error_detail = {}
+        if hasattr(e, "response") and e.response is not None:
             try:
                 error_detail = e.response.json()
-                logger.error(f"API Error Details: {error_detail}")
-                
-                # Check for specific error types
-                if 'meta' in error_detail and 'message' in error_detail['meta']:
-                    error_message = error_detail['meta']['message'].lower()
-                    
-                    # Handle expedition/courier not found errors
-                    if 'expedition not found' in error_message:
-                        courier = order_data.get('shipping', 'unknown')
-                        service_type = order_data.get('shipping_type', 'unknown')
-                        
-                        logger.error(f"Expedition not found error. Courier: {courier}, Service type: {service_type}")
-                        
-                        # Common mapping for couriers
-                        courier_map = {
-                            'JNE': 'jne',
-                            'J&T': 'jnt',
-                            'SICEPAT': 'sicepat',
-                            'ID EXPRESS': 'idexpress',
-                            'NINJA': 'ninja',
-                            'SAP': 'sap',
-                            'POS': 'pos',
-                            'ANTERAJA': 'anteraja',
-                            'LION': 'lion'
-                        }
-                        
-                        # Try to find the correct courier format
-                        suggested_courier = courier_map.get(courier.upper(), courier.lower())
-                        
-                        return {
-                            "meta": {
-                                "status": "error", 
-                                "message": f"Courier '{courier}' not found in Komerce API. Try using '{suggested_courier}' instead.",
-                                "code": "EXPEDITION_NOT_FOUND",
-                            },
-                            "data": None
-                        }
-                    
-                    # Handle COD payment not supported for certain couriers
-                    elif 'only payment_method bank transfer supported for shipping' in error_message or 'cod not supported' in error_message:
-                        courier = order_data.get('shipping', 'unknown').upper()
-                        
-                        # Extract courier name from error message if available
-                        courier_match = re.search(r'for shipping (\w+)', error_message)
-                        if courier_match:
-                            courier = courier_match.group(1).upper()
-                        
-                        logger.error(f"COD payment not supported for courier: {courier}")
-                        
-                        return {
-                            "meta": {
-                                "status": "error", 
-                                "message": f"Kurir {courier} tidak mendukung pembayaran COD. Silakan gunakan metode pembayaran transfer bank.",
-                                "code": "COD_NOT_SUPPORTED_FOR_COURIER",
-                                "courier": courier
-                            },
-                            "data": None
-                        }
-                    
-                    # Handle service fee errors
-                    elif 'service fee' in error_message:
-                        logger.error(f"Service fee error detected. Current service fee: {order_data.get('service_fee')}")
-                        logger.error(f"Order grand total: {order_data.get('grand_total')}")
-                        logger.error(f"COD value: {order_data.get('cod_value')}")
-                        logger.error(f"Payment method: {order_data.get('payment_method')}")
-                        
-                        # Try different calculation methods to see which one should work
-                        base_amount = order_data.get('grand_total', 0)
-                        cod_amount = order_data.get('cod_value', 0)
-                        
-                        # Calculate with different methods for troubleshooting
-                        fee1 = round(base_amount * 0.028)  # 2.8% of grand_total, rounded
-                        fee2 = int(base_amount * 0.028)    # 2.8% of grand_total, truncated
-                        fee3 = round(cod_amount * 0.028)   # 2.8% of cod_value, rounded
-                        fee4 = int(cod_amount * 0.028)     # 2.8% of cod_value, truncated
-                        fee5 = math.ceil(base_amount * 0.028) # 2.8% of grand_total, ceiling
-                        
-                        logger.error(f"Service fee calculation options:")
-                        logger.error(f"  1. 2.8% of grand_total ({base_amount}), rounded: {fee1}")
-                        logger.error(f"  2. 2.8% of grand_total ({base_amount}), truncated: {fee2}")
-                        logger.error(f"  3. 2.8% of cod_value ({cod_amount}), rounded: {fee3}")
-                        logger.error(f"  4. 2.8% of cod_value ({cod_amount}), truncated: {fee4}")
-                        logger.error(f"  5. 2.8% of grand_total ({base_amount}), ceiling: {fee5}")
-                        
-                        # Try setting a hardcoded service fee as a last resort - retrying not implemented
-                        # as that would require modifying the API structure
-                    
-                    # Handle insurance value errors
-                    elif 'insurance' in error_message or '300,000' in error_message:
-                        # Calculate total product price
-                        order_details = order_data.get("order_details", [])
-                        total_product_price = sum(item.get("subtotal", 0) for item in order_details)
-                        
-                        logger.error(f"Insurance value error detected. Current insurance value: {order_data.get('insurance_value')}")
-                        logger.error(f"Total product price: {total_product_price} (minimum 300,000 required for insurance)")
-                        logger.error(f"Order grand total: {order_data.get('grand_total')}")
-                        logger.error(f"Shipping courier: {order_data.get('shipping')}")
-                        
-                        # IMPORTANT: Remove insurance_value field completely instead of setting to 0
-                        if "insurance_value" in order_data:
-                            del order_data["insurance_value"]
-                            logger.warning("Removing insurance_value field completely from request")
-                        
-                        # Try to make the API call again without the insurance_value field
-                        try:
-                            logger.info("Retrying API call without insurance_value field")
-                            retry_response = requests.post(url, headers=headers, json=order_data)
-                            retry_response.raise_for_status()
-                            
-                            result = retry_response.json()
-                            logger.info(f"Retry successful! API Response: {result}")
-                            return result
-                        except requests.exceptions.RequestException as retry_err:
-                            logger.error(f"Retry failed: {str(retry_err)}")
-                            
-                            # If retry fails, return the original error
-                            return {
-                                "meta": {
-                                    "status": "error", 
-                                    "message": "Total product price must be more than IDR 300,000 to apply insurance. Please try again with insurance disabled.",
-                                    "code": "INSURANCE_THRESHOLD_NOT_MET",
-                                    "original_error": error_detail
-                                }
-                            }
-                
-                return {"meta": {"status": "error", "message": str(e), "details": error_detail}}
-            except:
-                return {"meta": {"status": "error", "message": str(e)}}
-        return {"meta": {"status": "error", "message": str(e)}}
+            except ValueError:
+                pass
+        return {"meta": {"status": "error", "message": str(e), "details": error_detail}}
+
+
+def process_store_order(order: StoreOrderRequest, db: Session) -> dict:
+    order_data = order.dict()
+    payment_method = order_data.get("payment_method", "Unknown")
+    logger.info(f"Creating store order via Komerce API. Payment method: {payment_method}")
+
+    # Validate and calculate fees/insurance
+    order_data = _validate_order(order_data)
+
+    # Call Komerce API
+    komerce_response = create_komerce_order(order_data)
+
+    if komerce_response.get("meta", {}).get("status") == "error":
+        error_message = komerce_response.get("meta", {}).get("message", "Unknown error")
+        error_code = komerce_response.get("meta", {}).get("code", "")
+        
+        if error_code == "INSURANCE_THRESHOLD_NOT_MET" or "insurance" in error_message.lower() or "300,000" in error_message:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail={
+                    "message": "Product total value is below IDR 300,000 - insurance cannot be applied",
+                    "error_type": "insurance_validation",
+                    "original_error": error_message
+                }
+            )
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Komerce API error: {error_message}")
+
+    # Save to Local DB
+    try:
+        db_order = StoreOrder(
+            order_date=order.order_date,
+            brand_name=order.brand_name,
+            shipper_name=order.shipper_name,
+            shipper_phone=order.shipper_phone,
+            shipper_destination_id=order.shipper_destination_id,
+            shipper_address=order.shipper_address,
+            shipper_email=order.shipper_email,
+            receiver_name=order.receiver_name,
+            receiver_phone=order.receiver_phone,
+            receiver_destination_id=order.receiver_destination_id,
+            receiver_address=order.receiver_address,
+            shipping=order.shipping,
+            shipping_type=order.shipping_type,
+            payment_method=order.payment_method,
+            shipping_cost=order.shipping_cost,
+            shipping_cashback=order.shipping_cashback,
+            service_fee=order.service_fee,
+            additional_cost=order.additional_cost,
+            grand_total=order.grand_total,
+            cod_value=order.cod_value,
+            insurance_value=order.insurance_value,
+        )
+        db.add(db_order)
+        db.commit()
+        db.refresh(db_order)
+
+        for detail in order.order_details:
+            db_detail = OrderDetails(
+                store_order_id=db_order.id,
+                product_name=detail.product_name,
+                product_variant_name=detail.product_variant_name,
+                product_price=detail.product_price,
+                product_width=detail.product_width,
+                product_height=detail.product_height,
+                product_weight=detail.product_weight,
+                product_length=detail.product_length,
+                qty=detail.qty,
+                subtotal=detail.subtotal,
+            )
+            db.add(db_detail)
+        db.commit()
+        
     except Exception as e:
-        logger.error(f"Unexpected error: {str(e)}")
-        return {"meta": {"status": "error", "message": f"Unexpected error: {str(e)}"}}
+        db.rollback()
+        logger.error(f"Failed to save order to local DB: {e}")
+        # Note: We don't raise an exception here because the API call already succeeded.
+
+    return komerce_response

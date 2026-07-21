@@ -1,4 +1,3 @@
-import './App.css'
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import LandingPage from './pages/LandingPage';
 import AdminLoginPage from './pages/admin/AdminLoginPage';
@@ -7,7 +6,6 @@ import OrderListPage from './pages/admin/OrderListPage';
 import ProtectedRoute from './components/common/ProtectedRoute';
 
 function App() {
-
   return (
     <Router>
       <Routes>

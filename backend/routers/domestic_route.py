@@ -1,111 +1,134 @@
-"""
-router untuk mengelola destinasi endpoint dari api raja ongkir v1
-"""
-
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
 from core.config import settings
 from schemas.domestic_schemas import DomesticCostRequest
 import requests
-from utils.get_id_distric import extract_city_id_from_village
+import math
+from sqlalchemy.orm import Session
+from db.database import get_db
+from models import wilayah_model as models
 
 domesticCostRequest = APIRouter()
 
-@domesticCostRequest.post("/domestic-cost", summary="Hitung ongkir domestik via Komerce RajaOngkir")
-async def calculate_domestic_cost(request: DomesticCostRequest):
+@domesticCostRequest.post("/domestic-cost", summary="Hitung ongkir domestik via Komerce Tariff API")
+async def calculate_domestic_cost(request: DomesticCostRequest, db: Session = Depends(get_db)):
     """
-    Hitung ongkos kirim domestik menggunakan Komerce RajaOngkir API.
+    Hitung ongkos kirim domestik menggunakan Komerce Tariff API yang baru.
     
     Parameters:
-    - destination: ID kota tujuan (format: 4 digit - kode kota)
-    - weight: Berat paket dalam gram
-    - courier: Daftar kurir dengan separator ':'
-    - price: Format sorting ('lowest' atau 'highest')
+    - destination: ID tujuan komerce (receiver_destination_id) atau ID Desa lokal.
+    - weight: Berat paket dalam gram (nanti dikonversi)
     """
-    # URL yang benar untuk RajaOngkir via Komerce
-    # Format: calculate/city/domestic-cost
-    url = f"{settings.RAJA_ONGKIR_BASE_URL}/calculate/domestic-cost"
-
-    headers = {
-        "key": settings.SHIPPING_COST_API_KEY,
-        "Content-Type": "application/x-www-form-urlencoded"
+    url = f"{settings.KOMERCE_BASE_URL}/calculate"
+    
+    # Konversi berat ke kilogram (Komerce Tariff API)
+    weight_kg = max(1, math.ceil(request.weight / 1000))
+    
+    # Menerjemahkan ID lokal menjadi ID Komerce
+    komerce_dest_id = request.destination
+    dest_str = str(request.destination)
+    village = db.query(models.Village).filter(models.Village.id == dest_str).first()
+    
+    if village:
+        # Jika ID dikenali sebagai desa di DB lokal, cari ID Komerce-nya
+        search_url = f"{settings.KOMERCE_BASE_URL}/destination/search"
+        search_headers = {"x-api-key": settings.SHIPPING_COST_API_KEY}
+        try:
+            search_res = requests.get(search_url, headers=search_headers, params={"keyword": village.name})
+            if search_res.status_code == 200:
+                data = search_res.json().get("data", [])
+                # Coba cocokkan dengan nama kecamatan dan nama desa
+                exact_match = next((item for item in data if item.get("district_name", "").upper() == village.district.name.upper() and item.get("subdistrict_name", "").upper() == village.name.upper()), None)
+                if exact_match:
+                    komerce_dest_id = exact_match["id"]
+                elif data:
+                    komerce_dest_id = data[0]["id"]
+        except Exception as e:
+            print(f"Warning: Failed to translate village ID {dest_str} to Komerce ID: {e}")
+    
+    params = {
+        "shipper_destination_id": settings.MY_ORIGIN_DESTINATION_ID,
+        "receiver_destination_id": komerce_dest_id,
+        "weight": weight_kg, 
+        "item_value": 300000,
+        "cod": "yes",
     }
 
-    origin = settings.MY_ORIGIN_DESTINATION_ID
-    if not origin:
-        raise HTTPException(status_code=500, detail="MY_ORIGIN_CODE belum di-set di .env")
-
-
-    # Extract city ID from the village/subdistrict ID
-    destination_city_id = extract_city_id_from_village(request.destination)
-    print(f"DEBUG: Converting destination ID {request.destination} to city ID {destination_city_id}")
-
-    # Sesuaikan courier parameter untuk hanya menanyakan kurir yang diinginkan
-    allowed_couriers = "jne:sicepat:ninja:ide:anteraja:jnt"
-    
-    # payload sesuai dokumentasi Raja Ongkir
-    payload = {
-        "origin": settings.MY_ORIGIN_DESTINATION_ID,
-        "destination": destination_city_id,
-        "weight": request.weight,
-        "courier": allowed_couriers,  # Gunakan daftar kurir yang diizinkan saja
-        "price": request.price
+    headers = {
+        "x-api-key": settings.SHIPPING_COST_API_KEY,
     }
 
     try:
-        # Make the API request
-        response = requests.post(url, headers=headers, data=payload)
-        print("DEBUG STATUS:", response.status_code)
-        print("DEBUG BODY:", response.text)
+        response = requests.get(url, headers=headers, params=params)
         response.raise_for_status()
         
-        # Parse the response
         result = response.json()
         
-        # If we have a valid response but empty data, provide a more helpful error
-        if 'data' in result and (result['data'] is None or len(result['data']) == 0):
-            return {
-                "meta": {
-                    "status": "error",
-                    "message": "Tidak ada data pengiriman tersedia untuk tujuan ini. Silahkan coba destinasi lain."
-                },
-                "data": []
-            }
+        if result.get("meta", {}).get("status") != "success":
+            return result
+            
+        komerce_data = result.get("data", {})
         
-        # Filter untuk hanya menampilkan kurir yang diinginkan
-        if 'data' in result and result['data']:
-            # Daftar kurir yang diinginkan (lowercase untuk perbandingan case-insensitive)
-            allowed_couriers = ['jne', 'sicepat', 'ninja', 'ide', 'anteraja', 'jnt']
+        # Ekstrak kurir reguler dan cargo
+        regular_couriers = komerce_data.get("calculate_reguler", [])
+        cargo_couriers = komerce_data.get("calculate_cargo", [])
+        
+        all_couriers = regular_couriers + cargo_couriers
+        
+        # Mapping format baru Komerce ke format flat yang diekspektasi oleh frontend
+        formatted_data = []
+        regular_keywords = ["reguler", "regular", "reg", "ez", "standard", "ekonomi", "economy"]
+        
+        for item in all_couriers:
+            code = item.get("shipping_name", "").lower()
+            name = item.get("shipping_name", "")
+            service = item.get("service_name", "")
+            cost = item.get("shipping_cost", 0)
+            raw_etd = item.get("etd", "-")
             
-            # Filter data berdasarkan kode kurir
-            filtered_data = [
-                item for item in result['data'] 
-                if item.get('code', '').lower() in allowed_couriers
-            ]
+            # 1. Filter only regular services (Moved from frontend)
+            name_lower = service.lower()
+            if not any(kw in name_lower for kw in regular_keywords):
+                continue
+                
+            # 2. Format ETD (Moved from frontend)
+            etd = "1-3 hari" if not raw_etd or raw_etd == "-" else raw_etd
+            if "day" in etd:
+                etd = etd.replace("day", "hari")
+            elif etd.replace("-", "").isdigit():
+                etd = f"{etd} hari"
+                
+            # 3. Format currency
+            cost_formatted = f"{cost:,}".replace(",", ".")
             
-            # Jika tidak ada hasil yang tersisa setelah filter
-            if not filtered_data:
-                print("WARNING: No couriers remained after filtering")
-            else:
-                print(f"INFO: Filtered from {len(result['data'])} couriers to {len(filtered_data)} allowed couriers")
+            # 4. Final label for UI
+            label = f"{name} - {service} - Rp {cost_formatted} ({etd})"
             
-            # Update data dalam hasil dengan data yang sudah difilter
-            result['data'] = filtered_data
+            formatted_data.append({
+                "id": f"{code}-{service}",
+                "name": f"{name} - {service}",
+                "code": code,
+                "service": service,
+                "cost": cost,
+                "etd": etd,
+                "label": label
+            })
             
-        return result
+        return {
+            "meta": result.get("meta"),
+            "data": formatted_data
+        }
+
     except requests.exceptions.RequestException as e:
-        print(f"Error connecting to Komerce RajaOngkir: {e}")
+        print(f"Error connecting to Komerce Tariff API: {e}")
         
-        # Try to parse error response if available
         if 'response' in locals() and hasattr(response, 'text'):
+            print("Response Content:", response.text)
             try:
                 error_data = response.json()
-                if error_data.get('meta', {}).get('status') == 'error':
-                    # Just pass through the API error
-                    return error_data
+                return error_data
             except:
                 pass
                 
-        # Fallback error as HTTP exception
         raise HTTPException(
             status_code=503,
             detail=f"Gagal terhubung ke layanan pengiriman: {e}"

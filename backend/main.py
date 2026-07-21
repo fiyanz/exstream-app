@@ -1,38 +1,35 @@
+import logging
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.middleware.trustedhost import TrustedHostMiddleware
-from starlette.middleware.base import BaseHTTPMiddleware
-from starlette.responses import Response
 
 from core.config import settings
-from routers.wilayah_route import wilayah
-from routers.transaksi_route import transaksi
-from routers.order_route import order_router
-from routers.domestic_route import domesticCostRequest
 from routers.auth_route import auth_router
+from routers.order_route import order_router
+from routers.transaksi_route import transaksi
 from routers.store_order_route import store_order
-
+from routers.domestic_route import domesticCostRequest
+from routers.wilayah_route import wilayah
+from routers.admin_route import admin_api_router
 from db.database import Base, engine
-from models.order_model import Order
-from models.admin_model import Admin
 
+logger = logging.getLogger(__name__)
 
 Base.metadata.create_all(bind=engine)
-print("Semua tabel telah dibuat.")
+logger.info("Database tables verified/created.")
 
 app = FastAPI(
-    title="extreme app",
-    description="An app for extreme apps",
+    title="Exstream API",
+    description="E-commerce API for Jas Hujan Extrime",
     version="0.1.0",
     docs_url="/docs",
     redoc_url="/redoc",
 )
 
-
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Allow all origins for development
-    allow_credentials=True,
+    allow_origins=settings.CORS_ORIGINS,
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -48,6 +45,12 @@ app.include_router(
     order_router,
     prefix=f"{settings.API_PREFIX}/orders",
     tags=["Unified Orders"]
+)
+
+app.include_router(
+    admin_api_router,
+    prefix=f"{settings.API_PREFIX}/admin",
+    tags=["Admin Panel API"]
 )
 
 app.include_router(
